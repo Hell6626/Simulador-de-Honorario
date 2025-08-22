@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
   ArrowLeft,
   Building,
   Calculator,
   TrendingUp,
   Check,
-  AlertCircle
+  AlertCircle,
+  Save,
+  CheckCircle
 } from 'lucide-react';
 import { apiService } from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
@@ -48,6 +50,9 @@ interface Passo2Props {
   clienteId: number;
   onVoltar: () => void;
   onProximo: (dados: ConfiguracoesTributarias) => void;
+  // ⚠️ NOVO: Props para salvamento automático
+  dadosSalvos?: any;
+  onSalvarProgresso?: (dados: any) => void;
 }
 
 // Função para formatar moeda
@@ -59,22 +64,30 @@ const formatarMoeda = (valor: number): string => {
 };
 
 export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
+  clienteId,
   onVoltar,
-  onProximo
+  onProximo,
+  dadosSalvos,
+  onSalvarProgresso
 }) => {
   const [abaAtiva, setAbaAtiva] = useState(0);
   const [selectedTipoAtividade, setSelectedTipoAtividade] = useState<number | null>(null);
   const [selectedRegimeTributario, setSelectedRegimeTributario] = useState<number | null>(null);
   const [selectedFaixaFaturamento, setSelectedFaixaFaturamento] = useState<number | null>(null);
-  
+
   const [tiposAtividade, setTiposAtividade] = useState<TipoAtividade[]>([]);
   const [regimesCompativeis, setRegimesCompativeis] = useState<RegimeTributario[]>([]);
   const [faixasFaturamento, setFaixasFaturamento] = useState<FaixaFaturamento[]>([]);
-  
+
   const [loading, setLoading] = useState(false);
   const [loadingRegimes, setLoadingRegimes] = useState(false);
   const [loadingFaixas, setLoadingFaixas] = useState(false);
   const [error, setError] = useState('');
+
+  // ⚠️ NOVO: Estados para salvamento automático
+  const [salvando, setSalvando] = useState(false);
+  const [ultimoSalvamento, setUltimoSalvamento] = useState<Date | null>(null);
+  const [erroSalvamento, setErroSalvamento] = useState<string | null>(null);
 
   // ⚠️ NOVA LÓGICA: Verificar se há faixas disponíveis
   const hasFaixasFaturamento = faixasFaturamento.length > 0;
@@ -83,16 +96,120 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
   const podeProximo = React.useMemo(() => {
     const temTipoAtividade = !!selectedTipoAtividade;
     const temRegimeTributario = !!selectedRegimeTributario;
-    
+
     // Se não há faixas disponíveis, não precisa selecionar
     if (!hasFaixasFaturamento) {
       return temTipoAtividade && temRegimeTributario;
     }
-    
+
     // Se há faixas disponíveis, precisa selecionar uma
     const temFaixaFaturamento = !!selectedFaixaFaturamento;
     return temTipoAtividade && temRegimeTributario && temFaixaFaturamento;
   }, [selectedTipoAtividade, selectedRegimeTributario, selectedFaixaFaturamento, hasFaixasFaturamento]);
+
+  // ⚠️ NOVO: Recuperar dados salvos ao montar componente
+  useEffect(() => {
+    if (dadosSalvos) {
+      if (dadosSalvos.tipoAtividadeId) {
+        setSelectedTipoAtividade(dadosSalvos.tipoAtividadeId);
+      }
+      if (dadosSalvos.regimeTributarioId) {
+        setSelectedRegimeTributario(dadosSalvos.regimeTributarioId);
+      }
+      if (dadosSalvos.faixaFaturamentoId) {
+        setSelectedFaixaFaturamento(dadosSalvos.faixaFaturamentoId);
+      }
+      if (dadosSalvos.abaAtiva !== undefined) {
+        setAbaAtiva(dadosSalvos.abaAtiva);
+      }
+    }
+
+    // Recuperar do localStorage como fallback
+    const dadosBackup = localStorage.getItem('proposta_passo2_backup');
+    if (dadosBackup && !dadosSalvos) {
+      try {
+        const dados = JSON.parse(dadosBackup);
+        if (dados.tipoAtividadeId) setSelectedTipoAtividade(dados.tipoAtividadeId);
+        if (dados.regimeTributarioId) setSelectedRegimeTributario(dados.regimeTributarioId);
+        if (dados.faixaFaturamentoId) setSelectedFaixaFaturamento(dados.faixaFaturamentoId);
+        if (dados.abaAtiva !== undefined) setAbaAtiva(dados.abaAtiva);
+      } catch (error) {
+        console.warn('Erro ao recuperar backup do Passo 2:', error);
+      }
+    }
+  }, [dadosSalvos]);
+
+  // ⚠️ NOVO: Função de salvamento automático
+  const salvarProgresso = useCallback(async () => {
+    if (!selectedTipoAtividade || !selectedRegimeTributario) return;
+
+    setSalvando(true);
+    setErroSalvamento(null);
+
+    try {
+      const dadosParaSalvar = {
+        passo: 2,
+        clienteId,
+        tipoAtividadeId: selectedTipoAtividade,
+        regimeTributarioId: selectedRegimeTributario,
+        faixaFaturamentoId: selectedFaixaFaturamento,
+        abaAtiva,
+        timestamp: new Date().toISOString(),
+        dadosCompletos: {
+          tipoAtividade: tiposAtividade.find(t => t.id === selectedTipoAtividade),
+          regimeTributario: regimesCompativeis.find(r => r.id === selectedRegimeTributario),
+          faixaFaturamento: faixasFaturamento.find(f => f.id === selectedFaixaFaturamento)
+        }
+      };
+
+      // Salvar no localStorage como backup
+      localStorage.setItem('proposta_passo2_backup', JSON.stringify(dadosParaSalvar));
+
+      // Chamar callback de salvamento se fornecido
+      if (onSalvarProgresso) {
+        await onSalvarProgresso(dadosParaSalvar);
+      }
+
+      setUltimoSalvamento(new Date());
+      console.log('Progresso do Passo 2 salvo com sucesso');
+
+    } catch (error) {
+      console.error('Erro ao salvar progresso:', error);
+      setErroSalvamento(error instanceof Error ? error.message : 'Erro desconhecido');
+    } finally {
+      setSalvando(false);
+    }
+  }, [selectedTipoAtividade, selectedRegimeTributario, selectedFaixaFaturamento, abaAtiva, clienteId, tiposAtividade, regimesCompativeis, faixasFaturamento, onSalvarProgresso]);
+
+  // ⚠️ NOVO: Salvamento automático quando dados mudam
+  useEffect(() => {
+    if (selectedTipoAtividade && selectedRegimeTributario) {
+      const timeoutId = setTimeout(salvarProgresso, 1500); // Debounce de 1.5 segundos
+      return () => clearTimeout(timeoutId);
+    }
+  }, [selectedTipoAtividade, selectedRegimeTributario, selectedFaixaFaturamento, salvarProgresso]);
+
+  // ⚠️ NOVO: Limpar backup ao sair
+  useEffect(() => {
+    return () => {
+      // Manter backup por 24 horas para recuperação
+      const dadosBackup = localStorage.getItem('proposta_passo2_backup');
+      if (dadosBackup) {
+        try {
+          const dados = JSON.parse(dadosBackup);
+          const timestamp = new Date(dados.timestamp);
+          const agora = new Date();
+          const diffHoras = (agora.getTime() - timestamp.getTime()) / (1000 * 60 * 60);
+
+          if (diffHoras > 24) {
+            localStorage.removeItem('proposta_passo2_backup');
+          }
+        } catch (error) {
+          localStorage.removeItem('proposta_passo2_backup');
+        }
+      }
+    };
+  }, []);
 
   // Carregar tipos de atividade ao montar o componente
   useEffect(() => {
@@ -127,18 +244,18 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
   const carregarTiposAtividade = async () => {
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await apiService.getTiposAtividade({ ativo: true });
       setTiposAtividade(response.items || response || []);
     } catch (err: unknown) {
       console.error('Erro ao carregar tipos de atividade:', err);
-      
+
       // Dados mockados para demonstração
       const errorMessage = (err as Error)?.message || '';
       if (errorMessage.includes('401') || errorMessage.includes('UNAUTHORIZED') || errorMessage.includes('Failed to fetch')) {
         setError('API não disponível. Usando dados de demonstração.');
-        
+
         const tiposMockados: TipoAtividade[] = [
           {
             id: 1,
@@ -173,7 +290,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
             ativo: true
           }
         ];
-        
+
         setTiposAtividade(tiposMockados);
       } else {
         setError(errorMessage || 'Erro ao carregar tipos de atividade');
@@ -186,17 +303,17 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
 
   const carregarRegimesCompativeis = async (tipoAtividadeId: number) => {
     setLoadingRegimes(true);
-    
+
     try {
       // Buscar regimes compatíveis com o tipo de atividade
-      const response = await apiService.getRegimesTributarios({ 
+      const response = await apiService.getRegimesTributarios({
         ativo: true,
         atividades_ids: [tipoAtividadeId]
       });
       setRegimesCompativeis(response.items || response || []);
     } catch (err: unknown) {
       console.error('Erro ao carregar regimes:', err);
-      
+
       // Dados mockados para demonstração
       const regimesMockados: RegimeTributario[] = [
         {
@@ -227,7 +344,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
           ativo: true
         }
       ];
-      
+
       setRegimesCompativeis(regimesMockados);
     } finally {
       setLoadingRegimes(false);
@@ -237,19 +354,19 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
   // ⚠️ ATUALIZADA: Função para carregar faixas
   const carregarFaixasFaturamento = async (regimeTributarioId: number) => {
     setLoadingFaixas(true);
-    
+
     try {
       const response = await apiService.getFaixasFaturamento({ regime_tributario_id: regimeTributarioId });
       const faixas = response.items || response || [];
-      
+
       setFaixasFaturamento(faixas);
-      
+
       // Log para debugging
       console.log(`Regime ${regimeTributarioId}: ${faixas.length} faixas encontradas`);
-      
+
     } catch (err: unknown) {
       console.error('Erro ao carregar faixas:', err);
-      
+
       // Dados mockados para demonstração
       const faixasMockadas: FaixaFaturamento[] = [
         {
@@ -285,7 +402,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
           ativo: true
         }
       ];
-      
+
       setFaixasFaturamento(faixasMockadas);
     } finally {
       setLoadingFaixas(false);
@@ -296,7 +413,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
     setSelectedTipoAtividade(tipoAtividadeId);
     setSelectedRegimeTributario(null);
     setSelectedFaixaFaturamento(null);
-    
+
     // Navegar automaticamente para a próxima aba
     setAbaAtiva(1);
   };
@@ -304,15 +421,18 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
   const handleRegimeTributarioChange = async (regimeId: number) => {
     setSelectedRegimeTributario(regimeId);
     setSelectedFaixaFaturamento(null);
-    
+
     // Carregar faixas de faturamento
     await carregarFaixasFaturamento(regimeId);
-    
+
     // Navegar para a aba 3 se houver faixas (será verificado no useEffect)
   };
 
   const handleProximo = () => {
     if (podeProximo) {
+      // ⚠️ NOVO: Salvar antes de prosseguir
+      salvarProgresso();
+
       onProximo({
         tipo_atividade_id: selectedTipoAtividade!,
         regime_tributario_id: selectedRegimeTributario!,
@@ -325,25 +445,25 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
     switch (tabIndex) {
       case 0: // Tipo de Atividade
         return { enabled: true, required: true };
-      
+
       case 1: // Regime Tributário
-        return { 
+        return {
           enabled: !!selectedTipoAtividade,
           required: true,
           tooltip: !selectedTipoAtividade ? "Selecione um tipo de atividade primeiro" : ""
         };
-      
+
       case 2: // Faixa de Faturamento
-        return { 
+        return {
           enabled: !!selectedRegimeTributario && hasFaixasFaturamento,
           required: false, // ⚠️ NÃO é mais obrigatória
-          tooltip: !selectedRegimeTributario 
-            ? "Selecione um regime tributário primeiro" 
-            : !hasFaixasFaturamento 
+          tooltip: !selectedRegimeTributario
+            ? "Selecione um regime tributário primeiro"
+            : !hasFaixasFaturamento
               ? "Este regime não possui faixas de faturamento configuradas"
               : ""
         };
-      
+
       default:
         return { enabled: false, required: false };
     }
@@ -357,6 +477,30 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Nova Proposta - Passo 2</h1>
             <p className="text-sm text-gray-500">Configure as informações tributárias</p>
+
+            {/* ⚠️ NOVO: Indicador de salvamento */}
+            <div className="flex items-center space-x-2 mt-2">
+              {salvando && (
+                <div className="flex items-center text-blue-600 text-sm">
+                  <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
+                  <span>Salvando configurações...</span>
+                </div>
+              )}
+
+              {ultimoSalvamento && !salvando && (
+                <div className="flex items-center text-green-600 text-sm">
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  <span>Salvo {ultimoSalvamento.toLocaleTimeString()}</span>
+                </div>
+              )}
+
+              {erroSalvamento && (
+                <div className="flex items-center text-red-600 text-sm">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  <span>Erro no salvamento</span>
+                </div>
+              )}
+            </div>
           </div>
           <button
             onClick={onVoltar}
@@ -375,35 +519,44 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
         </div>
       )}
 
+      {/* ⚠️ NOVO: Aviso de recuperação se aplicável */}
+      {dadosSalvos && (dadosSalvos.tipoAtividadeId || dadosSalvos.regimeTributarioId) && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center space-x-2">
+            <CheckCircle className="w-5 h-5 text-blue-600" />
+            <span className="text-blue-800 text-sm">
+              Configurações tributárias recuperadas - Dados restaurados automaticamente
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* ⚠️ NOVO: Indicadores de Progresso com Lógica Condicional */}
       <div className="flex items-center justify-center space-x-4 mb-6">
         {/* Tipo de Atividade - Sempre obrigatório */}
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-          selectedTipoAtividade ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
-        }`}>
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedTipoAtividade ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
+          }`}>
           {selectedTipoAtividade ? <Check className="w-4 h-4" /> : '1'}
         </div>
         <div className={`h-1 w-16 ${selectedTipoAtividade ? 'bg-green-500' : 'bg-gray-300'}`} />
-        
+
         {/* Regime Tributário - Sempre obrigatório */}
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-          selectedRegimeTributario ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
-        }`}>
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedRegimeTributario ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
+          }`}>
           {selectedRegimeTributario ? <Check className="w-4 h-4" /> : '2'}
         </div>
-        
+
         {/* Faixa de Faturamento - Condicional */}
         {hasFaixasFaturamento && (
           <>
             <div className={`h-1 w-16 ${selectedRegimeTributario ? 'bg-green-500' : 'bg-gray-300'}`} />
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              selectedFaixaFaturamento ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
-            }`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedFaixaFaturamento ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
+              }`}>
               {selectedFaixaFaturamento ? <Check className="w-4 h-4" /> : '3'}
             </div>
           </>
         )}
-        
+
         {/* Indicador quando não há faixas */}
         {!hasFaixasFaturamento && selectedRegimeTributario && (
           <>
@@ -419,11 +572,10 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
       <div className="flex border-b border-gray-200 mb-6">
         <button
           onClick={() => setAbaAtiva(0)}
-          className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${
-            abaAtiva === 0
+          className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${abaAtiva === 0
               ? 'text-blue-600 border-b-2 border-blue-600'
               : 'text-gray-500 hover:text-gray-700'
-          }`}
+            }`}
         >
           <Building className="w-4 h-4" />
           <span>Tipo de Atividade</span>
@@ -431,13 +583,12 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
         <button
           onClick={() => setAbaAtiva(1)}
           disabled={!getTabState(1).enabled}
-          className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${
-            abaAtiva === 1
+          className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${abaAtiva === 1
               ? 'text-blue-600 border-b-2 border-blue-600'
               : getTabState(1).enabled
-              ? 'text-gray-500 hover:text-gray-700'
-              : 'text-gray-300 cursor-not-allowed'
-          }`}
+                ? 'text-gray-500 hover:text-gray-700'
+                : 'text-gray-300 cursor-not-allowed'
+            }`}
           title={getTabState(1).tooltip}
         >
           <Calculator className="w-4 h-4" />
@@ -446,13 +597,12 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
         <button
           onClick={() => setAbaAtiva(2)}
           disabled={!getTabState(2).enabled}
-          className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${
-            abaAtiva === 2
+          className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${abaAtiva === 2
               ? 'text-blue-600 border-b-2 border-blue-600'
               : getTabState(2).enabled
-              ? 'text-gray-500 hover:text-gray-700'
-              : 'text-gray-300 cursor-not-allowed'
-          }`}
+                ? 'text-gray-500 hover:text-gray-700'
+                : 'text-gray-300 cursor-not-allowed'
+            }`}
           title={getTabState(2).tooltip}
         >
           <TrendingUp className="w-4 h-4" />
@@ -600,7 +750,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-lg font-medium text-gray-900">
-                              {formatarMoeda(faixa.valor_inicial)} 
+                              {formatarMoeda(faixa.valor_inicial)}
                               {faixa.valor_final ? ` até ${formatarMoeda(faixa.valor_final)}` : ' ou mais'}
                             </p>
                             <p className="text-sm text-gray-500">
@@ -661,8 +811,18 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
                 Sem faixas específicas
               </span>
             )}
+
+            {/* ⚠️ NOVO: Botão de salvamento manual */}
+            <button
+              onClick={salvarProgresso}
+              disabled={!podeProximo || salvando}
+              className="flex items-center space-x-2 px-3 py-1 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
+            >
+              <Save className="w-4 h-4" />
+              <span>{salvando ? 'Salvando...' : 'Salvar Configurações'}</span>
+            </button>
           </div>
-          
+
           <div className="flex space-x-3">
             <button
               onClick={onVoltar}

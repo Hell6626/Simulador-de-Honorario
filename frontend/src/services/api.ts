@@ -21,7 +21,7 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || error.error || 'Erro na requisição');
@@ -31,7 +31,7 @@ class ApiService {
       if (contentType && contentType.includes('application/json')) {
         return await response.json();
       }
-      
+
       return response.text() as unknown as T;
     } catch (error) {
       if (error instanceof Error) {
@@ -47,7 +47,7 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify({ email, senha }),
     });
-    
+
     Cookies.set(TOKEN_KEY, response.token, { expires: 7 });
     return response;
   }
@@ -278,7 +278,7 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || error.error || 'Erro na requisição');
@@ -288,7 +288,7 @@ class ApiService {
       if (contentType && contentType.includes('application/json')) {
         return await response.json();
       }
-      
+
       return response.text() as unknown as any;
     } catch (error) {
       if (error instanceof Error) {
@@ -309,7 +309,7 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || error.error || 'Erro na requisição');
@@ -319,7 +319,7 @@ class ApiService {
       if (contentType && contentType.includes('application/json')) {
         return await response.json();
       }
-      
+
       return response.text() as unknown as any;
     } catch (error) {
       if (error instanceof Error) {
@@ -368,8 +368,18 @@ class ApiService {
       const response = await fetch(url, config);
       
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || error.error || 'Erro na requisição');
+        let errorMessage = 'Erro na requisição';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || `Erro ${response.status}`;
+        } catch {
+          errorMessage = `Erro ${response.status}: ${response.statusText}`;
+        }
+        
+        // Incluir código de status na mensagem de erro
+        const error = new Error(`${response.status} - ${errorMessage}`);
+        (error as any).status = response.status;
+        throw error;
       }
 
       const contentType = response.headers.get('content-type');
@@ -384,6 +394,10 @@ class ApiService {
       }
       throw new Error('Erro desconhecido');
     }
+  }
+
+  async getLogsPropostas(propostaId: number) {
+    return this.request<any>(`/propostas/${propostaId}/logs`);
   }
 
   // Chat

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     CheckCircle,
     ArrowLeft,
@@ -11,7 +11,9 @@ import {
     MessageSquare,
     FileDown,
     FileText,
-    Info
+    Info,
+    Save,
+    RefreshCw
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 
@@ -126,6 +128,9 @@ interface Passo5Props {
     dadosProposta: PropostaComDesconto;
     onVoltar: () => void;
     onFinalizado: (propostaFinalizada: PropostaResponse) => void;
+    // ⚠️ NOVO: Props para salvamento automático
+    dadosSalvos?: any;
+    onSalvarProgresso?: (dados: any) => void;
 }
 
 // Função para formatar moeda
@@ -868,13 +873,143 @@ const adicionarServicosCompletos = (
 export const Passo5FinalizacaoProposta: React.FC<Passo5Props> = ({
     dadosProposta,
     onVoltar,
-    onFinalizado
+    onFinalizado,
+    dadosSalvos,
+    onSalvarProgresso
 }) => {
     const [finalizando, setFinalizando] = useState(false);
     const [finalizada, setFinalizada] = useState(false);
     const [propostaFinalizada, setPropostaFinalizada] = useState<PropostaResponse | null>(null);
     const [todosServicos, setTodosServicos] = useState<Servico[]>([]);
     const [erro, setErro] = useState<string>('');
+
+    // ⚠️ NOVO: Estados para salvamento automático
+    const [salvando, setSalvando] = useState(false);
+    const [ultimoSalvamento, setUltimoSalvamento] = useState<Date | null>(null);
+    const [erroSalvamento, setErroSalvamento] = useState<string | null>(null);
+    const [tentativasSalvamento, setTentativasSalvamento] = useState(0);
+
+    // ⚠️ NOVO: Recuperar dados salvos ao montar componente
+    useEffect(() => {
+        if (dadosSalvos) {
+            // Recuperar estado de finalização se aplicável
+            if (dadosSalvos.finalizada) {
+                setFinalizada(dadosSalvos.finalizada);
+            }
+            if (dadosSalvos.propostaFinalizada) {
+                setPropostaFinalizada(dadosSalvos.propostaFinalizada);
+            }
+        }
+
+        // Recuperar do localStorage como fallback
+        const dadosBackup = localStorage.getItem('proposta_passo5_backup');
+        if (dadosBackup && !dadosSalvos) {
+            try {
+                const dados = JSON.parse(dadosBackup);
+                if (dados.finalizada) {
+                    setFinalizada(dados.finalizada);
+                }
+                if (dados.propostaFinalizada) {
+                    setPropostaFinalizada(dados.propostaFinalizada);
+                }
+            } catch (error) {
+                console.warn('Erro ao recuperar backup do Passo 5:', error);
+            }
+        }
+    }, [dadosSalvos]);
+
+    // ⚠️ NOVO: Função de salvamento automático
+    const salvarProgresso = useCallback(async (forcarSalvamento = false) => {
+        if (!forcarSalvamento && !dadosProposta) return;
+
+        setSalvando(true);
+        setErroSalvamento(null);
+
+        try {
+            const dadosParaSalvar = {
+                passo: 5,
+                finalizada,
+                propostaFinalizada,
+                timestamp: new Date().toISOString(),
+                dadosCompletos: {
+                    ...dadosProposta,
+                    finalizada,
+                    propostaFinalizada
+                }
+            };
+
+            // Salvar no localStorage como backup
+            localStorage.setItem('proposta_passo5_backup', JSON.stringify(dadosParaSalvar));
+
+            // Chamar callback de salvamento se fornecido
+            if (onSalvarProgresso) {
+                console.log('Passo 5: Chamando onSalvarProgresso com dados:', dadosParaSalvar);
+                await onSalvarProgresso(dadosParaSalvar);
+            }
+
+            setUltimoSalvamento(new Date());
+            setTentativasSalvamento(0);
+            console.log('Passo 5: Progresso salvo com sucesso');
+
+        } catch (error) {
+            console.error('Passo 5: Erro ao salvar progresso:', error);
+            setErroSalvamento(error instanceof Error ? error.message : 'Erro desconhecido');
+
+            // ⚠️ NOVO: Retry automático em caso de erro
+            if (tentativasSalvamento < 3) {
+                setTentativasSalvamento(prev => prev + 1);
+                console.log(`Passo 5: Tentativa ${tentativasSalvamento + 1} de salvamento em ${2000 * (tentativasSalvamento + 1)}ms`);
+                setTimeout(() => salvarProgresso(true), 2000 * (tentativasSalvamento + 1));
+            }
+        } finally {
+            setSalvando(false);
+        }
+    }, [finalizada, propostaFinalizada, dadosProposta, onSalvarProgresso, tentativasSalvamento]);
+
+    // ⚠️ NOVO: Salvamento automático quando estado muda
+    useEffect(() => {
+        if (dadosProposta) {
+            const timeoutId = setTimeout(() => salvarProgresso(), 1000); // Debounce de 1 segundo
+            return () => clearTimeout(timeoutId);
+        }
+    }, [dadosProposta, salvarProgresso]);
+
+    // ⚠️ NOVO: Salvar progresso automaticamente ao montar componente
+    useEffect(() => {
+        console.log('Passo 5: Componente montado, dados disponíveis:', !!dadosProposta);
+        if (dadosProposta) {
+            console.log('Passo 5: Salvando progresso inicial...');
+            setTimeout(() => salvarProgresso(true), 500); // Salvar após 500ms
+        }
+    }, [dadosProposta, salvarProgresso]);
+
+    // ⚠️ NOVO: Limpar backup ao sair
+    useEffect(() => {
+        return () => {
+            // Manter backup por 24 horas para recuperação
+            const dadosBackup = localStorage.getItem('proposta_passo5_backup');
+            if (dadosBackup) {
+                try {
+                    const dados = JSON.parse(dadosBackup);
+                    const timestamp = new Date(dados.timestamp);
+                    const agora = new Date();
+                    const diffHoras = (agora.getTime() - timestamp.getTime()) / (1000 * 60 * 60);
+
+                    if (diffHoras > 24) {
+                        localStorage.removeItem('proposta_passo5_backup');
+                    }
+                } catch (error) {
+                    localStorage.removeItem('proposta_passo5_backup');
+                }
+            }
+        };
+    }, []);
+
+    // ⚠️ NOVO: Função para tentar salvar novamente
+    const tentarSalvarNovamente = useCallback(() => {
+        setTentativasSalvamento(0);
+        salvarProgresso(true);
+    }, [salvarProgresso]);
 
     // Carregar serviços para exibição
     useEffect(() => {
@@ -1008,26 +1143,88 @@ export const Passo5FinalizacaoProposta: React.FC<Passo5Props> = ({
         try {
             // Preparar dados finais para API
             const dadosFinalizacao = {
-                status: 'REALIZADA',
+                status: 'APROVADA',
                 valor_total: dadosProposta.totalFinal,
                 observacoes: dadosProposta.observacoes
             };
 
             console.log('Tentando finalizar proposta com dados:', dadosFinalizacao);
 
-            // Atualizar proposta no backend
-            const proposta = await apiService.finalizarProposta(dadosProposta.id || 1, dadosFinalizacao);
+            let proposta: any = null;
 
-            console.log('Proposta finalizada com sucesso:', proposta);
+            // Se não temos ID da proposta, criar primeiro
+            if (!dadosProposta.id) {
+                console.log('Proposta não existe no banco, criando...');
 
-            setPropostaFinalizada(proposta);
+                // Preparar dados para criação da proposta
+                const dadosCriacao = {
+                    cliente_id: dadosProposta.cliente?.id,
+                    tipo_atividade_id: dadosProposta.tipoAtividade?.id,
+                    regime_tributario_id: dadosProposta.regimeTributario?.id,
+                    faixa_faturamento_id: dadosProposta.faixaFaturamento?.id,
+                    valor_total: dadosProposta.totalFinal,
+                    data_validade: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 dias
+                    status: 'RASCUNHO',
+                    observacoes: dadosProposta.observacoes,
+                    itens: dadosProposta.servicosSelecionados.map(servico => ({
+                        servico_id: servico.servico_id,
+                        quantidade: servico.quantidade,
+                        valor_unitario: servico.valor_unitario,
+                        valor_total: servico.subtotal,
+                        descricao_personalizada: servico.extras?.descricao_personalizada
+                    }))
+                };
+
+                // ⚠️ VERIFICAR: Se temos todos os dados obrigatórios
+                if (!dadosCriacao.cliente_id || !dadosCriacao.tipo_atividade_id || !dadosCriacao.regime_tributario_id) {
+                    throw new Error('Dados obrigatórios da proposta não estão completos. Volte aos passos anteriores.');
+                }
+
+                console.log('Dados para criação da proposta:', dadosCriacao);
+
+                // Criar proposta
+                proposta = await apiService.createProposta(dadosCriacao);
+                console.log('Proposta criada:', proposta);
+            } else {
+                console.log('ID da proposta:', dadosProposta.id);
+            }
+
+            // Agora finalizar a proposta
+            const propostaFinalizada = await apiService.finalizarProposta(
+                proposta?.id || dadosProposta.id,
+                dadosFinalizacao
+            );
+
+            console.log('Proposta finalizada com sucesso:', propostaFinalizada);
+
+            setPropostaFinalizada(propostaFinalizada);
             setFinalizada(true);
 
-            console.log(`Proposta #${proposta.numero} finalizada com sucesso`);
+            // ⚠️ NOVO: Salvar progresso após finalização
+            await salvarProgresso(true);
+
+            console.log(`Proposta #${propostaFinalizada.numero} finalizada com sucesso`);
 
         } catch (error) {
             console.error('Erro ao finalizar proposta:', error);
-            setErro(error instanceof Error ? error.message : 'Erro ao finalizar proposta');
+
+            // Melhorar mensagem de erro
+            let mensagemErro = 'Erro ao finalizar proposta';
+            if (error instanceof Error) {
+                if (error.message.includes('404')) {
+                    mensagemErro = 'Proposta não encontrada no sistema';
+                } else if (error.message.includes('409')) {
+                    mensagemErro = 'Proposta já foi finalizada anteriormente';
+                } else if (error.message.includes('500')) {
+                    mensagemErro = 'Erro interno do servidor - Tente novamente';
+                } else if (error.message.includes('Dados obrigatórios')) {
+                    mensagemErro = error.message;
+                } else {
+                    mensagemErro = error.message;
+                }
+            }
+
+            setErro(mensagemErro);
         } finally {
             setFinalizando(false);
         }
@@ -1049,6 +1246,40 @@ export const Passo5FinalizacaoProposta: React.FC<Passo5Props> = ({
                         <p className="text-sm text-gray-600 mt-1">
                             Revise todos os dados e finalize a proposta
                         </p>
+
+                        {/* ⚠️ NOVO: Status de salvamento automático */}
+                        <div className="flex items-center space-x-2 mt-2">
+                            {salvando && (
+                                <div className="flex items-center text-blue-600 text-sm">
+                                    <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
+                                    <span>Salvando estado de finalização...</span>
+                                    {tentativasSalvamento > 0 && (
+                                        <span className="text-orange-600 ml-2">(Tentativa {tentativasSalvamento}/3)</span>
+                                    )}
+                                </div>
+                            )}
+
+                            {ultimoSalvamento && !salvando && (
+                                <div className="flex items-center text-green-600 text-sm">
+                                    <CheckCircle className="w-4 h-4 mr-1" />
+                                    <span>Salvo {ultimoSalvamento.toLocaleTimeString()}</span>
+                                </div>
+                            )}
+
+                            {erroSalvamento && !salvando && (
+                                <div className="flex items-center text-red-600 text-sm">
+                                    <AlertTriangle className="w-4 h-4 mr-1" />
+                                    <span>Erro no salvamento</span>
+                                    <button
+                                        onClick={tentarSalvarNovamente}
+                                        className="ml-2 text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+                                    >
+                                        <RefreshCw className="w-3 h-3" />
+                                        <span>Tentar novamente</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div className="flex items-center space-x-3">
@@ -1062,6 +1293,18 @@ export const Passo5FinalizacaoProposta: React.FC<Passo5Props> = ({
                     </div>
                 </div>
             </div>
+
+            {/* ⚠️ NOVO: Aviso de recuperação se aplicável */}
+            {dadosSalvos && dadosSalvos.finalizada && (
+                <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-2">
+                        <CheckCircle className="w-5 h-5 text-blue-600" />
+                        <span className="text-blue-800 text-sm">
+                            Estado de finalização recuperado - Proposta já foi finalizada anteriormente
+                        </span>
+                    </div>
+                </div>
+            )}
 
             {/* Erro de finalização */}
             {erro && (
@@ -1107,6 +1350,33 @@ export const Passo5FinalizacaoProposta: React.FC<Passo5Props> = ({
                     <div className="text-sm text-gray-600">
                         <p className="font-medium">Pronto para finalizar?</p>
                         <p>A proposta será marcada como realizada e não poderá mais ser editada.</p>
+
+                        {/* ⚠️ NOVO: Status de salvamento na barra inferior */}
+                        <div className="mt-1 flex items-center space-x-2">
+                            {salvando && (
+                                <div className="flex items-center text-blue-600 text-xs">
+                                    <div className="animate-spin w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full mr-1"></div>
+                                    <span>Salvando...</span>
+                                </div>
+                            )}
+
+                            {ultimoSalvamento && !salvando && (
+                                <div className="flex items-center text-green-600 text-xs">
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    <span>Último salvamento: {ultimoSalvamento.toLocaleTimeString()}</span>
+                                </div>
+                            )}
+
+                            {/* ⚠️ NOVO: Botão de salvamento manual */}
+                            <button
+                                onClick={() => salvarProgresso(true)}
+                                disabled={salvando}
+                                className="flex items-center space-x-1 px-2 py-1 text-xs text-blue-600 bg-blue-50 rounded hover:bg-blue-100 disabled:opacity-50 transition-colors"
+                            >
+                                <Save className="w-3 h-3" />
+                                <span>Salvar Estado</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div className="flex space-x-3">
@@ -1715,7 +1985,7 @@ const gerarPDFProfissional = (
     const doc = new jsPDF('p', 'mm', 'a4');
     let yPos = 10;
 
-    // 🎨 CORES CORPORATIVAS
+    // �� CORES CORPORATIVAS
     const cores = {
         azulEscuro: [25, 55, 109] as [number, number, number],     // #19376D - Azul corporativo
         azulMedio: [52, 115, 179] as [number, number, number],     // #3473B3 - Azul médio

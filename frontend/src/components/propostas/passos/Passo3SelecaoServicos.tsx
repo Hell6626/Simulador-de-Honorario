@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {
   ArrowLeft,
   Info,
-  AlertCircle
+  AlertCircle,
+  Save,
+  CheckCircle
 } from 'lucide-react';
 import { apiService } from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
@@ -44,6 +46,9 @@ interface Passo3Props {
   tipoAtividade: TipoAtividade;
   onVoltar: () => void;
   onProximo: (servicos: ServicoSelecionado[]) => void;
+  // ⚠️ NOVO: Props para salvamento automático
+  dadosSalvos?: any;
+  onSalvarProgresso?: (dados: any) => void;
 }
 
 // Função para formatar moeda
@@ -67,7 +72,9 @@ const formatarTipoCobranca = (tipoCobranca: string): string => {
 export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
   tipoAtividade,
   onVoltar,
-  onProximo
+  onProximo,
+  dadosSalvos,
+  onSalvarProgresso
 }) => {
   const [todosServicos, setTodosServicos] = useState<Servico[]>([]);
   const [servicosPorCategoria, setServicosPorCategoria] = useState<ServicoPorCategoria[]>([]);
@@ -77,10 +84,15 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // ⚠️ NOVO: Estados para salvamento automático
+  const [salvando, setSalvando] = useState(false);
+  const [ultimoSalvamento, setUltimoSalvamento] = useState<Date | null>(null);
+  const [erroSalvamento, setErroSalvamento] = useState<string | null>(null);
+
   // Verificar se é atividade de serviços (para filtro especial na aba FISCAL)
   const isAtividadeServicos = useMemo(() => {
-    return tipoAtividade.nome.toLowerCase().includes('serviç') || 
-           tipoAtividade.codigo.toLowerCase().includes('serv');
+    return tipoAtividade.nome.toLowerCase().includes('serviç') ||
+      tipoAtividade.codigo.toLowerCase().includes('serv');
   }, [tipoAtividade]);
 
   // ⚠️ CORREÇÃO 1: Identificar serviços que devem ser booleanos
@@ -93,29 +105,159 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
     return servico.categoria === 'SOCIETARIO'
   };
 
+  // ⚠️ NOVO: Recuperar dados salvos ao montar componente
+  useEffect(() => {
+    if (dadosSalvos) {
+      if (dadosSalvos.servicosSelecionados) {
+        const servicosMap = new Map();
+        dadosSalvos.servicosSelecionados.forEach((servico: any) => {
+          servicosMap.set(servico.servico_id, servico);
+        });
+        setServicosSelecionados(servicosMap);
+      }
+
+      if (dadosSalvos.informacoesExtras) {
+        const extrasMap = new Map();
+        Object.entries(dadosSalvos.informacoesExtras).forEach(([key, value]) => {
+          extrasMap.set(parseInt(key), value as Record<string, unknown>);
+        });
+        setInformacoesExtras(extrasMap);
+      }
+
+      if (dadosSalvos.abaAtiva !== undefined) {
+        setAbaAtiva(dadosSalvos.abaAtiva);
+      }
+    }
+
+    // Recuperar do localStorage como fallback
+    const dadosBackup = localStorage.getItem('proposta_passo3_backup');
+    if (dadosBackup && !dadosSalvos) {
+      try {
+        const dados = JSON.parse(dadosBackup);
+        if (dados.servicosSelecionados) {
+          const servicosMap = new Map();
+          dados.servicosSelecionados.forEach((servico: any) => {
+            servicosMap.set(servico.servico_id, servico);
+          });
+          setServicosSelecionados(servicosMap);
+        }
+
+        if (dados.informacoesExtras) {
+          const extrasMap = new Map();
+          Object.entries(dados.informacoesExtras).forEach(([key, value]) => {
+            extrasMap.set(parseInt(key), value as Record<string, unknown>);
+          });
+          setInformacoesExtras(extrasMap);
+        }
+
+        if (dados.abaAtiva !== undefined) {
+          setAbaAtiva(dados.abaAtiva);
+        }
+      } catch (error) {
+        console.warn('Erro ao recuperar backup do Passo 3:', error);
+      }
+    }
+  }, [dadosSalvos]);
+
+  // ⚠️ NOVO: Função de salvamento automático
+  const salvarProgresso = useCallback(async () => {
+    if (servicosSelecionados.size === 0) return;
+
+    setSalvando(true);
+    setErroSalvamento(null);
+
+    try {
+      const servicosArray = Array.from(servicosSelecionados.values());
+      const extrasObject = Object.fromEntries(informacoesExtras);
+
+      const dadosParaSalvar = {
+        passo: 3,
+        tipoAtividadeId: tipoAtividade.id,
+        servicosSelecionados: servicosArray,
+        informacoesExtras: extrasObject,
+        abaAtiva,
+        timestamp: new Date().toISOString(),
+        dadosCompletos: {
+          tipoAtividade,
+          servicos: servicosArray.map(s => ({
+            ...s,
+            servico: todosServicos.find(ts => ts.id === s.servico_id)
+          }))
+        }
+      };
+
+      // Salvar no localStorage como backup
+      localStorage.setItem('proposta_passo3_backup', JSON.stringify(dadosParaSalvar));
+
+      // Chamar callback de salvamento se fornecido
+      if (onSalvarProgresso) {
+        await onSalvarProgresso(dadosParaSalvar);
+      }
+
+      setUltimoSalvamento(new Date());
+      console.log('Progresso do Passo 3 salvo com sucesso');
+
+    } catch (error) {
+      console.error('Erro ao salvar progresso:', error);
+      setErroSalvamento(error instanceof Error ? error.message : 'Erro desconhecido');
+    } finally {
+      setSalvando(false);
+    }
+  }, [servicosSelecionados, informacoesExtras, abaAtiva, tipoAtividade, todosServicos, onSalvarProgresso]);
+
+  // ⚠️ NOVO: Salvamento automático quando serviços mudam
+  useEffect(() => {
+    if (servicosSelecionados.size > 0) {
+      const timeoutId = setTimeout(salvarProgresso, 2000); // Debounce de 2 segundos
+      return () => clearTimeout(timeoutId);
+    }
+  }, [servicosSelecionados, informacoesExtras, salvarProgresso]);
+
+  // ⚠️ NOVO: Limpar backup ao sair
+  useEffect(() => {
+    return () => {
+      // Manter backup por 24 horas para recuperação
+      const dadosBackup = localStorage.getItem('proposta_passo3_backup');
+      if (dadosBackup) {
+        try {
+          const dados = JSON.parse(dadosBackup);
+          const timestamp = new Date(dados.timestamp);
+          const agora = new Date();
+          const diffHoras = (agora.getTime() - timestamp.getTime()) / (1000 * 60 * 60);
+
+          if (diffHoras > 24) {
+            localStorage.removeItem('proposta_passo3_backup');
+          }
+        } catch (error) {
+          localStorage.removeItem('proposta_passo3_backup');
+        }
+      }
+    };
+  }, []);
+
   // Calcular totais por categoria
   const totaisPorCategoria = useMemo(() => {
     const totais = new Map<string, number>();
-    
+
     servicosPorCategoria.forEach(categoria => {
       const totalCategoria = Array.from(servicosSelecionados.values())
         .filter(item => {
           const servico = todosServicos.find(s => s.id === item.servico_id);
           if (!servico) return false;
-          
+
           // Para serviços booleanos, incluir se estiverem selecionados (quantidade = 1)
           if (isServicoBooleano(servico) || servico.codigo === 'ORGAO-CLASSE') {
             return servico.categoria === categoria.categoria && item.quantidade === 1;
           }
-          
+
           // Para serviços normais, incluir apenas com quantidade > 0
           return servico.categoria === categoria.categoria && item.quantidade > 0;
         })
         .reduce((sum, item) => sum + item.subtotal, 0);
-      
+
       totais.set(categoria.categoria, totalCategoria);
     });
-    
+
     return totais;
   }, [servicosSelecionados, servicosPorCategoria, todosServicos]);
 
@@ -130,7 +272,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
     if (categoria === 'FISCAL' && isAtividadeServicos) {
       return servicos.filter(servico => servico.codigo === 'NFS-e');
     }
-    
+
     // Para todas as outras categorias e tipos de atividade: mostrar todos
     return servicos;
   };
@@ -157,23 +299,23 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
   const carregarTodosServicos = async () => {
     setLoading(true);
     setError('');
-    
+
     try {
       // Carregar todos os serviços ativos
       const response = await apiService.getServicos();
       const servicos = response || [];
-      
+
       setTodosServicos(servicos);
-      
+
       // Agrupar por categoria e aplicar filtros
       const grupos = agruparServicosPorCategoria(servicos);
       setServicosPorCategoria(grupos);
-      
+
       console.log(`Carregados ${servicos.length} serviços em ${grupos.length} categorias`);
-      
+
     } catch (err: unknown) {
       console.error('Erro ao carregar serviços:', err);
-      
+
       // Fallback com dados mockados
       const errorMessage = (err as Error)?.message || '';
       if (errorMessage.includes('404') || errorMessage.includes('Failed to fetch')) {
@@ -269,7 +411,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
             ativo: true
           }
         ];
-        
+
         setTodosServicos(servicosMockados);
         const grupos = agruparServicosPorCategoria(servicosMockados);
         setServicosPorCategoria(grupos);
@@ -303,7 +445,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
   // 🔄 LÓGICA ATUALIZADA: Função de Toggle para Diferentes Tipos de Serviço
   const handleServicoToggle = (servico: Servico, checked: boolean) => {
     const newMap = new Map(servicosSelecionados);
-    
+
     if (checked) {
       if (isServicoBooleano(servico) || servico.codigo === 'ORGAO-CLASSE') {
         // Serviços booleanos: quantidade fixa = 1
@@ -331,14 +473,14 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
         setInformacoesExtras(newExtras);
       }
     }
-    
+
     setServicosSelecionados(newMap);
   };
 
   const handleQuantidadeChange = (servicoId: number, quantidade: number) => {
     const novosSelecionados = new Map(servicosSelecionados);
     const item = novosSelecionados.get(servicoId);
-    
+
     if (item) {
       novosSelecionados.set(servicoId, {
         ...item,
@@ -346,7 +488,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
         subtotal: Math.max(0, quantidade) * item.valor_unitario
       });
     }
-    
+
     setServicosSelecionados(novosSelecionados);
   };
 
@@ -356,31 +498,34 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
       .some(item => {
         const servico = todosServicos.find(s => s.id === item.servico_id);
         if (!servico) return false;
-        
+
         // Para serviços booleanos, basta estar selecionado
         if (isServicoBooleano(servico) || servico.codigo === 'ORGAO-CLASSE') {
           return true;
         }
-        
+
         // Para serviços normais, precisa ter quantidade > 0
         return item.quantidade > 0;
       });
-    
+
     return temServicoValido || servicosPorCategoria.length === 0;
   }, [servicosSelecionados, servicosPorCategoria, todosServicos]);
 
   const handleProximo = () => {
     if (podeProximo) {
+      // ⚠️ NOVO: Salvar antes de prosseguir
+      salvarProgresso();
+
       const servicosParaEnvio = Array.from(servicosSelecionados.values())
         .filter(item => {
           const servico = todosServicos.find(s => s.id === item.servico_id);
           if (!servico) return false;
-          
+
           // Incluir serviços booleanos se estiverem selecionados
           if (isServicoBooleano(servico) || servico.codigo === 'ORGAO-CLASSE') {
             return true;
           }
-          
+
           // Incluir serviços normais apenas com quantidade > 0
           return item.quantidade > 0;
         })
@@ -389,7 +534,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
           // Adicionar informações extras se existirem
           extras: informacoesExtras.get(item.servico_id) || {}
         }));
-      
+
       onProximo(servicosParaEnvio);
     }
   };
@@ -405,9 +550,33 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
             <p className="text-sm text-gray-600 mt-1">
               Tipo de Atividade: {tipoAtividade.nome}
             </p>
+
+            {/* ⚠️ NOVO: Indicador de salvamento */}
+            <div className="flex items-center space-x-2 mt-2">
+              {salvando && (
+                <div className="flex items-center text-blue-600 text-sm">
+                  <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
+                  <span>Salvando seleção de serviços...</span>
+                </div>
+              )}
+
+              {ultimoSalvamento && !salvando && (
+                <div className="flex items-center text-green-600 text-sm">
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  <span>Salvo {ultimoSalvamento.toLocaleTimeString()}</span>
+                </div>
+              )}
+
+              {erroSalvamento && (
+                <div className="flex items-center text-red-600 text-sm">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  <span>Erro no salvamento</span>
+                </div>
+              )}
+            </div>
           </div>
-          <button 
-            onClick={onVoltar} 
+          <button
+            onClick={onVoltar}
             className="text-gray-600 hover:text-gray-800 flex items-center space-x-2 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -420,6 +589,18 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-700">{error}</p>
+        </div>
+      )}
+
+      {/* ⚠️ NOVO: Aviso de recuperação se aplicável */}
+      {dadosSalvos && dadosSalvos.servicosSelecionados && dadosSalvos.servicosSelecionados.length > 0 && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center space-x-2">
+            <CheckCircle className="w-5 h-5 text-blue-600" />
+            <span className="text-blue-800 text-sm">
+              Seleção de serviços recuperada - {dadosSalvos.servicosSelecionados.length} serviço(s) restaurado(s)
+            </span>
+          </div>
         </div>
       )}
 
@@ -441,7 +622,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
               {servicosPorCategoria.map((categoria, index) => {
                 const total = totaisPorCategoria.get(categoria.categoria) || 0;
                 const temServicos = categoria.servicos.length > 0;
-                
+
                 return (
                   <button
                     key={categoria.categoria}
@@ -501,15 +682,14 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                 const isSelecionado = isServicoSelecionado(servico.id);
                 const quantidade = getQuantidadeServico(servico.id);
                 const subtotal = getSubtotalServico(servico.id);
-                
+
                 return (
-                  <div 
-                    key={servico.id} 
-                    className={`border rounded-lg p-6 transition-all ${
-                      isSelecionado 
-                        ? 'border-blue-500 bg-blue-50' 
+                  <div
+                    key={servico.id}
+                    className={`border rounded-lg p-6 transition-all ${isSelecionado
+                        ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-start space-x-4">
                       <input
@@ -518,7 +698,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                         onChange={(e) => handleServicoToggle(servico, e.target.checked)}
                         className="mt-1 h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
-                      
+
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <div>
@@ -528,7 +708,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                             </h3>
                             <p className="text-sm text-gray-600 mt-1">{servico.descricao}</p>
                           </div>
-                          
+
                           <div className="text-right">
                             <p className="text-lg font-semibold text-gray-900">
                               {formatarMoeda(servico.valor_base)}
@@ -538,7 +718,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                             </p>
                           </div>
                         </div>
-                        
+
                         {/* Controles específicos para cada tipo de serviço */}
                         {isSelecionado && (
                           <>
@@ -554,7 +734,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                                       ✓ Selecionado
                                     </span>
                                   </div>
-                                  
+
                                   <div className="text-right">
                                     <p className="text-sm text-gray-500">Valor único</p>
                                     <p className="text-xl font-bold text-blue-600">
@@ -562,7 +742,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                                     </p>
                                   </div>
                                 </div>
-                                
+
                                 {/* Campo adicional para nome do órgão */}
                                 <div className="border-t border-gray-200 pt-4">
                                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -574,9 +754,9 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                                     value={(informacoesExtras.get(servico.id)?.nomeOrgao as string) || ''}
                                     onChange={(e) => {
                                       const newMap = new Map(informacoesExtras);
-                                      newMap.set(servico.id, { 
-                                        ...newMap.get(servico.id), 
-                                        nomeOrgao: e.target.value 
+                                      newMap.set(servico.id, {
+                                        ...newMap.get(servico.id),
+                                        nomeOrgao: e.target.value
                                       });
                                       setInformacoesExtras(newMap);
                                     }}
@@ -586,7 +766,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                                     Informe o órgão específico se conhecido
                                   </p>
                                 </div>
-                                
+
                                 <div className="mt-2 text-sm text-gray-600">
                                   Serviço será incluído com valor único de {formatarMoeda(servico.valor_base)}
                                 </div>
@@ -603,7 +783,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                                       ✓ Selecionado
                                     </span>
                                   </div>
-                                  
+
                                   <div className="text-right">
                                     <p className="text-sm text-gray-500">Valor do serviço</p>
                                     <p className="text-xl font-bold text-blue-600">
@@ -611,9 +791,9 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                                     </p>
                                   </div>
                                 </div>
-                                
+
                                 <div className="mt-2 text-sm text-gray-600">
-                                  Serviço será incluído com valor fixo de {servico.categoria === 'CONTABIL' ? formatarMoeda(servico.valor_base) + '/mês' : formatarMoeda(servico.valor_base)+'/ano'}
+                                  Serviço será incluído com valor fixo de {servico.categoria === 'CONTABIL' ? formatarMoeda(servico.valor_base) + '/mês' : formatarMoeda(servico.valor_base) + '/ano'}
                                 </div>
                               </div>
                             ) : (
@@ -633,7 +813,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                                       placeholder="0"
                                     />
                                   </div>
-                                  
+
                                   <div className="text-right">
                                     <p className="text-sm text-gray-500">Subtotal</p>
                                     <p className={`text-xl font-bold ${subtotal > 0 ? 'text-blue-600' : 'text-gray-400'}`}>
@@ -641,9 +821,9 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                                     </p>
                                   </div>
                                 </div>
-                                
+
                                 <div className="mt-2 text-sm text-gray-600">
-                                  {quantidade > 0 
+                                  {quantidade > 0
                                     ? `${quantidade} × ${formatarMoeda(servico.valor_base)} = ${formatarMoeda(subtotal)}`
                                     : 'Defina uma quantidade para calcular o valor'
                                   }
@@ -680,23 +860,23 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Resumo dos Serviços Selecionados
             </h3>
-            
-                         {servicosPorCategoria.map(categoria => {
-               const total = totaisPorCategoria.get(categoria.categoria) || 0;
-               const servicosCategoria = Array.from(servicosSelecionados.values())
-                 .filter(item => {
-                   const servico = todosServicos.find(s => s.id === item.servico_id);
-                   if (!servico) return false;
-                   
-                   // Para serviços booleanos, incluir se estiverem selecionados (quantidade = 1)
-                   if (isServicoBooleano(servico) || servico.codigo === 'ORGAO-CLASSE') {
-                     return servico.categoria === categoria.categoria && item.quantidade === 1;
-                   }
-                   
-                   // Para serviços normais, incluir apenas com quantidade > 0
-                   return servico.categoria === categoria.categoria && item.quantidade > 0;
-                 });
-              
+
+            {servicosPorCategoria.map(categoria => {
+              const total = totaisPorCategoria.get(categoria.categoria) || 0;
+              const servicosCategoria = Array.from(servicosSelecionados.values())
+                .filter(item => {
+                  const servico = todosServicos.find(s => s.id === item.servico_id);
+                  if (!servico) return false;
+
+                  // Para serviços booleanos, incluir se estiverem selecionados (quantidade = 1)
+                  if (isServicoBooleano(servico) || servico.codigo === 'ORGAO-CLASSE') {
+                    return servico.categoria === categoria.categoria && item.quantidade === 1;
+                  }
+
+                  // Para serviços normais, incluir apenas com quantidade > 0
+                  return servico.categoria === categoria.categoria && item.quantidade > 0;
+                });
+
               return (
                 <div key={categoria.categoria} className="mb-4">
                   <div className="flex justify-between items-center mb-2">
@@ -707,37 +887,37 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                       {formatarMoeda(total)}
                     </span>
                   </div>
-                  
+
                   {servicosCategoria.length > 0 && (
                     <div className="ml-4 space-y-1">
-                                             {servicosCategoria.map(item => {
-                         const servico = todosServicos.find(s => s.id === item.servico_id);
-                         if (!servico) return null;
-                         
-                         // Para serviços booleanos, mostrar texto diferente
-                         if (isServicoBooleano(servico) || servico.codigo === 'ORGAO-CLASSE') {
-                           return (
-                             <div key={item.servico_id} className="text-sm text-gray-600 flex justify-between">
-                               <span>• {servico.nome}: {formatarMoeda(item.valor_unitario)}</span>
-                               <span>{formatarMoeda(item.subtotal)}</span>
-                             </div>
-                           );
-                         }
-                         
-                         // Para serviços normais, mostrar quantidade
-                         return (
-                           <div key={item.servico_id} className="text-sm text-gray-600 flex justify-between">
-                             <span>• {servico.nome}: {item.quantidade} × {formatarMoeda(item.valor_unitario)}</span>
-                             <span>{formatarMoeda(item.subtotal)}</span>
-                           </div>
-                         );
-                       })}
+                      {servicosCategoria.map(item => {
+                        const servico = todosServicos.find(s => s.id === item.servico_id);
+                        if (!servico) return null;
+
+                        // Para serviços booleanos, mostrar texto diferente
+                        if (isServicoBooleano(servico) || servico.codigo === 'ORGAO-CLASSE') {
+                          return (
+                            <div key={item.servico_id} className="text-sm text-gray-600 flex justify-between">
+                              <span>• {servico.nome}: {formatarMoeda(item.valor_unitario)}</span>
+                              <span>{formatarMoeda(item.subtotal)}</span>
+                            </div>
+                          );
+                        }
+
+                        // Para serviços normais, mostrar quantidade
+                        return (
+                          <div key={item.servico_id} className="text-sm text-gray-600 flex justify-between">
+                            <span>• {servico.nome}: {item.quantidade} × {formatarMoeda(item.valor_unitario)}</span>
+                            <span>{formatarMoeda(item.subtotal)}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
               );
             })}
-            
+
             {/* ⚠️ AJUSTAR: Total com mais espaçamento */}
             <div className="border-t border-gray-300 pt-4 mt-6">
               <div className="flex justify-between items-center">
@@ -771,8 +951,18 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                 <span>Selecione pelo menos um serviço válido</span>
               </span>
             )}
+
+            {/* ⚠️ NOVO: Botão de salvamento manual */}
+            <button
+              onClick={salvarProgresso}
+              disabled={servicosSelecionados.size === 0 || salvando}
+              className="flex items-center space-x-2 px-3 py-1 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
+            >
+              <Save className="w-4 h-4" />
+              <span>{salvando ? 'Salvando...' : 'Salvar Seleção'}</span>
+            </button>
           </div>
-          
+
           <div className="flex space-x-3">
             <button
               onClick={onVoltar}

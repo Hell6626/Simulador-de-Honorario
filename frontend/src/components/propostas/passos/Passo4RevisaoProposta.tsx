@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -14,7 +14,9 @@ import {
   Info,
   Percent,
   FileDown,
-  Download
+  Download,
+  Save,
+  RefreshCw
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -128,6 +130,9 @@ interface Passo4Props {
   dadosProposta: DadosPropostaCompleta;
   onVoltar: () => void;
   onProximo: (dadosComDesconto: PropostaComDesconto) => void;
+  // ⚠️ NOVO: Props para salvamento automático
+  dadosSalvos?: any;
+  onSalvarProgresso?: (dados: any) => void;
 }
 
 // Função para formatar moeda
@@ -176,7 +181,9 @@ const getTipoAbertura = (cliente: Cliente, regimeTributario: RegimeTributario): 
 export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
   dadosProposta,
   onVoltar,
-  onProximo
+  onProximo,
+  dadosSalvos,
+  onSalvarProgresso
 }) => {
   const [percentualDesconto, setPercentualDesconto] = useState<number>(0);
   const [observacoes, setObservacoes] = useState<string>('');
@@ -189,7 +196,13 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
   // ⚠️ NOVO: Estado para geração de PDF
   const [gerandoPDF, setGerandoPDF] = useState(false);
 
-  // ⚠️ NOVO: Hook de salvamento automático
+  // ⚠️ NOVO: Estados para salvamento automático aprimorado
+  const [salvando, setSalvando] = useState(false);
+  const [ultimoSalvamento, setUltimoSalvamento] = useState<Date | null>(null);
+  const [erroSalvamento, setErroSalvamento] = useState<string | null>(null);
+  const [tentativasSalvamento, setTentativasSalvamento] = useState(0);
+
+  // ⚠️ NOVO: Hook de salvamento automático com retry
   const dadosCompletos = useMemo(() => ({
     ...dadosProposta,
     percentualDesconto,
@@ -197,7 +210,109 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
     requerAprovacao: percentualDesconto > 20
   }), [dadosProposta, percentualDesconto, observacoes]);
 
-  const { estadoSalvamento } = useSalvamentoAutomatico(dadosCompletos);
+  // ⚠️ NOVO: Recuperar dados salvos ao montar componente
+  useEffect(() => {
+    if (dadosSalvos) {
+      if (dadosSalvos.percentualDesconto !== undefined) {
+        setPercentualDesconto(dadosSalvos.percentualDesconto);
+      }
+      if (dadosSalvos.observacoes !== undefined) {
+        setObservacoes(dadosSalvos.observacoes);
+      }
+    }
+
+    // Recuperar do localStorage como fallback
+    const dadosBackup = localStorage.getItem('proposta_passo4_backup');
+    if (dadosBackup && !dadosSalvos) {
+      try {
+        const dados = JSON.parse(dadosBackup);
+        if (dados.percentualDesconto !== undefined) {
+          setPercentualDesconto(dados.percentualDesconto);
+        }
+        if (dados.observacoes !== undefined) {
+          setObservacoes(dados.observacoes);
+        }
+      } catch (error) {
+        console.warn('Erro ao recuperar backup do Passo 4:', error);
+      }
+    }
+  }, [dadosSalvos]);
+
+  // ⚠️ NOVO: Função de salvamento automático com retry
+  const salvarProgresso = useCallback(async (forcarSalvamento = false) => {
+    if (!forcarSalvamento && !percentualDesconto && !observacoes.trim()) return;
+
+    setSalvando(true);
+    setErroSalvamento(null);
+
+    try {
+      const dadosParaSalvar = {
+        passo: 4,
+        percentualDesconto,
+        observacoes,
+        requerAprovacao: percentualDesconto > 20,
+        timestamp: new Date().toISOString(),
+        dadosCompletos: {
+          ...dadosProposta,
+          percentualDesconto,
+          observacoes,
+          requerAprovacao: percentualDesconto > 20
+        }
+      };
+
+      // Salvar no localStorage como backup
+      localStorage.setItem('proposta_passo4_backup', JSON.stringify(dadosParaSalvar));
+
+      // Chamar callback de salvamento se fornecido
+      if (onSalvarProgresso) {
+        await onSalvarProgresso(dadosParaSalvar);
+      }
+
+      setUltimoSalvamento(new Date());
+      setTentativasSalvamento(0);
+      console.log('Progresso do Passo 4 salvo com sucesso');
+
+    } catch (error) {
+      console.error('Erro ao salvar progresso:', error);
+      setErroSalvamento(error instanceof Error ? error.message : 'Erro desconhecido');
+
+      // ⚠️ NOVO: Retry automático em caso de erro
+      if (tentativasSalvamento < 3) {
+        setTentativasSalvamento(prev => prev + 1);
+        setTimeout(() => salvarProgresso(true), 2000 * (tentativasSalvamento + 1));
+      }
+    } finally {
+      setSalvando(false);
+    }
+  }, [percentualDesconto, observacoes, dadosProposta, onSalvarProgresso, tentativasSalvamento]);
+
+  // ⚠️ NOVO: Salvamento automático quando dados mudam
+  useEffect(() => {
+    const timeoutId = setTimeout(() => salvarProgresso(), 1500); // Debounce de 1.5 segundos
+    return () => clearTimeout(timeoutId);
+  }, [percentualDesconto, observacoes, salvarProgresso]);
+
+  // ⚠️ NOVO: Limpar backup ao sair
+  useEffect(() => {
+    return () => {
+      // Manter backup por 24 horas para recuperação
+      const dadosBackup = localStorage.getItem('proposta_passo4_backup');
+      if (dadosBackup) {
+        try {
+          const dados = JSON.parse(dadosBackup);
+          const timestamp = new Date(dados.timestamp);
+          const agora = new Date();
+          const diffHoras = (agora.getTime() - timestamp.getTime()) / (1000 * 60 * 60);
+
+          if (diffHoras > 24) {
+            localStorage.removeItem('proposta_passo4_backup');
+          }
+        } catch (error) {
+          localStorage.removeItem('proposta_passo4_backup');
+        }
+      }
+    };
+  }, []);
 
   // ⚠️ ADICIONAR: Função para diagnosticar problemas de dados
   const diagnosticarDadosProposta = (dados: any) => {
@@ -738,6 +853,9 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
   };
 
   const handleProximo = () => {
+    // ⚠️ NOVO: Salvar antes de prosseguir
+    salvarProgresso(true);
+
     const dadosCompletos = prepararDadosParaPasso5();
     onProximo(dadosCompletos);
   };
@@ -785,6 +903,19 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
           </details>
         </div>
       )}
+
+      {/* ⚠️ NOVO: Aviso de recuperação se aplicável */}
+      {dadosSalvos && (dadosSalvos.percentualDesconto > 0 || dadosSalvos.observacoes) && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center space-x-2">
+            <CheckCircle className="w-5 h-5 text-blue-600" />
+            <span className="text-blue-800 text-sm">
+              Revisão recuperada - Desconto e observações restaurados automaticamente
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* ⚠️ ATUALIZADO: Cabeçalho com botão PDF e status de salvamento */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
@@ -795,15 +926,38 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
               Confira os dados e aplique desconto se necessário
             </p>
 
-            {/* ⚠️ NOVO: Status de salvamento automático */}
-            <div className="mt-2">
-              <StatusSalvamento
-                estado={estadoSalvamento}
-                onTentarNovamente={() => {
-                  // Implementar retry se necessário
-                  console.log('Tentando salvar novamente...');
-                }}
-              />
+            {/* ⚠️ NOVO: Status de salvamento automático aprimorado */}
+            <div className="flex items-center space-x-2 mt-2">
+              {salvando && (
+                <div className="flex items-center text-blue-600 text-sm">
+                  <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
+                  <span>Salvando revisão...</span>
+                  {tentativasSalvamento > 0 && (
+                    <span className="text-orange-600 ml-2">(Tentativa {tentativasSalvamento}/3)</span>
+                  )}
+                </div>
+              )}
+
+              {ultimoSalvamento && !salvando && (
+                <div className="flex items-center text-green-600 text-sm">
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  <span>Salvo {ultimoSalvamento.toLocaleTimeString()}</span>
+                </div>
+              )}
+
+              {erroSalvamento && !salvando && (
+                <div className="flex items-center text-red-600 text-sm">
+                  <AlertTriangle className="w-4 h-4 mr-1" />
+                  <span>Erro no salvamento</span>
+                  <button
+                    onClick={tentarSalvarNovamente}
+                    className="ml-2 text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Tentar novamente</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1335,13 +1489,30 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
             )}
 
             {/* ⚠️ NOVO: Status de salvamento na barra inferior */}
-            <div className="mt-1">
-              <StatusSalvamento
-                estado={estadoSalvamento}
-                onTentarNovamente={() => {
-                  console.log('Tentando salvar novamente...');
-                }}
-              />
+            <div className="mt-1 flex items-center space-x-2">
+              {salvando && (
+                <div className="flex items-center text-blue-600 text-xs">
+                  <div className="animate-spin w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full mr-1"></div>
+                  <span>Salvando...</span>
+                </div>
+              )}
+
+              {ultimoSalvamento && !salvando && (
+                <div className="flex items-center text-green-600 text-xs">
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  <span>Último salvamento: {ultimoSalvamento.toLocaleTimeString()}</span>
+                </div>
+              )}
+
+              {/* ⚠️ NOVO: Botão de salvamento manual */}
+              <button
+                onClick={() => salvarProgresso(true)}
+                disabled={salvando}
+                className="flex items-center space-x-1 px-2 py-1 text-xs text-blue-600 bg-blue-50 rounded hover:bg-blue-100 disabled:opacity-50 transition-colors"
+              >
+                <Save className="w-3 h-3" />
+                <span>Salvar Agora</span>
+              </button>
             </div>
           </div>
 
@@ -1376,7 +1547,6 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
           </div>
         </div>
       </div>
-
 
       {/* ⚠️ MODAL DE CONFIRMAÇÃO */}
       <ModalConfirmacaoDesconto

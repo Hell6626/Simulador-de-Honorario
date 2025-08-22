@@ -4,39 +4,17 @@ import {
   Plus,
   Edit2,
   Trash2,
-  FileText
+  FileText,
+  Clock
 } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { Passo1SelecionarCliente, Passo2ConfiguracoesTributarias, Passo3SelecaoServicos, Passo4RevisaoProposta, Passo5FinalizacaoProposta } from '../propostas/passos';
-
-interface Proposta {
-  id: number;
-  numero: string;
-  cliente_id: number;
-  funcionario_responsavel_id?: number;
-  tipo_atividade_id: number;
-  regime_tributario_id: number;
-  faixa_faturamento_id?: number;
-  valor_total: number;
-  data_validade: string;
-  status: string;
-  observacoes?: string;
-  ativo: boolean;
-  created_at: string;
-  updated_at: string;
-  cliente?: {
-    id: number;
-    nome: string;
-    cpf: string;
-    email: string;
-  };
-  funcionario_responsavel?: {
-    id: number;
-    nome: string;
-    email: string;
-  };
-}
+import { ModalEdicaoProposta } from '../propostas/ModalEdicaoProposta';
+import { ModalExclusaoProposta } from '../propostas/ModalExclusaoProposta';
+import { ModalEdicaoCompleta } from '../propostas/ModalEdicaoCompleta';
+import { HistoricoLogs } from '../propostas/HistoricoLogs';
+import { Proposta, PropostaResponse } from '../../types';
 
 // Interfaces removidas para evitar warnings de unused vars
 // As interfaces estão definidas nos componentes específicos
@@ -222,6 +200,18 @@ export const PropostasPage: React.FC = () => {
   const [tipoAtividade, setTipoAtividade] = useState<TipoAtividade | null>(null);
   const [servicosSelecionados, setServicosSelecionados] = useState<ServicoSelecionado[]>([]);
   const [dadosPropostaCompleta, setDadosPropostaCompleta] = useState<DadosPropostaCompleta | null>(null);
+
+  // Estados para modais de edição e exclusão
+  const [modalEdicaoOpen, setModalEdicaoOpen] = useState(false);
+  const [modalExclusaoOpen, setModalExclusaoOpen] = useState(false);
+  const [modalEdicaoCompletaOpen, setModalEdicaoCompletaOpen] = useState(false);
+  const [propostaSelecionada, setPropostaSelecionada] = useState<Proposta | null>(null);
+
+  // Estado para modal de histórico
+  const [modalHistorico, setModalHistorico] = useState({
+    isOpen: false,
+    propostaId: 0
+  });
 
   const fetchPropostas = async (page = 1, search = '') => {
     setLoading(true);
@@ -560,6 +550,14 @@ export const PropostasPage: React.FC = () => {
       requerAprovacao: dadosComDesconto.requerAprovacao,
       observacoes: dadosComDesconto.observacoes
     }));
+    console.log('Estado atualizado para Passo 5:', {
+      ...dadosProposta,
+      percentualDesconto: dadosComDesconto.percentualDesconto,
+      valorDesconto: dadosComDesconto.valorDesconto,
+      totalFinal: dadosComDesconto.totalFinal,
+      requerAprovacao: dadosComDesconto.requerAprovacao,
+      observacoes: dadosComDesconto.observacoes
+    });
     setCurrentStep(5);
   };
 
@@ -588,6 +586,57 @@ export const PropostasPage: React.FC = () => {
       faixa_faturamento_id: undefined,
       servicosSelecionados: []
     });
+  };
+
+  // Funções para manipulação de edição e exclusão
+  const handleEditarProposta = (proposta: Proposta) => {
+    setPropostaSelecionada(proposta);
+    setModalEdicaoOpen(true);
+  };
+
+  const handleEditarPropostaCompleta = (proposta: Proposta) => {
+    setPropostaSelecionada(proposta);
+    setModalEdicaoCompletaOpen(true);
+  };
+
+  const handleExcluirProposta = (proposta: Proposta) => {
+    setPropostaSelecionada(proposta);
+    setModalExclusaoOpen(true);
+  };
+
+  const handleVerHistorico = (proposta: Proposta) => {
+    setModalHistorico({ isOpen: true, propostaId: proposta.id });
+  };
+
+  const handleSalvarEdicao = async (propostaId: number, dados: Partial<Proposta>) => {
+    try {
+      await apiService.updateProposta(propostaId, dados);
+      await fetchPropostas(currentPage, searchTerm);
+      alert('Proposta atualizada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar proposta:', error);
+      throw error;
+    }
+  };
+
+  const handleSalvarEdicaoCompleta = async () => {
+    try {
+      await fetchPropostas(currentPage, searchTerm);
+      alert('Proposta atualizada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar proposta:', error);
+    }
+  };
+
+  const handleConfirmarExclusao = async (propostaId: number) => {
+    try {
+      await apiService.deleteProposta(propostaId);
+      await fetchPropostas(currentPage, searchTerm);
+      alert('Proposta excluída com sucesso!');
+    } catch (error) {
+      console.error('Erro ao excluir proposta:', error);
+      throw error;
+    }
   };
 
   // RENDERIZAÇÃO CONDICIONAL BASEADA NO PASSO ATUAL
@@ -645,9 +694,24 @@ export const PropostasPage: React.FC = () => {
       observacoes: dadosProposta.observacoes
     };
 
+    console.log('Dados completos para Passo 5:', dadosCompletosPasso5);
+
     return (
       <Passo5FinalizacaoProposta
         dadosProposta={dadosCompletosPasso5}
+        dadosSalvos={dadosCompletosPasso5}
+        onSalvarProgresso={(dados) => {
+          console.log('Salvando progresso do Passo 5:', dados);
+          // Atualizar estado principal com dados salvos
+          setDadosProposta(prev => {
+            const novoEstado = {
+              ...prev,
+              ...dados
+            };
+            console.log('Estado atualizado após salvamento:', novoEstado);
+            return novoEstado;
+          });
+        }}
         onVoltar={handleVoltarPasso5}
         onFinalizado={handleFinalizadoPasso5}
       />
@@ -743,10 +807,10 @@ export const PropostasPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${proposta.status === 'APROVADA' ? 'bg-green-100 text-green-800' :
-                            proposta.status === 'ENVIADA' ? 'bg-blue-100 text-blue-800' :
-                              proposta.status === 'RASCUNHO' ? 'bg-yellow-100 text-yellow-800' :
-                                proposta.status === 'REJEITADA' ? 'bg-red-100 text-red-800' :
-                                  'bg-gray-100 text-gray-800'
+                          proposta.status === 'ENVIADA' ? 'bg-blue-100 text-blue-800' :
+                            proposta.status === 'RASCUNHO' ? 'bg-yellow-100 text-yellow-800' :
+                              proposta.status === 'REJEITADA' ? 'bg-red-100 text-red-800' :
+                                'bg-gray-100 text-gray-800'
                           }`}>
                           {proposta.status}
                         </span>
@@ -759,10 +823,28 @@ export const PropostasPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-2">
-                          <button className="text-blue-600 hover:text-blue-900">
+                          <button
+                            onClick={() => handleEditarPropostaCompleta(proposta)}
+                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                            title="Editar proposta completa"
+                          >
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button className="text-red-600 hover:text-red-900">
+
+                          {/* Botão de histórico */}
+                          <button
+                            onClick={() => handleVerHistorico(proposta)}
+                            className="text-purple-600 hover:text-purple-900 transition-colors"
+                            title="Ver histórico de alterações"
+                          >
+                            <Clock className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            onClick={() => handleExcluirProposta(proposta)}
+                            className="text-red-600 hover:text-red-900 transition-colors"
+                            title="Excluir proposta"
+                          >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -816,6 +898,35 @@ export const PropostasPage: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* Modais de Edição e Exclusão */}
+      <ModalEdicaoProposta
+        proposta={propostaSelecionada}
+        isOpen={modalEdicaoOpen}
+        onClose={() => setModalEdicaoOpen(false)}
+        onSave={handleSalvarEdicao}
+      />
+
+      <ModalEdicaoCompleta
+        proposta={propostaSelecionada as PropostaResponse}
+        isOpen={modalEdicaoCompletaOpen}
+        onClose={() => setModalEdicaoCompletaOpen(false)}
+        onSaved={handleSalvarEdicaoCompleta}
+      />
+
+      <ModalExclusaoProposta
+        proposta={propostaSelecionada}
+        isOpen={modalExclusaoOpen}
+        onClose={() => setModalExclusaoOpen(false)}
+        onDelete={handleConfirmarExclusao}
+      />
+
+      {/* Modal de Histórico */}
+      <HistoricoLogs
+        propostaId={modalHistorico.propostaId}
+        isOpen={modalHistorico.isOpen}
+        onClose={() => setModalHistorico({ isOpen: false, propostaId: 0 })}
+      />
     </div>
   );
 };

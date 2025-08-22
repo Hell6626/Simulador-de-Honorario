@@ -63,18 +63,28 @@ export interface Proposta {
   id: number;
   numero: string;
   cliente_id: number;
-  funcionario_id: number;
+  funcionario_responsavel_id?: number;
   tipo_atividade_id: number;
   regime_tributario_id: number;
-  faixa_faturamento_id: number;
+  faixa_faturamento_id?: number;
   valor_total: number;
-  data_validade: string;
-  status: 'RASCUNHO' | 'ENVIADA' | 'APROVADA' | 'REJEITADA' | 'CANCELADA';
+  data_validade?: string;
+  status: string;
   observacoes?: string;
+  ativo: boolean;
   created_at: string;
   updated_at: string;
-  cliente?: Cliente;
-  funcionario?: User;
+  cliente?: {
+    id: number;
+    nome: string;
+    cpf: string;
+    email: string;
+  };
+  funcionario_responsavel?: {
+    id: number;
+    nome: string;
+    email: string;
+  };
   tipo_atividade?: TipoAtividade;
   regime_tributario?: RegimeTributario;
   faixa_faturamento?: FaixaFaturamento;
