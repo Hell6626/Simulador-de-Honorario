@@ -353,6 +353,39 @@ class ApiService {
     });
   }
 
+  async finalizarProposta(id: number, data: any) {
+    // Endpoint de finalização não requer autenticação
+    const url = `${BASE_URL}/propostas/${id}/finalizar`;
+    const config: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      method: 'POST',
+      body: JSON.stringify(data),
+    };
+
+    try {
+      const response = await fetch(url, config);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || error.error || 'Erro na requisição');
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      }
+      
+      return response.text() as unknown as any;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Erro desconhecido');
+    }
+  }
+
   // Chat
   async sendChatMessage(message: string, sessionId: string = 'default') {
     return this.request<any>('/chat/send-message', {

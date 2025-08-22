@@ -1,0 +1,1 @@
+export { useSalvamentoAutomatico } from './useSalvamentoAutomatico';

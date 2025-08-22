@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Plus, 
-  Edit2, 
-  Trash2, 
+import {
+  Search,
+  Plus,
+  Edit2,
+  Trash2,
   FileText
 } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { LoadingSpinner } from '../common/LoadingSpinner';
-import { Passo1SelecionarCliente, Passo2ConfiguracoesTributarias, Passo3SelecaoServicos } from '../propostas/passos';
+import { Passo1SelecionarCliente, Passo2ConfiguracoesTributarias, Passo3SelecaoServicos, Passo4RevisaoProposta, Passo5FinalizacaoProposta } from '../propostas/passos';
 
 interface Proposta {
   id: number;
@@ -52,6 +52,136 @@ interface ServicoSelecionado {
   quantidade: number;
   valor_unitario: number;
   subtotal: number;
+  extras?: Record<string, any>;
+}
+
+// ⚠️ ESTADO PRINCIPAL CORRIGIDO
+interface PropostaCompleta {
+  // Dados do Cliente (Passo 1)
+  cliente: {
+    id: number;
+    nome: string;
+    cpf: string;
+    email: string;
+    abertura_empresa: boolean;
+    ativo: boolean;
+    entidades_juridicas?: any[];
+  } | null;
+  clienteId: number;
+
+  // Configurações Tributárias (Passo 2)
+  tipoAtividade: {
+    id: number;
+    codigo: string;
+    nome: string;
+    aplicavel_pf: boolean;
+    aplicavel_pj: boolean;
+    ativo: boolean;
+  } | null;
+  regimeTributario: {
+    id: number;
+    codigo: string;
+    nome: string;
+    aplicavel_pf: boolean;
+    aplicavel_pj: boolean;
+    requer_definicoes_fiscais: boolean;
+    ativo: boolean;
+  } | null;
+  faixaFaturamento?: {
+    id: number;
+    nome: string;
+    valor_inicial: number;
+    valor_final?: number;
+    aliquota: number;
+    regime_tributario_id: number;
+    ativo: boolean;
+  } | null;
+  tipo_atividade_id: number;
+  regime_tributario_id: number;
+  faixa_faturamento_id?: number;
+
+  // Serviços (Passo 3)
+  servicosSelecionados: ServicoSelecionado[];
+
+  // Desconto e valores (Passo 4)
+  percentualDesconto?: number;
+  valorDesconto?: number;
+  totalFinal?: number;
+  requerAprovacao?: boolean;
+  observacoes?: string;
+}
+
+interface DadosPropostaCompleta {
+  cliente: {
+    id: number;
+    nome: string;
+    cpf: string;
+    email: string;
+    abertura_empresa: boolean;
+  };
+  tipoAtividade: {
+    id: number;
+    codigo: string;
+    nome: string;
+    aplicavel_pf: boolean;
+    aplicavel_pj: boolean;
+  };
+  regimeTributario: {
+    id: number;
+    codigo: string;
+    nome: string;
+    aplicavel_pf: boolean;
+    aplicavel_pj: boolean;
+    requer_definicoes_fiscais: boolean;
+  };
+  faixaFaturamento?: {
+    id: number;
+    nome: string;
+    valor_inicial: number;
+    valor_final?: number;
+    aliquota: number;
+    regime_tributario_id: number;
+  };
+  servicosSelecionados: ServicoSelecionado[];
+}
+
+interface PropostaComDesconto {
+  cliente: {
+    id: number;
+    nome: string;
+    cpf: string;
+    email: string;
+    abertura_empresa: boolean;
+  };
+  tipoAtividade: {
+    id: number;
+    codigo: string;
+    nome: string;
+    aplicavel_pf: boolean;
+    aplicavel_pj: boolean;
+  };
+  regimeTributario: {
+    id: number;
+    codigo: string;
+    nome: string;
+    aplicavel_pf: boolean;
+    aplicavel_pj: boolean;
+    requer_definicoes_fiscais: boolean;
+  };
+  faixaFaturamento?: {
+    id: number;
+    nome: string;
+    valor_inicial: number;
+    valor_final?: number;
+    aliquota: number;
+    regime_tributario_id: number;
+  };
+  servicosSelecionados: ServicoSelecionado[];
+  percentualDesconto: number;
+  valorDesconto: number;
+  totalFinal: number;
+  requerAprovacao: boolean;
+  observacoes?: string;
 }
 
 interface TipoAtividade {
@@ -72,35 +202,49 @@ export const PropostasPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState('');
 
+  // ⚠️ ESTADO PRINCIPAL CORRIGIDO
+  const [dadosProposta, setDadosProposta] = useState<PropostaCompleta>({
+    cliente: null,
+    clienteId: 0,
+    tipoAtividade: null,
+    regimeTributario: null,
+    faixaFaturamento: null,
+    tipo_atividade_id: 0,
+    regime_tributario_id: 0,
+    faixa_faturamento_id: undefined,
+    servicosSelecionados: []
+  });
+
   // Estados para controle de passos
-  const [currentStep, setCurrentStep] = useState(0); // 0: Lista, 1: Passo1, 2: Passo2, 3: Passo3
+  const [currentStep, setCurrentStep] = useState(0); // 0: Lista, 1: Passo1, 2: Passo2, 3: Passo3, 4: Passo4
   const [selectedClienteId, setSelectedClienteId] = useState<number | null>(null);
   const [configTributarias, setConfigTributarias] = useState<ConfiguracoesTributarias | null>(null);
   const [tipoAtividade, setTipoAtividade] = useState<TipoAtividade | null>(null);
   const [servicosSelecionados, setServicosSelecionados] = useState<ServicoSelecionado[]>([]);
+  const [dadosPropostaCompleta, setDadosPropostaCompleta] = useState<DadosPropostaCompleta | null>(null);
 
   const fetchPropostas = async (page = 1, search = '') => {
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await apiService.getPropostas({
         page,
         per_page: 20,
         search: search.trim() || undefined
       });
-      
+
       setPropostas(response.items || []);
       setFilteredPropostas(response.items || []);
       setTotalPages(response.pages || 1);
     } catch (err: unknown) {
       console.error('Erro ao carregar propostas:', err);
-      
+
       // Se for erro de autenticação ou conexão, usar dados mockados temporariamente
       const errorMessage = (err as Error)?.message || '';
       if (errorMessage.includes('401') || errorMessage.includes('UNAUTHORIZED') || errorMessage.includes('Failed to fetch')) {
         setError('API não disponível. Usando dados de demonstração.');
-        
+
         // Dados mockados para demonstração
         const dadosMockados = [
           {
@@ -158,7 +302,7 @@ export const PropostasPage: React.FC = () => {
             }
           }
         ];
-        
+
         setPropostas(dadosMockados);
         setFilteredPropostas(dadosMockados);
         setTotalPages(1);
@@ -183,7 +327,7 @@ export const PropostasPage: React.FC = () => {
     if (!searchTerm.trim()) {
       setFilteredPropostas(propostas);
     } else {
-      const filtered = propostas.filter(proposta => 
+      const filtered = propostas.filter(proposta =>
         proposta.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
         proposta.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (proposta.observacoes || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -197,10 +341,23 @@ export const PropostasPage: React.FC = () => {
 
   const handleNovaPropostaClick = () => {
     setCurrentStep(1);
+    // ⚠️ RESETAR: Estado principal da proposta
+    setDadosProposta({
+      cliente: null,
+      clienteId: 0,
+      tipoAtividade: null,
+      regimeTributario: null,
+      faixaFaturamento: null,
+      tipo_atividade_id: 0,
+      regime_tributario_id: 0,
+      faixa_faturamento_id: undefined,
+      servicosSelecionados: []
+    });
     setSelectedClienteId(null);
     setConfigTributarias(null);
     setTipoAtividade(null);
     setServicosSelecionados([]);
+    setDadosPropostaCompleta(null);
   };
 
   const handleVoltarPasso1 = () => {
@@ -209,12 +366,51 @@ export const PropostasPage: React.FC = () => {
     setConfigTributarias(null);
     setTipoAtividade(null);
     setServicosSelecionados([]);
+    setDadosPropostaCompleta(null);
   };
 
+  // ⚠️ CORRIGIDO: Função onProximo do Passo 1
   const handleProximoPasso1 = (clienteId: number) => {
-    setSelectedClienteId(clienteId);
-    setCurrentStep(2);
-    console.log('Cliente selecionado:', clienteId, '- Indo para Passo 2');
+    // ⚠️ CAPTURAR: Dados completos do cliente, não apenas ID
+    const buscarClienteCompleto = async () => {
+      try {
+        const response = await apiService.getClientes({ id: clienteId });
+        const cliente = response.items?.[0] || response?.[0];
+
+        if (cliente) {
+          setDadosProposta(prev => ({
+            ...prev,
+            cliente: cliente,
+            clienteId: clienteId
+          }));
+          setSelectedClienteId(clienteId);
+          setCurrentStep(2);
+          console.log('Cliente selecionado:', cliente, '- Indo para Passo 2');
+        } else {
+          console.error('Cliente não encontrado');
+          alert('Erro: Cliente não encontrado');
+        }
+      } catch (error) {
+        console.error('Erro ao buscar cliente:', error);
+        // Fallback: usar dados básicos
+        setDadosProposta(prev => ({
+          ...prev,
+          cliente: {
+            id: clienteId,
+            nome: 'Cliente ID: ' + clienteId,
+            cpf: '000.000.000-00',
+            email: 'cliente@exemplo.com',
+            abertura_empresa: false,
+            ativo: true
+          },
+          clienteId: clienteId
+        }));
+        setSelectedClienteId(clienteId);
+        setCurrentStep(2);
+      }
+    };
+
+    buscarClienteCompleto();
   };
 
   const handleVoltarPasso2 = () => {
@@ -222,49 +418,176 @@ export const PropostasPage: React.FC = () => {
     setConfigTributarias(null);
     setTipoAtividade(null);
     setServicosSelecionados([]);
+    setDadosPropostaCompleta(null);
   };
 
   const handleVoltarPasso3 = () => {
     setCurrentStep(2);
     setServicosSelecionados([]);
+    setDadosPropostaCompleta(null);
   };
 
+  // ⚠️ CORRIGIDO: Função onProximo do Passo 3
   const handleProximoPasso3 = (servicos: ServicoSelecionado[]) => {
     setServicosSelecionados(servicos);
-    console.log('Serviços selecionados:', servicos);
-    alert('Proposta criada com sucesso!');
-    setCurrentStep(0);
+
+    // ⚠️ ATUALIZAR: Estado principal com serviços selecionados
+    setDadosProposta(prev => ({
+      ...prev,
+      servicosSelecionados: servicos
+    }));
+
+    // Preparar dados completos para o Passo 4 usando dados reais
+    if (dadosProposta.cliente && dadosProposta.tipoAtividade && dadosProposta.regimeTributario) {
+      const dadosCompletos: DadosPropostaCompleta = {
+        cliente: {
+          id: dadosProposta.cliente.id,
+          nome: dadosProposta.cliente.nome,
+          cpf: dadosProposta.cliente.cpf,
+          email: dadosProposta.cliente.email,
+          abertura_empresa: dadosProposta.cliente.abertura_empresa
+        },
+        tipoAtividade: {
+          id: dadosProposta.tipoAtividade.id,
+          codigo: dadosProposta.tipoAtividade.codigo,
+          nome: dadosProposta.tipoAtividade.nome,
+          aplicavel_pf: dadosProposta.tipoAtividade.aplicavel_pf,
+          aplicavel_pj: dadosProposta.tipoAtividade.aplicavel_pj
+        },
+        regimeTributario: {
+          id: dadosProposta.regimeTributario.id,
+          codigo: dadosProposta.regimeTributario.codigo,
+          nome: dadosProposta.regimeTributario.nome,
+          aplicavel_pf: dadosProposta.regimeTributario.aplicavel_pf,
+          aplicavel_pj: dadosProposta.regimeTributario.aplicavel_pj,
+          requer_definicoes_fiscais: dadosProposta.regimeTributario.requer_definicoes_fiscais
+        },
+        faixaFaturamento: dadosProposta.faixaFaturamento ? {
+          id: dadosProposta.faixaFaturamento.id,
+          nome: dadosProposta.faixaFaturamento.nome,
+          valor_inicial: dadosProposta.faixaFaturamento.valor_inicial,
+          valor_final: dadosProposta.faixaFaturamento.valor_final,
+          aliquota: dadosProposta.faixaFaturamento.aliquota,
+          regime_tributario_id: dadosProposta.faixaFaturamento.regime_tributario_id
+        } : undefined,
+        servicosSelecionados: servicos
+      };
+
+      setDadosPropostaCompleta(dadosCompletos);
+      setCurrentStep(4);
+      console.log('Indo para Passo 4 - Revisão da Proposta com dados reais');
+    } else {
+      console.error('Dados incompletos para Passo 4:', dadosProposta);
+      alert('Erro: Dados incompletos para prosseguir');
+    }
   };
 
+  // ⚠️ CORRIGIDO: Função onProximo do Passo 2
   const handleProximoPasso2 = (dados: ConfiguracoesTributarias) => {
     setConfigTributarias(dados);
-    
-    // Buscar informações do tipo de atividade para verificar se é aplicável para PJ
-    const buscarTipoAtividade = async () => {
+
+    // ⚠️ BUSCAR: Dados completos dos objetos selecionados
+    const buscarDadosCompletos = async () => {
       try {
-        const response = await apiService.getTiposAtividade({ ativo: true });
-        const tipos = response.items || response || [];
+        // Buscar tipo de atividade completo
+        const responseTipos = await apiService.getTiposAtividade({ ativo: true });
+        const tipos = responseTipos.items || responseTipos || [];
         const tipoEncontrado = tipos.find((t: TipoAtividade) => t.id === dados.tipo_atividade_id);
-        
-        if (tipoEncontrado && tipoEncontrado.aplicavel_pj) {
-          // Se for aplicável para PJ, ir para Passo 3
-          setTipoAtividade(tipoEncontrado);
-          setCurrentStep(3);
-          console.log('Tipo de atividade aplicável para PJ. Indo para Passo 3.');
+
+        // Buscar regime tributário completo
+        const responseRegimes = await apiService.getRegimesTributarios({ ativo: true });
+        const regimes = responseRegimes.items || responseRegimes || [];
+        const regimeEncontrado = regimes.find((r: any) => r.id === dados.regime_tributario_id);
+
+        // Buscar faixa de faturamento se houver
+        let faixaEncontrada = null;
+        if (dados.faixa_faturamento_id) {
+          const responseFaixas = await apiService.getFaixasFaturamento({ id: dados.faixa_faturamento_id });
+          const faixas = responseFaixas.items || responseFaixas || [];
+          faixaEncontrada = faixas.find((f: any) => f.id === dados.faixa_faturamento_id);
+        }
+
+        if (tipoEncontrado && regimeEncontrado) {
+          // ⚠️ ATUALIZAR: Estado principal com dados completos
+          setDadosProposta(prev => ({
+            ...prev,
+            tipoAtividade: tipoEncontrado,
+            regimeTributario: regimeEncontrado,
+            faixaFaturamento: faixaEncontrada,
+            tipo_atividade_id: dados.tipo_atividade_id,
+            regime_tributario_id: dados.regime_tributario_id,
+            faixa_faturamento_id: dados.faixa_faturamento_id
+          }));
+
+          if (tipoEncontrado.aplicavel_pj) {
+            // Se for aplicável para PJ, ir para Passo 3
+            setTipoAtividade(tipoEncontrado);
+            setCurrentStep(3);
+            console.log('Tipo de atividade aplicável para PJ. Indo para Passo 3.');
+          } else {
+            // Se não for aplicável para PJ, finalizar proposta
+            console.log('Tipo de atividade não aplicável para PJ. Finalizando proposta.');
+            alert('Proposta criada com sucesso!');
+            setCurrentStep(0);
+          }
         } else {
-          // Se não for aplicável para PJ, finalizar proposta
-          console.log('Tipo de atividade não aplicável para PJ. Finalizando proposta.');
-          alert('Proposta criada com sucesso!');
-          setCurrentStep(0);
+          console.error('Dados não encontrados');
+          alert('Erro: Dados não encontrados');
         }
       } catch (error) {
-        console.error('Erro ao buscar tipo de atividade:', error);
+        console.error('Erro ao buscar dados completos:', error);
         // Em caso de erro, assumir que é aplicável para PJ e ir para Passo 3
         setCurrentStep(3);
       }
     };
-    
-    buscarTipoAtividade();
+
+    buscarDadosCompletos();
+  };
+
+  const handleVoltarPasso4 = () => {
+    setCurrentStep(3);
+    setDadosPropostaCompleta(null);
+  };
+
+  const handleProximoPasso4 = (dadosComDesconto: PropostaComDesconto) => {
+    console.log('Dados da proposta com desconto:', dadosComDesconto);
+    // ⚠️ ATUALIZAR: Estado principal com dados completos incluindo desconto
+    setDadosProposta(prev => ({
+      ...prev,
+      percentualDesconto: dadosComDesconto.percentualDesconto,
+      valorDesconto: dadosComDesconto.valorDesconto,
+      totalFinal: dadosComDesconto.totalFinal,
+      requerAprovacao: dadosComDesconto.requerAprovacao,
+      observacoes: dadosComDesconto.observacoes
+    }));
+    setCurrentStep(5);
+  };
+
+  const handleVoltarPasso5 = () => {
+    setCurrentStep(4);
+  };
+
+  const handleFinalizadoPasso5 = (propostaFinalizada: any) => {
+    console.log('Proposta finalizada:', propostaFinalizada);
+    alert('Proposta finalizada com sucesso!');
+    setCurrentStep(0);
+    setSelectedClienteId(null);
+    setConfigTributarias(null);
+    setTipoAtividade(null);
+    setServicosSelecionados([]);
+    setDadosPropostaCompleta(null);
+    // ⚠️ RESETAR: Estado principal da proposta
+    setDadosProposta({
+      cliente: null,
+      clienteId: 0,
+      tipoAtividade: null,
+      regimeTributario: null,
+      faixaFaturamento: null,
+      tipo_atividade_id: 0,
+      regime_tributario_id: 0,
+      faixa_faturamento_id: undefined,
+      servicosSelecionados: []
+    });
   };
 
   // RENDERIZAÇÃO CONDICIONAL BASEADA NO PASSO ATUAL
@@ -297,6 +620,40 @@ export const PropostasPage: React.FC = () => {
     );
   }
 
+  if (currentStep === 4 && dadosPropostaCompleta) {
+    return (
+      <Passo4RevisaoProposta
+        dadosProposta={dadosPropostaCompleta}
+        onVoltar={handleVoltarPasso4}
+        onProximo={handleProximoPasso4}
+      />
+    );
+  }
+
+  if (currentStep === 5 && dadosProposta.cliente && dadosProposta.tipoAtividade) {
+    // ⚠️ PREPARAR: Dados completos para o Passo 5
+    const dadosCompletosPasso5: PropostaComDesconto = {
+      cliente: dadosProposta.cliente,
+      tipoAtividade: dadosProposta.tipoAtividade,
+      regimeTributario: dadosProposta.regimeTributario!,
+      faixaFaturamento: dadosProposta.faixaFaturamento,
+      servicosSelecionados: dadosProposta.servicosSelecionados,
+      percentualDesconto: dadosProposta.percentualDesconto || 0,
+      valorDesconto: dadosProposta.valorDesconto || 0,
+      totalFinal: dadosProposta.totalFinal || 0,
+      requerAprovacao: dadosProposta.requerAprovacao || false,
+      observacoes: dadosProposta.observacoes
+    };
+
+    return (
+      <Passo5FinalizacaoProposta
+        dadosProposta={dadosCompletosPasso5}
+        onVoltar={handleVoltarPasso5}
+        onFinalizado={handleFinalizadoPasso5}
+      />
+    );
+  }
+
   // PÁGINA NORMAL DE PROPOSTAS
   return (
     <div>
@@ -317,15 +674,15 @@ export const PropostasPage: React.FC = () => {
       <div className="mb-6 flex items-center justify-between">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                     <input
-             type="text"
-             placeholder="Buscar por número, cliente, funcionário, status..."
-             value={searchTerm}
-             onChange={(e) => setSearchTerm(e.target.value)}
-             className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
-           />
+          <input
+            type="text"
+            placeholder="Buscar por número, cliente, funcionário, status..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
+          />
         </div>
-        <button 
+        <button
           onClick={handleNovaPropostaClick}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
         >
@@ -385,13 +742,12 @@ export const PropostasPage: React.FC = () => {
                         R$ {proposta.valor_total ? proposta.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          proposta.status === 'APROVADA' ? 'bg-green-100 text-green-800' :
-                          proposta.status === 'ENVIADA' ? 'bg-blue-100 text-blue-800' :
-                          proposta.status === 'RASCUNHO' ? 'bg-yellow-100 text-yellow-800' :
-                          proposta.status === 'REJEITADA' ? 'bg-red-100 text-red-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${proposta.status === 'APROVADA' ? 'bg-green-100 text-green-800' :
+                            proposta.status === 'ENVIADA' ? 'bg-blue-100 text-blue-800' :
+                              proposta.status === 'RASCUNHO' ? 'bg-yellow-100 text-yellow-800' :
+                                proposta.status === 'REJEITADA' ? 'bg-red-100 text-red-800' :
+                                  'bg-gray-100 text-gray-800'
+                          }`}>
                           {proposta.status}
                         </span>
                       </td>
@@ -421,12 +777,12 @@ export const PropostasPage: React.FC = () => {
             {filteredPropostas.length === 0 && (
               <div className="text-center py-8">
                 <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                 {searchTerm ? (
-                   <>
-                     <p className="text-gray-500">Nenhuma proposta encontrada para "{searchTerm}"</p>
-                     <p className="text-sm text-gray-400 mt-1">Tente buscar por número, cliente, funcionário, status ou observações</p>
-                   </>
-                 ) : (
+                {searchTerm ? (
+                  <>
+                    <p className="text-gray-500">Nenhuma proposta encontrada para "{searchTerm}"</p>
+                    <p className="text-sm text-gray-400 mt-1">Tente buscar por número, cliente, funcionário, status ou observações</p>
+                  </>
+                ) : (
                   <>
                     <p className="text-gray-500">Nenhuma proposta encontrada</p>
                     <p className="text-sm text-gray-400 mt-1">Comece criando sua primeira proposta</p>
