@@ -1,0 +1,157 @@
+import React, { useState } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { LoginPage } from './components/pages/LoginPage';
+import { DashboardPage } from './components/pages/DashboardPage';
+import { ClientesPage } from './components/pages/ClientesPage';
+import { ChatPage } from './components/pages/ChatPage';
+import { Sidebar } from './components/layout/Sidebar';
+import { LoadingSpinner } from './components/common/LoadingSpinner';
+import { PropostasPage } from './components/pages/PropostasPage';
+
+// Placeholder components for other pages
+const FuncionariosPage = () => (
+  <div className="space-y-6">
+    <div className="mb-6">
+      <h1 className="text-2xl font-bold text-gray-900">Funcionários</h1>
+      <p className="text-sm text-gray-500">Gerencie a equipe e colaboradores da empresa</p>
+    </div>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+      <h2 className="text-xl font-bold mb-4">Funcionários</h2>
+      <p>Página em desenvolvimento...</p>
+    </div>
+  </div>
+);
+
+const TiposAtividadePage = () => (
+  <div className="space-y-6">
+    <div className="mb-6">
+      <h1 className="text-2xl font-bold text-gray-900">Tipos de Atividade</h1>
+      <p className="text-sm text-gray-500">Configure os tipos de atividade contábil disponíveis</p>
+    </div>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+      <h2 className="text-xl font-bold mb-4">Tipos de Atividade</h2>
+      <p>Página em desenvolvimento...</p>
+    </div>
+  </div>
+);
+
+const RegimesTributariosPage = () => (
+  <div className="space-y-6">
+    <div className="mb-6">
+      <h1 className="text-2xl font-bold text-gray-900">Regimes Tributários</h1>
+      <p className="text-sm text-gray-500">Gerencie os regimes tributários e suas configurações</p>
+    </div>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+      <h2 className="text-xl font-bold mb-4">Regimes Tributários</h2>
+      <p>Página em desenvolvimento...</p>
+    </div>
+  </div>
+);
+
+const ServicosPage = () => (
+  <div className="space-y-6">
+    <div className="mb-6">
+      <h1 className="text-2xl font-bold text-gray-900">Serviços</h1>
+      <p className="text-sm text-gray-500">Configure os serviços contábeis oferecidos</p>
+    </div>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+      <h2 className="text-xl font-bold mb-4">Serviços</h2>
+      <p>Página em desenvolvimento...</p>
+    </div>
+  </div>
+);
+
+const RelatoriosPage = () => (
+  <div className="space-y-6">
+    <div className="mb-6">
+      <h1 className="text-2xl font-bold text-gray-900">Relatórios</h1>
+      <p className="text-sm text-gray-500">Visualize relatórios e análises do sistema</p>
+    </div>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+      <h2 className="text-xl font-bold mb-4">Relatórios</h2>
+      <p>Página em desenvolvimento...</p>
+    </div>
+  </div>
+);
+
+const ConfiguracoesPage = () => (
+  <div className="space-y-6">
+    <div className="mb-6">
+      <h1 className="text-2xl font-bold text-gray-900">Configurações</h1>
+      <p className="text-sm text-gray-500">Configure parâmetros e preferências do sistema</p>
+    </div>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+      <h2 className="text-xl font-bold mb-4">Configurações</h2>
+      <p>Página em desenvolvimento...</p>
+    </div>
+  </div>
+);
+
+const AppContent: React.FC = () => {
+  const { isAuthenticated, loading } = useAuth();
+  const [currentPage, setCurrentPage] = useState('dashboard');
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'dashboard':
+        return <DashboardPage />;
+      case 'propostas':
+        return <PropostasPage />;
+      case 'clientes':
+        return <ClientesPage />;
+      case 'funcionarios':
+        return <FuncionariosPage />;
+      case 'tipos-atividade':
+        return <TiposAtividadePage />;
+      case 'regimes-tributarios':
+        return <RegimesTributariosPage />;
+      case 'servicos':
+        return <ServicosPage />;
+      case 'relatorios':
+        return <RelatoriosPage />;
+      case 'chat':
+        return <ChatPage />;
+      case 'configuracoes':
+        return <ConfiguracoesPage />;
+      default:
+        return <DashboardPage />;
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-100">
+      <Sidebar
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+      />
+      
+      <main className="flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto p-6">
+          {renderPage()}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
+
+export default App;

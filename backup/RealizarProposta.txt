@@ -1,0 +1,647 @@
+import { useState, useEffect } from "react";
+import {
+    ChevronRight, ChevronLeft, Check, User, FileText, Calculator, Search,
+    Plus, X, Building, Phone, Mail, MapPin
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const API_URL = "http://192.168.0.97:5000";
+
+const RealizarProposta = () => {
+    const [servicos, setServicos] = useState({});
+    const [clientes, setClientes] = useState([]);
+    const [empresa, setEmpresa] = useState([]);
+
+    const [currentStep, setCurrentStep] = useState(0);
+    const [isNewClient, setIsNewClient] = useState(true);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [selectedClient, setSelectedClient] = useState(null);
+    const [selectedServices, setSelectedServices] = useState([]);
+    const [formData, setFormData] = useState({
+        nome: "",
+        cpf: "",
+        email: "",
+        telefone: "",
+        endereco: "",
+        observacoes: "",
+    });
+
+    useEffect(() => {
+        fetchClientes();
+        fetchServicos();
+    }, []);
+
+    // Busca clientes do backend
+    const fetchClientes = async () => {
+        try {
+            const response = await fetch(`${API_URL}/clientes`);
+            const data = await response.json();
+            setClientes(data.clientes || []);
+        } catch (err) {
+            setClientes([]);
+        }
+    };
+
+    // Busca serviços do backend e agrupa por segmento
+    const fetchServicos = async () => {
+        try {
+            const response = await fetch(`${API_URL}/servicos`);
+            const data = await response.json();
+            // Agrupa por segmento
+            const agrupado = {};
+            (data.servicos || []).forEach((servico) => {
+                if (!agrupado[servico.segmento]) agrupado[servico.segmento] = [];
+                agrupado[servico.segmento].push(servico);
+            });
+            setServicos(agrupado);
+        } catch (err) {
+            setServicos({});
+        }
+    };
+
+    const fetchEmpresa = async (cliente_id) => {
+        try {
+            const response = await fetch(`${API_URL}/empresas/${cliente_id}`);
+            if (!response.ok) {
+                setEmpresa(null);
+                return;
+            }
+            const data = await response.json();
+            setEmpresa(data.empresa || null);
+            console.log(data.empresa);
+        } catch (err) {
+            setEmpresa(null);
+        }
+    }
+
+    const steps = [
+        { title: "Cliente", icon: User },
+        { title: "Serviços", icon: FileText },
+        { title: "Configuração", icon: Calculator },
+        { title: "Resumo", icon: Check },
+    ];
+
+    // Filtro de busca clientes (por nome, CPF ou CNPJ)
+    const filteredClients = clientes.filter(client =>
+        (client.nome || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (client.cpf || "").replace(/\D/g, '').includes(searchTerm.replace(/\D/g, ''))
+    );
+
+    const handleNextStep = () => {
+        if (currentStep < steps.length - 1) {
+            setCurrentStep(currentStep + 1);
+        }
+    };
+
+    const handlePreviousStep = () => {
+        if (currentStep > 0) {
+            setCurrentStep(currentStep - 1);
+        }
+    };
+
+    const toggleService = (segmento, servico, reactKey) => {
+        setSelectedServices(prev => {
+            const exists = prev.find(s => s._reactKey === reactKey);
+            if (exists) {
+                return prev.filter(s => s._reactKey !== reactKey);
+            }
+            return [...prev, {
+                ...servico,
+                segmento,
+                _reactKey: reactKey, // apenas para React
+                quantidade: 1,
+                recorrencia: 'mensal'
+            }];
+        });
+    };
+
+    const updateServiceConfig = (serviceId, field, value) => {
+        setSelectedServices(prev =>
+            prev.map(s => s.id === serviceId ? { ...s, [field]: value } : s)
+        );
+    };
+
+    const calculateTotal = () => {
+        return selectedServices.reduce((total, service) => {
+            const valor = service.valor || 0;
+            const quantidade = service.quantidade || 1;
+            const multiplicador = service.recorrencia === 'anual' ? 12 : 1;
+            return total + (valor * quantidade * multiplicador);
+        }, 0);
+    };
+
+    const renderStepIndicator = () => (
+        <div className="flex items-center justify-between mb-8">
+            {steps.map((step, index) => (
+                <div key={index} className="flex items-center flex-1">
+                    <div className="relative flex items-center">
+                        <div
+                            className={cn(
+                                "w-10 h-10 rounded-full flex items-center justify-center transition-all",
+                                index <= currentStep
+                                    ? "bg-blue-600 text-white"
+                                    : "bg-gray-200 text-gray-400"
+                            )}
+                        >
+                            {index < currentStep ? (
+                                <Check className="w-5 h-5" />
+                            ) : (
+                                <step.icon className="w-5 h-5" />
+                            )}
+                        </div>
+                        <span
+                            className={cn(
+                                "ml-3 text-sm font-medium",
+                                index <= currentStep ? "text-gray-900" : "text-gray-400"
+                            )}
+                        >
+                            {step.title}
+                        </span>
+                    </div>
+                    {index < steps.length - 1 && (
+                        <div className="flex-1 mx-4">
+                            <div
+                                className={cn(
+                                    "h-1 rounded transition-all",
+                                    index < currentStep ? "bg-blue-600" : "bg-gray-200"
+                                )}
+                            />
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+
+    const renderStep = () => {
+        switch (currentStep) {
+            case 0:
+                return (
+                    <div className="space-y-6">
+                        <div>
+                            <h2 className="text-2xl font-semibold text-gray-900 mb-6">
+                                Dados do Cliente
+                            </h2>
+                            {/* Selector de tipo de cliente */}
+                            <div className="mb-6">
+                                <label className="text-sm font-medium text-gray-700 mb-3 block">
+                                    Tipo de cliente
+                                </label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button
+                                        onClick={() => setIsNewClient(true)}
+                                        className={cn(
+                                            "p-4 rounded-lg border-2 transition-all",
+                                            isNewClient
+                                                ? "border-blue-600 bg-blue-50"
+                                                : "border-gray-200 hover:border-gray-300"
+                                        )}
+                                    >
+                                        <Plus className="w-5 h-5 mb-2 mx-auto text-blue-600" />
+                                        <span className="block text-sm font-medium">Novo Cliente</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setIsNewClient(false)}
+                                        className={cn(
+                                            "p-4 rounded-lg border-2 transition-all",
+                                            !isNewClient
+                                                ? "border-blue-600 bg-blue-50"
+                                                : "border-gray-200 hover:border-gray-300"
+                                        )}
+                                    >
+                                        <Search className="w-5 h-5 mb-2 mx-auto text-blue-600" />
+                                        <span className="block text-sm font-medium">Cliente Existente</span>
+                                    </button>
+                                </div>
+                            </div>
+                            {!isNewClient ? (
+                                <div className="space-y-4">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                        <input
+                                            type="text"
+                                            placeholder="Buscar cliente por nome ou CPF"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        />
+                                    </div>
+                                    <div className="border border-gray-200 rounded-lg max-h-60 overflow-y-auto">
+                                        {filteredClients.map((client) => (
+                                            <button
+                                                key={client.id}
+                                                onClick={() => {
+                                                    setSelectedClient(client);
+                                                    setFormData({
+                                                        nome: client.nome,
+                                                        cpf: client.cpf || "",
+                                                        email: client.email,
+                                                        telefone: client.telefone || "",
+                                                        endereco: "",
+                                                        observacoes: "",
+                                                    });
+                                                    fetchEmpresa(client.id);
+                                                }}
+                                                className={cn(
+                                                    "w-full p-4 text-left border-b last:border-b-0 hover:bg-gray-50 transition-colors",
+                                                    selectedClient?.id === client.id && "bg-blue-50"
+                                                )}
+                                            >
+                                                <div className="font-medium text-gray-900">{client.nome}</div>
+                                                <div className="text-sm text-gray-500">{client.cnpj || client.cpf}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            <Building className="inline w-4 h-4 mr-1" />
+                                            Nome da Empresa
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.nome}
+                                            onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            placeholder="Digite o nome da empresa"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            CPF
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.cpf}
+                                            onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            placeholder="00.000.000/0000-00"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            <Phone className="inline w-4 h-4 mr-1" />
+                                            Telefone
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            value={formData.telefone}
+                                            onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            placeholder="(00) 00000-0000"
+                                        />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            <Mail className="inline w-4 h-4 mr-1" />
+                                            E-mail
+                                        </label>
+                                        <input
+                                            type="email"
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            placeholder="contato@empresa.com"
+                                        />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            <MapPin className="inline w-4 h-4 mr-1" />
+                                            Endereço
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.endereco}
+                                            onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            placeholder="Rua, número, bairro, cidade - UF"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            case 1:
+                return (
+                    <div className="space-y-6">
+                        <div>
+                            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+                                Seleção de Serviços
+                            </h2>
+                            <p className="text-gray-600 mb-6">
+                                Selecione os serviços que deseja incluir na proposta
+                            </p>
+                        </div>
+                        <div className="space-y-6">
+                            {Object.entries(servicos).map(([segmento, servicosList]) => (
+                                <div key={segmento} className="border border-gray-200 rounded-lg p-6">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                        {segmento}
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {servicosList.map((servico, idx) => {
+                                            const reactKey = servico.id
+                                                ? `svc-${servico.id}`
+                                                : `svc-${segmento}-${servico.descricao}-${idx}`;
+                                            const isSelected = selectedServices.find(s => s._reactKey === reactKey);
+                                            return (
+                                                <label
+                                                    key={reactKey}
+                                                    className={cn(
+                                                        "flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-all",
+                                                        isSelected
+                                                            ? "border-blue-600 bg-blue-50"
+                                                            : "border-gray-200 hover:border-gray-300"
+                                                    )}
+                                                >
+                                                    <div className="flex items-center flex-1">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={!!isSelected}
+                                                            onChange={() => toggleService(segmento, servico, reactKey)}
+                                                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                                        />
+                                                        <div className="ml-3">
+                                                            <span className="text-sm font-medium text-gray-900">
+                                                                {servico.descricao}
+                                                            </span>
+                                                            <span className="block text-sm text-gray-500">
+                                                                R$ {servico.valor?.toFixed(2) || "A consultar"}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-blue-900">
+                                    Serviços selecionados:
+                                </span>
+                                <span className="text-lg font-semibold text-blue-900">
+                                    {selectedServices.length}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                );
+            case 2:
+                return (
+                    <div className="space-y-6">
+                        <div>
+                            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+                                Configuração dos Serviços
+                            </h2>
+                            <p className="text-gray-600 mb-6">
+                                Configure quantidade e recorrência para cada serviço
+                            </p>
+                        </div>
+                        {selectedServices.length === 0 ? (
+                            <div className="text-center py-12">
+                                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                <p className="text-gray-500">Nenhum serviço selecionado</p>
+                                <button
+                                    onClick={handlePreviousStep}
+                                    className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+                                >
+                                    Voltar e selecionar serviços
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {selectedServices.map((service) => (
+                                    <div
+                                        key={service.id}
+                                        className="border border-gray-200 rounded-lg p-6"
+                                    >
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div>
+                                                <h4 className="font-medium text-gray-900">
+                                                    {service.descricao}
+                                                </h4>
+                                                <p className="text-sm text-gray-500">{service.segmento}</p>
+                                            </div>
+                                            <button
+                                                onClick={() => setSelectedServices(prev =>
+                                                    prev.filter(s => s.id !== service.id)
+                                                )}
+                                                className="text-red-500 hover:text-red-700"
+                                            >
+                                                <X className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Quantidade
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    value={service.quantidade}
+                                                    onChange={(e) => updateServiceConfig(service.id, 'quantidade', parseInt(e.target.value))}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Recorrência
+                                                </label>
+                                                <select
+                                                    value={service.recorrencia}
+                                                    onChange={(e) => updateServiceConfig(service.id, 'recorrencia', e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                                                >
+                                                    <option value="mensal">Mensal</option>
+                                                    <option value="anual">Anual</option>
+                                                    <option value="unico">Único</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Valor Total
+                                                </label>
+                                                <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md">
+                                                    R$ {(
+                                                        (service.valor || 0) *
+                                                        service.quantidade *
+                                                        (service.recorrencia === 'anual' ? 12 : 1)
+                                                    ).toFixed(2)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <div className="mt-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Observações Adicionais
+                            </label>
+                            <textarea
+                                value={formData.observacoes}
+                                onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                                rows={4}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="Adicione observações relevantes para a proposta..."
+                            />
+                        </div>
+                    </div>
+                );
+            case 3:
+                return (
+                    <div className="space-y-6">
+                        <div>
+                            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+                                Resumo da Proposta
+                            </h2>
+                            <p className="text-gray-600 mb-6">
+                                Revise os dados antes de gerar a proposta
+                            </p>
+                        </div>
+                        {/* Dados do Cliente */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                Dados do Cliente
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <span className="text-sm text-gray-500">Nome</span>
+                                    <p className="font-medium text-gray-900">{formData.nome || "-"}</p>
+                                </div>
+                                <div>
+                                    <span className="text-sm text-gray-500">CPF</span>
+                                    <p className="font-medium text-gray-900">{formData.cpf || "-"}</p>
+                                </div>
+                                <div>
+                                    <span className="text-sm text-gray-500">E-mail</span>
+                                    <p className="font-medium text-gray-900">{formData.email || "-"}</p>
+                                </div>
+                                <div>
+                                    <span className="text-sm text-gray-500">Telefone</span>
+                                    <p className="font-medium text-gray-900">{formData.telefone || "-"}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Serviços Selecionados */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                Serviços Incluídos
+                            </h3>
+                            <div className="space-y-3">
+                                {selectedServices.map((service) => (
+                                    <div
+                                        key={service.id}
+                                        className="flex items-center justify-between py-3 border-b last:border-b-0"
+                                    >
+                                        <div>
+                                            <p className="font-medium text-gray-900">{service.descricao}</p>
+                                            <p className="text-sm text-gray-500">
+                                                {service.quantidade}x - {service.recorrencia}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-medium text-gray-900">
+                                                R$ {(
+                                                    (service.valor || 0) *
+                                                    service.quantidade *
+                                                    (service.recorrencia === 'anual' ? 12 : 1)
+                                                ).toFixed(2)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        {/* Total */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-blue-900">
+                                        Valor Total da Proposta
+                                    </h3>
+                                    <p className="text-sm text-blue-700">
+                                        {selectedServices.length} serviços selecionados
+                                    </p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-3xl font-bold text-blue-900">
+                                        R$ {calculateTotal().toFixed(2)}
+                                    </p>
+                                    <p className="text-sm text-blue-700">
+                                        + impostos aplicáveis
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Observações */}
+                        {formData.observacoes && (
+                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                    Observações
+                                </h3>
+                                <p className="text-gray-700">{formData.observacoes}</p>
+                            </div>
+                        )}
+                    </div>
+                );
+            default:
+                return null;
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-gray-50 p-6">
+            <div className="max-w-5xl mx-auto">
+                <div className="bg-white rounded-xl shadow-sm p-8">
+                    {renderStepIndicator()}
+                    <div className="mt-8">
+                        {renderStep()}
+                    </div>
+                    {/* Navigation Buttons */}
+                    <div className="flex justify-between mt-8 pt-6 border-t">
+                        <button
+                            onClick={handlePreviousStep}
+                            disabled={currentStep === 0}
+                            className={cn(
+                                "flex items-center px-6 py-3 rounded-lg font-medium transition-colors",
+                                currentStep === 0
+                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            )}
+                        >
+                            <ChevronLeft className="w-5 h-5 mr-2" />
+                            Voltar
+                        </button>
+                        {currentStep === steps.length - 1 ? (
+                            <button
+                                onClick={() => alert("Proposta gerada com sucesso!")}
+                                className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                            >
+                                <Check className="w-5 h-5 mr-2" />
+                                Gerar Proposta
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleNextStep}
+                                className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                            >
+                                Próximo
+                                <ChevronRight className="w-5 h-5 ml-2" />
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default RealizarProposta;
