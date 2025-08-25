@@ -46,7 +46,11 @@ const StatCard: React.FC<{
   </div>
 );
 
-export const DashboardPage: React.FC = () => {
+interface DashboardPageProps {
+  onNavigate?: (page: string, options?: { openModal?: boolean }) => void;
+}
+
+export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -136,6 +140,31 @@ export const DashboardPage: React.FC = () => {
       case 'REJEITADA': return AlertCircle;
       case 'CANCELADA': return AlertCircle;
       default: return Clock;
+    }
+  };
+
+  // Funções de navegação para os botões de ação rápida
+  const handleNovaPropostaClick = () => {
+    if (onNavigate) {
+      onNavigate('propostas', { openModal: true });
+    }
+  };
+
+  const handleNovoClienteClick = () => {
+    if (onNavigate) {
+      onNavigate('clientes', { openModal: true });
+    }
+  };
+
+  const handleRelatoriosClick = () => {
+    if (onNavigate) {
+      onNavigate('relatorios');
+    }
+  };
+
+  const handleAgendaClick = () => {
+    if (onNavigate) {
+      onNavigate('agenda');
     }
   };
 
@@ -235,25 +264,37 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="p-6">
             <div className="grid grid-cols-2 gap-4">
-              <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors group">
+              <button 
+                onClick={handleNovaPropostaClick}
+                className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors group cursor-pointer"
+              >
                 <FileText className="w-8 h-8 text-gray-400 group-hover:text-blue-500 mx-auto mb-2" />
                 <p className="text-sm font-medium text-gray-600 group-hover:text-blue-600">
                   Nova Proposta
                 </p>
               </button>
-              <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors group">
+              <button 
+                onClick={handleNovoClienteClick}
+                className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors group cursor-pointer"
+              >
                 <Users className="w-8 h-8 text-gray-400 group-hover:text-green-500 mx-auto mb-2" />
                 <p className="text-sm font-medium text-gray-600 group-hover:text-green-600">
                   Novo Cliente
                 </p>
               </button>
-              <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors group">
+              <button 
+                onClick={handleRelatoriosClick}
+                className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors group cursor-pointer"
+              >
                 <BarChart3 className="w-8 h-8 text-gray-400 group-hover:text-purple-500 mx-auto mb-2" />
                 <p className="text-sm font-medium text-gray-600 group-hover:text-purple-600">
                   Relatórios
                 </p>
               </button>
-              <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 transition-colors group">
+              <button 
+                onClick={handleAgendaClick}
+                className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 transition-colors group cursor-pointer"
+              >
                 <Calendar className="w-8 h-8 text-gray-400 group-hover:text-yellow-500 mx-auto mb-2" />
                 <p className="text-sm font-medium text-gray-600 group-hover:text-yellow-600">
                   Agenda

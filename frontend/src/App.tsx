@@ -7,6 +7,7 @@ import { ChatPage } from './components/pages/ChatPage';
 import { Sidebar } from './components/layout/Sidebar';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 import { PropostasPage } from './components/pages/PropostasPage';
+import { AgendaPage } from './components/pages/AgendaPage';
 
 // Placeholder components for other pages
 const FuncionariosPage = () => (
@@ -90,6 +91,7 @@ const ConfiguracoesPage = () => (
 const AppContent: React.FC = () => {
   const { isAuthenticated, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const [navigationOptions, setNavigationOptions] = useState<{ openModal?: boolean }>({});
 
   if (loading) {
     return (
@@ -103,14 +105,24 @@ const AppContent: React.FC = () => {
     return <LoginPage />;
   }
 
+  const handleNavigate = (page: string, options?: { openModal?: boolean }) => {
+    setCurrentPage(page);
+    setNavigationOptions(options || {});
+    
+    // Limpar as opções após um breve delay para evitar que o modal abra novamente
+    setTimeout(() => {
+      setNavigationOptions({});
+    }, 100);
+  };
+
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <DashboardPage />;
+        return <DashboardPage onNavigate={handleNavigate} />;
       case 'propostas':
-        return <PropostasPage />;
+        return <PropostasPage openModalOnLoad={navigationOptions.openModal} />;
       case 'clientes':
-        return <ClientesPage />;
+        return <ClientesPage openModalOnLoad={navigationOptions.openModal} />;
       case 'funcionarios':
         return <FuncionariosPage />;
       case 'tipos-atividade':
@@ -121,12 +133,14 @@ const AppContent: React.FC = () => {
         return <ServicosPage />;
       case 'relatorios':
         return <RelatoriosPage />;
+      case 'agenda':
+        return <AgendaPage />;
       case 'chat':
         return <ChatPage />;
       case 'configuracoes':
         return <ConfiguracoesPage />;
       default:
-        return <DashboardPage />;
+        return <DashboardPage onNavigate={handleNavigate} />;
     }
   };
 
@@ -136,7 +150,7 @@ const AppContent: React.FC = () => {
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
       />
-      
+
       <main className="flex-1 overflow-hidden">
         <div className="h-full overflow-y-auto p-6">
           {renderPage()}

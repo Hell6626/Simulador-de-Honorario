@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Proposta } from '../../types';
+import { StatusSelector } from '../common/StatusSelector';
 
 interface ModalEdicaoPropostaProps {
     proposta: Proposta | null;
@@ -10,13 +11,7 @@ interface ModalEdicaoPropostaProps {
 
 type TelaEdicao = 'selecao' | 'status' | 'observacoes' | 'valor' | 'validade';
 
-const STATUS_OPTIONS = [
-    { value: 'RASCUNHO', label: 'Rascunho', color: 'bg-gray-100 text-gray-800' },
-    { value: 'EM_ANDAMENTO', label: 'Em Andamento', color: 'bg-blue-100 text-blue-800' },
-    { value: 'APROVADA', label: 'Aprovada', color: 'bg-green-100 text-green-800' },
-    { value: 'REPROVADA', label: 'Reprovada', color: 'bg-red-100 text-red-800' },
-    { value: 'CANCELADA', label: 'Cancelada', color: 'bg-yellow-100 text-yellow-800' }
-];
+
 
 export const ModalEdicaoProposta: React.FC<ModalEdicaoPropostaProps> = ({
     proposta,
@@ -113,24 +108,21 @@ export const ModalEdicaoProposta: React.FC<ModalEdicaoPropostaProps> = ({
                 Alterar Status da Proposta
             </h3>
 
-            <div className="grid grid-cols-1 gap-3">
-                {STATUS_OPTIONS.map((status) => (
-                    <button
-                        key={status.value}
-                        onClick={() => setDadosEditados({ ...dadosEditados, status: status.value })}
-                        className={`p-4 border rounded-lg transition-colors text-left ${dadosEditados.status === status.value
-                                ? 'border-blue-500 bg-blue-50'
-                                : 'border-gray-200 hover:bg-gray-50'
-                            }`}
-                    >
-                        <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${status.color}`}>
-                            {status.label}
-                        </div>
-                        {dadosEditados.status === status.value && (
-                            <div className="mt-2 text-sm text-blue-600">✓ Selecionado</div>
-                        )}
-                    </button>
-                ))}
+            <StatusSelector
+                selectedStatus={dadosEditados.status || proposta.status}
+                onStatusChange={(status) => setDadosEditados({ ...dadosEditados, status })}
+                className="mb-4"
+            />
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="text-sm text-blue-800">
+                    <strong>Status atual:</strong> {proposta.status}
+                </div>
+                {dadosEditados.status && dadosEditados.status !== proposta.status && (
+                    <div className="text-sm text-blue-800 mt-1">
+                        <strong>Novo status:</strong> {dadosEditados.status}
+                    </div>
+                )}
             </div>
         </div>
     );

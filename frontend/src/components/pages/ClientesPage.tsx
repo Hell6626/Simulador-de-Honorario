@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Mail, User, Building } from 'lucide-react';
+import { Plus, Search, Trash2, Mail, User, Building, Eye, Edit2 } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { Modal } from '../common/Modal';
-import { useForm } from 'react-hook-form';
+import { ModalCadastroCliente } from '../propostas/passos/ModalCadastroCliente';
 
 interface Cliente {
   id: number;
@@ -14,27 +14,38 @@ interface Cliente {
   ativo: boolean;
   created_at: string;
   updated_at: string;
+  endereco?: {
+    rua: string;
+    numero: string;
+    cidade: string;
+    estado: string;
+    cep: string;
+  };
+  entidades_juridicas?: Array<{
+    nome: string;
+    cnpj: string;
+    tipo: string;
+  }>;
 }
 
-interface ClienteForm {
-  nome: string;
-  cpf: string;
-  email: string;
-  abertura_empresa: boolean;
-  ativo: boolean;
+interface ClientesPageProps {
+  openModalOnLoad?: boolean;
 }
 
-export const ClientesPage: React.FC = () => {
+export const ClientesPage: React.FC<ClientesPageProps> = ({ openModalOnLoad = false }) => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<ClienteForm>();
+  // Estados para os novos modais
+  const [clienteParaVisualizar, setClienteParaVisualizar] = useState<Cliente | null>(null);
+  const [clienteParaEditar, setClienteParaEditar] = useState<Cliente | null>(null);
+  const [clienteParaDeletar, setClienteParaDeletar] = useState<Cliente | null>(null);
+  const [isModalEdicaoOpen, setIsModalEdicaoOpen] = useState(false);
 
   const fetchClientes = async (page = 1, search = '') => {
     setLoading(true);
@@ -45,7 +56,7 @@ export const ClientesPage: React.FC = () => {
         search,
         ativo: true
       });
-      
+
       setClientes(response.items || []);
       setTotalPages(response.pages || 1);
     } catch (err: any) {
@@ -59,63 +70,84 @@ export const ClientesPage: React.FC = () => {
     fetchClientes(currentPage, searchTerm);
   }, [currentPage, searchTerm]);
 
+  // Abrir modal automaticamente se openModalOnLoad for true
+  useEffect(() => {
+    if (openModalOnLoad) {
+      setIsModalOpen(true);
+    }
+  }, [openModalOnLoad]);
+
   const handleSearch = (term: string) => {
     setSearchTerm(term);
     setCurrentPage(1);
   };
 
-  const openModal = (cliente?: Cliente) => {
-    setEditingCliente(cliente || null);
-    if (cliente) {
-      reset({
-        nome: cliente.nome,
-        cpf: cliente.cpf,
-        email: cliente.email,
-        abertura_empresa: cliente.abertura_empresa,
-        ativo: cliente.ativo
-      });
-    } else {
-      reset({
-        nome: '',
-        cpf: '',
-        email: '',
-        abertura_empresa: false,
-        ativo: true
-      });
-    }
+  const openModal = () => {
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setEditingCliente(null);
-    reset();
   };
 
-  const onSubmit = async (data: ClienteForm) => {
+  const handleClienteCadastrado = (cliente: Cliente) => {
+    fetchClientes(currentPage, searchTerm);
+    closeModal();
+  };
+
+  // Funções para os novos botões de ação
+  const handleVisualizar = (cliente: Cliente) => {
+    setClienteParaVisualizar(cliente);
+  };
+
+  const handleEditar = (cliente: Cliente) => {
+    setClienteParaEditar(cliente);
+  };
+
+  const handleDeletar = (cliente: Cliente) => {
+    setClienteParaDeletar(cliente);
+  };
+
+  const confirmarDeletar = async () => {
+    if (!clienteParaDeletar) return;
+
     try {
-      if (editingCliente) {
-        await apiService.updateCliente(editingCliente.id, data);
-      } else {
-        await apiService.createCliente(data);
-      }
-      
+      await apiService.deleteCliente(clienteParaDeletar.id);
       fetchClientes(currentPage, searchTerm);
-      closeModal();
+      setClienteParaDeletar(null);
     } catch (err: any) {
       setError(err.message);
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir este cliente?')) {
-      try {
-        await apiService.deleteCliente(id);
-        fetchClientes(currentPage, searchTerm);
-      } catch (err: any) {
-        setError(err.message);
-      }
+  const handleClienteEditado = (cliente: Cliente) => {
+    fetchClientes(currentPage, searchTerm);
+    setIsModalEdicaoOpen(false);
+    setClienteParaEditar(null);
+  };
+
+  const abrirModalEdicao = () => {
+    setClienteParaEditar(null);
+    setIsModalEdicaoOpen(true);
+  };
+
+
+
+  // Função para formatar CPF/CNPJ
+  const formatarDocumento = (documento: string) => {
+    const limpo = documento.replace(/\D/g, '');
+    if (limpo.length === 11) {
+      return limpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    } else if (limpo.length === 14) {
+      return limpo.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
     }
+    return documento;
+  };
+
+  // Função para formatar CEP
+  const formatarCEP = (cep: string) => {
+    const limpo = cep.replace(/\D/g, '');
+    return limpo.replace(/(\d{5})(\d{3})/, '$1-$2');
   };
 
   return (
@@ -212,7 +244,7 @@ export const ClientesPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {cliente.cpf}
+                        {formatarDocumento(cliente.cpf)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center text-sm text-gray-900">
@@ -221,34 +253,41 @@ export const ClientesPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          cliente.abertura_empresa 
-                            ? 'bg-purple-100 text-purple-800'
-                            : 'bg-green-100 text-green-800'
-                        }`}>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cliente.abertura_empresa
+                          ? 'bg-purple-100 text-purple-800'
+                          : 'bg-green-100 text-green-800'
+                          }`}>
                           {cliente.abertura_empresa ? 'Abertura de Empresa' : 'Cliente Existente'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          cliente.ativo 
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cliente.ativo
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                          }`}>
                           {cliente.ativo ? 'Ativo' : 'Inativo'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-2">
                           <button
-                            onClick={() => openModal(cliente)}
-                            className="text-blue-600 hover:text-blue-900"
+                            onClick={() => handleVisualizar(cliente)}
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded-full hover:bg-blue-50"
+                            title="Visualizar cliente"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEditar(cliente)}
+                            className="text-green-600 hover:text-green-900 p-1 rounded-full hover:bg-green-50"
+                            title="Editar cliente"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(cliente.id)}
-                            className="text-red-600 hover:text-red-900"
+                            onClick={() => handleDeletar(cliente)}
+                            className="text-red-600 hover:text-red-900 p-1 rounded-full hover:bg-red-50"
+                            title="Excluir cliente"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -293,107 +332,178 @@ export const ClientesPage: React.FC = () => {
         </>
       )}
 
-      {/* Modal */}
-      <Modal
+      {/* Modal de Cadastro de Cliente */}
+      <ModalCadastroCliente
         isOpen={isModalOpen}
         onClose={closeModal}
-        title={editingCliente ? 'Editar Cliente' : 'Novo Cliente'}
+        onClienteCadastrado={handleClienteCadastrado}
+      />
+
+      {/* Modal de Edição de Cliente */}
+      <ModalCadastroCliente
+        isOpen={isModalEdicaoOpen}
+        onClose={() => setIsModalEdicaoOpen(false)}
+        onClienteCadastrado={handleClienteEditado}
+      />
+
+      {/* Modal de Visualização */}
+      <Modal
+        isOpen={!!clienteParaVisualizar}
+        onClose={() => setClienteParaVisualizar(null)}
+        title="Visualizar Cliente"
         size="lg"
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {clienteParaVisualizar && (
+          <div className="space-y-6">
+            {/* Dados do Cliente */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nome
-              </label>
-              <input
-                type="text"
-                {...register('nome', { required: 'Nome é obrigatório' })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Nome do cliente"
-              />
-              {errors.nome && (
-                <p className="text-red-600 text-sm mt-1">{errors.nome.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                CPF/CNPJ
-              </label>
-              <input
-                type="text"
-                {...register('cpf', { required: 'CPF/CNPJ é obrigatório' })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="000.000.000-00"
-              />
-              {errors.cpf && (
-                <p className="text-red-600 text-sm mt-1">{errors.cpf.message}</p>
-              )}
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                E-mail
-              </label>
-              <input
-                type="email"
-                {...register('email', { 
-                  required: 'E-mail é obrigatório',
-                  pattern: {
-                    value: /^\S+@\S+$/i,
-                    message: 'E-mail inválido'
-                  }
-                })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="cliente@exemplo.com"
-              />
-              {errors.email && (
-                <p className="text-red-600 text-sm mt-1">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div className="md:col-span-2 space-y-3">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  {...register('abertura_empresa')}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label className="ml-2 block text-sm text-gray-900">
-                  Abertura de empresa
-                </label>
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  {...register('ativo')}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label className="ml-2 block text-sm text-gray-900">
-                  Cliente ativo
-                </label>
+              <h4 className="text-lg font-medium text-gray-900 mb-4">Dados do Cliente</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Nome</label>
+                  <p className="mt-1 text-sm text-gray-900">{clienteParaVisualizar.nome}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">CPF/CNPJ</label>
+                  <p className="mt-1 text-sm text-gray-900">{formatarDocumento(clienteParaVisualizar.cpf)}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">E-mail</label>
+                  <p className="mt-1 text-sm text-gray-900">{clienteParaVisualizar.email || 'Não informado'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Tipo</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {clienteParaVisualizar.abertura_empresa ? 'Abertura de Empresa' : 'Cliente Existente'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Status</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {clienteParaVisualizar.ativo ? 'Ativo' : 'Inativo'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Data de Criação</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {new Date(clienteParaVisualizar.created_at).toLocaleDateString('pt-BR')}
+                  </p>
+                </div>
               </div>
             </div>
+
+            {/* Endereço */}
+            {clienteParaVisualizar.endereco && (
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 mb-4">Endereço</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Rua</label>
+                    <p className="mt-1 text-sm text-gray-900">{clienteParaVisualizar.endereco.rua}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Número</label>
+                    <p className="mt-1 text-sm text-gray-900">{clienteParaVisualizar.endereco.numero}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Cidade</label>
+                    <p className="mt-1 text-sm text-gray-900">{clienteParaVisualizar.endereco.cidade}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Estado</label>
+                    <p className="mt-1 text-sm text-gray-900">{clienteParaVisualizar.endereco.estado}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">CEP</label>
+                    <p className="mt-1 text-sm text-gray-900">{formatarCEP(clienteParaVisualizar.endereco.cep)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Empresa */}
+            {clienteParaVisualizar.entidades_juridicas && clienteParaVisualizar.entidades_juridicas.length > 0 && (
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 mb-4">Empresa</h4>
+                {clienteParaVisualizar.entidades_juridicas.map((empresa, index) => (
+                  <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Nome da Empresa</label>
+                      <p className="mt-1 text-sm text-gray-900">{empresa.nome}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">CNPJ</label>
+                      <p className="mt-1 text-sm text-gray-900">{formatarDocumento(empresa.cnpj)}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Tipo</label>
+                      <p className="mt-1 text-sm text-gray-900">{empresa.tipo}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+        )}
+      </Modal>
 
-          <div className="flex justify-end space-x-3 pt-4">
+      {/* Modal de Confirmação para Editar */}
+      <Modal
+        isOpen={!!clienteParaEditar}
+        onClose={() => setClienteParaEditar(null)}
+        title="Confirmar Edição"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            Deseja editar o cliente <strong>{clienteParaEditar?.nome}</strong>?
+          </p>
+          <div className="flex justify-end space-x-3">
             <button
-              type="button"
-              onClick={closeModal}
+              onClick={() => setClienteParaEditar(null)}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               Cancelar
             </button>
             <button
-              type="submit"
+              onClick={abrirModalEdicao}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
             >
-              {editingCliente ? 'Atualizar' : 'Criar'}
+              Confirmar
             </button>
           </div>
-        </form>
+        </div>
+      </Modal>
+
+      {/* Modal de Confirmação para Deletar */}
+      <Modal
+        isOpen={!!clienteParaDeletar}
+        onClose={() => setClienteParaDeletar(null)}
+        title="Confirmar Exclusão"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            Tem certeza que deseja excluir o cliente <strong>{clienteParaDeletar?.nome}</strong>?
+          </p>
+          <p className="text-sm text-red-600">
+            Esta ação não pode ser desfeita.
+          </p>
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => setClienteParaDeletar(null)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={confirmarDeletar}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+            >
+              Excluir
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

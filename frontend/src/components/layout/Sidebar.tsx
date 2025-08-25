@@ -12,7 +12,8 @@ import {
   Shield,
   LogOut,
   Bell,
-  User
+  User,
+  Calendar
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -37,6 +38,7 @@ const menuItems: MenuItem[] = [
   { id: 'regimes-tributarios', label: 'Regimes Tributários', icon: Shield, section: 'gestao' },
   { id: 'servicos', label: 'Serviços', icon: Calculator, section: 'gestao' },
   { id: 'relatorios', label: 'Relatórios', icon: BarChart3, section: 'analise' },
+  { id: 'agenda', label: 'Agenda', icon: Calendar, section: 'analise' },
   { id: 'chat', label: 'Chat de Suporte', icon: MessageCircle, section: 'suporte' },
   { id: 'configuracoes', label: 'Configurações', icon: Settings, section: 'sistema' },
 ];

@@ -8,7 +8,7 @@ import {
   Clock
 } from 'lucide-react';
 import { apiService } from '../../services/api';
-import { LoadingSpinner } from '../common/LoadingSpinner';
+import { LoadingSpinner, StatusBadge } from '../common';
 import { Passo1SelecionarCliente, Passo2ConfiguracoesTributarias, Passo3SelecaoServicos, Passo4RevisaoProposta, Passo5FinalizacaoProposta } from '../propostas/passos';
 import { ModalEdicaoProposta } from '../propostas/ModalEdicaoProposta';
 import { ModalExclusaoProposta } from '../propostas/ModalExclusaoProposta';
@@ -171,7 +171,11 @@ interface TipoAtividade {
   ativo: boolean;
 }
 
-export const PropostasPage: React.FC = () => {
+interface PropostasPageProps {
+  openModalOnLoad?: boolean;
+}
+
+export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = false }) => {
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [filteredPropostas, setFilteredPropostas] = useState<Proposta[]>([]);
   const [loading, setLoading] = useState(true);
@@ -328,6 +332,13 @@ export const PropostasPage: React.FC = () => {
     }
     setCurrentPage(1);
   }, [searchTerm, propostas]);
+
+  // Abrir modal de nova proposta automaticamente se openModalOnLoad for true
+  useEffect(() => {
+    if (openModalOnLoad) {
+      handleNovaPropostaClick();
+    }
+  }, [openModalOnLoad]);
 
   const handleNovaPropostaClick = () => {
     setCurrentStep(1);
@@ -800,14 +811,7 @@ export const PropostasPage: React.FC = () => {
                         R$ {proposta.valor_total ? proposta.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${proposta.status === 'APROVADA' ? 'bg-green-100 text-green-800' :
-                          proposta.status === 'ENVIADA' ? 'bg-blue-100 text-blue-800' :
-                            proposta.status === 'RASCUNHO' ? 'bg-yellow-100 text-yellow-800' :
-                              proposta.status === 'REJEITADA' ? 'bg-red-100 text-red-800' :
-                                'bg-gray-100 text-gray-800'
-                          }`}>
-                          {proposta.status}
-                        </span>
+                        <StatusBadge status={proposta.status} />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {proposta.created_at ? new Date(proposta.created_at).toLocaleDateString('pt-BR') : 'N/A'}

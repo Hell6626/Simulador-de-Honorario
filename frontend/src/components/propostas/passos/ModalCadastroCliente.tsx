@@ -63,10 +63,10 @@ const TIPOS_EMPRESA = ['LTDA', 'ME', 'EIRELI', 'S/A', 'EPP', 'OSCIP', 'ONG'];
 const validarCPF = (cpf: string): boolean => {
   const cpfLimpo = cpf.replace(/\D/g, '');
   if (cpfLimpo.length !== 11) return false;
-  
+
   // Verifica se todos os dígitos são iguais
   if (/^(\d)\1{10}$/.test(cpfLimpo)) return false;
-  
+
   // Validação do primeiro dígito verificador
   let soma = 0;
   for (let i = 0; i < 9; i++) {
@@ -75,7 +75,7 @@ const validarCPF = (cpf: string): boolean => {
   let resto = 11 - (soma % 11);
   if (resto === 10 || resto === 11) resto = 0;
   if (resto !== parseInt(cpfLimpo.charAt(9))) return false;
-  
+
   // Validação do segundo dígito verificador
   soma = 0;
   for (let i = 0; i < 10; i++) {
@@ -84,17 +84,17 @@ const validarCPF = (cpf: string): boolean => {
   resto = 11 - (soma % 11);
   if (resto === 10 || resto === 11) resto = 0;
   if (resto !== parseInt(cpfLimpo.charAt(10))) return false;
-  
+
   return true;
 };
 
 const validarCNPJ = (cnpj: string): boolean => {
   const cnpjLimpo = cnpj.replace(/\D/g, '');
   if (cnpjLimpo.length !== 14) return false;
-  
+
   // Verifica se todos os dígitos são iguais
   if (/^(\d)\1{13}$/.test(cnpjLimpo)) return false;
-  
+
   // Validação do primeiro dígito verificador
   let soma = 0;
   let peso = 2;
@@ -105,7 +105,7 @@ const validarCNPJ = (cnpj: string): boolean => {
   let resto = soma % 11;
   let digito1 = resto < 2 ? 0 : 11 - resto;
   if (parseInt(cnpjLimpo.charAt(12)) !== digito1) return false;
-  
+
   // Validação do segundo dígito verificador
   soma = 0;
   peso = 2;
@@ -116,7 +116,7 @@ const validarCNPJ = (cnpj: string): boolean => {
   resto = soma % 11;
   let digito2 = resto < 2 ? 0 : 11 - resto;
   if (parseInt(cnpjLimpo.charAt(13)) !== digito2) return false;
-  
+
   return true;
 };
 
@@ -168,17 +168,7 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
     }
   }, [isOpen]);
 
-  // Resetar aba empresa quando abertura_empresa mudar para true
-  useEffect(() => {
-    if (formData.cliente.abertura_empresa && abaAtiva === 2) {
-      setAbaAtiva(0); // Voltar para aba de dados do cliente
-      // Limpar dados da empresa se estavam preenchidos
-      setFormData(prev => ({
-        ...prev,
-        empresa: null
-      }));
-    }
-  }, [formData.cliente.abertura_empresa, abaAtiva]);
+
 
   // Validações
   const validacoes = {
@@ -217,10 +207,10 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
 
     // Validar endereço se pelo menos um campo estiver preenchido
     if (formData.endereco && (
-      formData.endereco.rua || 
-      formData.endereco.numero || 
-      formData.endereco.cidade || 
-      formData.endereco.estado || 
+      formData.endereco.rua ||
+      formData.endereco.numero ||
+      formData.endereco.cidade ||
+      formData.endereco.estado ||
       formData.endereco.cep
     )) {
       if (!validacoes.endereco.rua(formData.endereco.rua)) {
@@ -240,10 +230,10 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
       }
     }
 
-    // Validar empresa se pelo menos um campo estiver preenchido E se não for abertura de empresa
-    if (!formData.cliente.abertura_empresa && formData.empresa && (
-      formData.empresa.nome || 
-      formData.empresa.cnpj || 
+    // Validar empresa se pelo menos um campo estiver preenchido
+    if (formData.empresa && (
+      formData.empresa.nome ||
+      formData.empresa.cnpj ||
       formData.empresa.tipo
     )) {
       if (!validacoes.empresa.nome(formData.empresa.nome)) {
@@ -315,7 +305,7 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
           estado: formData.endereco.estado,
           cep: formData.endereco.cep.replace(/\D/g, '')
         } : null,
-        entidade_juridica: !formData.cliente.abertura_empresa && formData.empresa && formData.empresa.nome ? {
+        entidade_juridica: formData.empresa && formData.empresa.nome ? {
           nome: formData.empresa.nome,
           cnpj: formData.empresa.cnpj.replace(/\D/g, ''),
           tipo: formData.empresa.tipo
@@ -333,441 +323,417 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
     }
   };
 
-  const podeIrParaEmpresa = !formData.cliente.abertura_empresa && // Só se NÃO for abertura de empresa
-    formData.endereco && 
-    formData.endereco.rua && 
-    formData.endereco.numero && 
-    formData.endereco.cidade && 
-    formData.endereco.estado && 
-    formData.endereco.cep &&
-    !errors.endereco;
+  const podeIrParaEmpresa = true; // Aba empresa sempre disponível
 
   const podeSalvar = (): boolean => {
     // Dados do cliente sempre obrigatórios
     if (!formData.cliente.nome.trim() || !formData.cliente.cpf.trim()) {
       return false;
     }
-    
+
     // Se endereço estiver parcialmente preenchido, deve estar completo
     if (formData.endereco && (
-      formData.endereco.rua || 
-      formData.endereco.numero || 
-      formData.endereco.cidade || 
-      formData.endereco.estado || 
+      formData.endereco.rua ||
+      formData.endereco.numero ||
+      formData.endereco.cidade ||
+      formData.endereco.estado ||
       formData.endereco.cep
     )) {
       if (!formData.endereco.rua || !formData.endereco.numero || !formData.endereco.cidade || !formData.endereco.estado || !formData.endereco.cep) {
         return false;
       }
     }
-    
-    // Se empresa estiver parcialmente preenchida, deve estar completa (só se não for abertura de empresa)
-    if (!formData.cliente.abertura_empresa && formData.empresa && (
-      formData.empresa.nome || 
-      formData.empresa.cnpj || 
+
+    // Se empresa estiver parcialmente preenchida, deve estar completa
+    if (formData.empresa && (
+      formData.empresa.nome ||
+      formData.empresa.cnpj ||
       formData.empresa.tipo
     )) {
       if (!formData.empresa.nome || !formData.empresa.cnpj || !formData.empresa.tipo) {
         return false;
       }
     }
-    
+
     return true;
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Cadastrar Novo Cliente</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-[9999] overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div
+          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+          onClick={onClose}
+        />
 
-        {/* Abas */}
-        <div className="flex border-b border-gray-200">
-          <button
-            onClick={() => setAbaAtiva(0)}
-            className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${
-              abaAtiva === 0
+        <div className="inline-block w-full max-w-2xl p-0 my-8 text-left align-middle transition-all transform bg-white shadow-xl rounded-lg max-h-[90vh] overflow-y-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900">Cadastrar Novo Cliente</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Abas */}
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setAbaAtiva(0)}
+              className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${abaAtiva === 0
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <User className="w-4 h-4" />
-            <span>Dados do Cliente</span>
-          </button>
-          <button
-            onClick={() => setAbaAtiva(1)}
-            className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${
-              abaAtiva === 1
+                }`}
+            >
+              <User className="w-4 h-4" />
+              <span>Dados do Cliente</span>
+            </button>
+            <button
+              onClick={() => setAbaAtiva(1)}
+              className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${abaAtiva === 1
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <MapPin className="w-4 h-4" />
-            <span>Endereço</span>
-          </button>
-          <button
-            onClick={() => setAbaAtiva(2)}
-            disabled={!podeIrParaEmpresa}
-            className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${
-              abaAtiva === 2
+                }`}
+            >
+              <MapPin className="w-4 h-4" />
+              <span>Endereço</span>
+            </button>
+            <button
+              onClick={() => setAbaAtiva(2)}
+              className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${abaAtiva === 2
                 ? 'text-blue-600 border-b-2 border-blue-600'
-                : podeIrParaEmpresa
-                ? 'text-gray-500 hover:text-gray-700'
-                : 'text-gray-300 cursor-not-allowed'
-            }`}
-            title={
-              formData.cliente.abertura_empresa 
-                ? 'Aba empresa não disponível para abertura de empresa' 
-                : !formData.endereco?.rua 
-                ? 'Preencha o endereço para habilitar a aba empresa'
-                : 'Empresa'
-            }
-          >
-            <Building className="w-4 h-4" />
-            <span>Empresa</span>
-          </button>
-        </div>
+                : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              <Building className="w-4 h-4" />
+              <span>Empresa</span>
+            </button>
+          </div>
 
-        {/* Conteúdo das Abas */}
-        <div className="p-6">
-          {/* Aba Dados do Cliente */}
-          {abaAtiva === 0 && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nome Completo <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.cliente.nome}
-                  onChange={(e) => handleInputChange('cliente', 'nome', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.cliente?.nome ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Digite o nome completo"
-                />
-                {errors.cliente?.nome && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.cliente.nome}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  CPF <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.cliente.cpf}
-                  onChange={(e) => {
-                    const valor = e.target.value;
-                    const mascara = aplicarMascaraCPF(valor);
-                    if (mascara.length <= 14) {
-                      handleInputChange('cliente', 'cpf', mascara);
-                    }
-                  }}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.cliente?.cpf ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="000.000.000-00"
-                  maxLength={14}
-                />
-                {errors.cliente?.cpf && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.cliente.cpf}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  E-mail
-                </label>
-                <input
-                  type="email"
-                  value={formData.cliente.email || ''}
-                  onChange={(e) => handleInputChange('cliente', 'email', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.cliente?.email ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="exemplo@email.com"
-                />
-                {errors.cliente?.email && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.cliente.email}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="abertura_empresa"
-                  checked={formData.cliente.abertura_empresa}
-                  onChange={(e) => handleInputChange('cliente', 'abertura_empresa', e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="abertura_empresa" className="ml-2 text-sm text-gray-700">
-                  Este cliente é para abertura de empresa
-                </label>
-              </div>
-            </div>
-          )}
-
-          {/* Aba Endereço */}
-          {abaAtiva === 1 && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+          {/* Conteúdo das Abas */}
+          <div className="p-6">
+            {/* Aba Dados do Cliente */}
+            {abaAtiva === 0 && (
+              <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Rua <span className="text-red-500">*</span>
+                    Nome Completo <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    value={formData.endereco?.rua || ''}
-                    onChange={(e) => {
-                      handleInputChange('endereco', 'rua', e.target.value);
-                    }}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.endereco?.rua ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="Nome da rua"
+                    value={formData.cliente.nome}
+                    onChange={(e) => handleInputChange('cliente', 'nome', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.cliente?.nome ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    placeholder="Digite o nome completo"
                   />
-                  {errors.endereco?.rua && (
+                  {errors.cliente?.nome && (
                     <p className="mt-1 text-sm text-red-600 flex items-center">
                       <AlertCircle className="w-4 h-4 mr-1" />
-                      {errors.endereco.rua}
+                      {errors.cliente.nome}
                     </p>
                   )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Número <span className="text-red-500">*</span>
+                    CPF <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    value={formData.endereco?.numero || ''}
+                    value={formData.cliente.cpf}
                     onChange={(e) => {
-                      handleInputChange('endereco', 'numero', e.target.value);
+                      const valor = e.target.value;
+                      const mascara = aplicarMascaraCPF(valor);
+                      if (mascara.length <= 14) {
+                        handleInputChange('cliente', 'cpf', mascara);
+                      }
                     }}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.endereco?.numero ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="123"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.cliente?.cpf ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    placeholder="000.000.000-00"
+                    maxLength={14}
                   />
-                  {errors.endereco?.numero && (
+                  {errors.cliente?.cpf && (
                     <p className="mt-1 text-sm text-red-600 flex items-center">
                       <AlertCircle className="w-4 h-4 mr-1" />
-                      {errors.endereco.numero}
+                      {errors.cliente.cpf}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    E-mail
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.cliente.email || ''}
+                    onChange={(e) => handleInputChange('cliente', 'email', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.cliente?.email ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    placeholder="exemplo@email.com"
+                  />
+                  {errors.cliente?.email && (
+                    <p className="mt-1 text-sm text-red-600 flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {errors.cliente.email}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="abertura_empresa"
+                    checked={formData.cliente.abertura_empresa}
+                    onChange={(e) => handleInputChange('cliente', 'abertura_empresa', e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="abertura_empresa" className="ml-2 text-sm text-gray-700">
+                    Este cliente é para abertura de empresa
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* Aba Endereço */}
+            {abaAtiva === 1 && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Rua <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.endereco?.rua || ''}
+                      onChange={(e) => {
+                        handleInputChange('endereco', 'rua', e.target.value);
+                      }}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.endereco?.rua ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      placeholder="Nome da rua"
+                    />
+                    {errors.endereco?.rua && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        {errors.endereco.rua}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Número <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.endereco?.numero || ''}
+                      onChange={(e) => {
+                        handleInputChange('endereco', 'numero', e.target.value);
+                      }}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.endereco?.numero ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      placeholder="123"
+                    />
+                    {errors.endereco?.numero && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        {errors.endereco.numero}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Cidade <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.endereco?.cidade || ''}
+                      onChange={(e) => {
+                        handleInputChange('endereco', 'cidade', e.target.value);
+                      }}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.endereco?.cidade ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      placeholder="Nome da cidade"
+                    />
+                    {errors.endereco?.cidade && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        {errors.endereco.cidade}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Estado <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.endereco?.estado || ''}
+                      onChange={(e) => {
+                        handleInputChange('endereco', 'estado', e.target.value);
+                      }}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.endereco?.estado ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                    >
+                      <option value="">Selecione o estado</option>
+                      {ESTADOS_BRASIL.map(estado => (
+                        <option key={estado} value={estado}>{estado}</option>
+                      ))}
+                    </select>
+                    {errors.endereco?.estado && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        {errors.endereco.estado}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    CEP <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.endereco?.cep || ''}
+                    onChange={(e) => {
+                      const valor = e.target.value;
+                      const mascara = aplicarMascaraCEP(valor);
+                      if (mascara.length <= 9) {
+                        handleInputChange('endereco', 'cep', mascara);
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.endereco?.cep ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    placeholder="00000-000"
+                    maxLength={9}
+                  />
+                  {errors.endereco?.cep && (
+                    <p className="mt-1 text-sm text-red-600 flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {errors.endereco.cep}
                     </p>
                   )}
                 </div>
               </div>
+            )}
 
-              <div className="grid grid-cols-2 gap-4">
+            {/* Aba Empresa */}
+            {abaAtiva === 2 && (
+              <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cidade <span className="text-red-500">*</span>
+                    Nome da Empresa <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    value={formData.endereco?.cidade || ''}
+                    value={formData.empresa?.nome || ''}
                     onChange={(e) => {
-                      handleInputChange('endereco', 'cidade', e.target.value);
+                      handleInputChange('empresa', 'nome', e.target.value);
                     }}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.endereco?.cidade ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="Nome da cidade"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.empresa?.nome ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    placeholder="Nome da empresa"
                   />
-                  {errors.endereco?.cidade && (
+                  {errors.empresa?.nome && (
                     <p className="mt-1 text-sm text-red-600 flex items-center">
                       <AlertCircle className="w-4 h-4 mr-1" />
-                      {errors.endereco.cidade}
+                      {errors.empresa.nome}
                     </p>
                   )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Estado <span className="text-red-500">*</span>
+                    CNPJ <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.empresa?.cnpj || ''}
+                    onChange={(e) => {
+                      const valor = e.target.value;
+                      const mascara = aplicarMascaraCNPJ(valor);
+                      if (mascara.length <= 18) {
+                        handleInputChange('empresa', 'cnpj', mascara);
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.empresa?.cnpj ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    placeholder="00.000.000/0000-00"
+                    maxLength={18}
+                  />
+                  {errors.empresa?.cnpj && (
+                    <p className="mt-1 text-sm text-red-600 flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {errors.empresa.cnpj}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tipo de Empresa <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={formData.endereco?.estado || ''}
+                    value={formData.empresa?.tipo || ''}
                     onChange={(e) => {
-                      handleInputChange('endereco', 'estado', e.target.value);
+                      handleInputChange('empresa', 'tipo', e.target.value);
                     }}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.endereco?.estado ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.empresa?.tipo ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   >
-                    <option value="">Selecione o estado</option>
-                    {ESTADOS_BRASIL.map(estado => (
-                      <option key={estado} value={estado}>{estado}</option>
+                    <option value="">Selecione o tipo</option>
+                    {TIPOS_EMPRESA.map(tipo => (
+                      <option key={tipo} value={tipo}>{tipo}</option>
                     ))}
                   </select>
-                  {errors.endereco?.estado && (
+                  {errors.empresa?.tipo && (
                     <p className="mt-1 text-sm text-red-600 flex items-center">
                       <AlertCircle className="w-4 h-4 mr-1" />
-                      {errors.endereco.estado}
+                      {errors.empresa.tipo}
                     </p>
                   )}
                 </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  CEP <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.endereco?.cep || ''}
-                  onChange={(e) => {
-                    const valor = e.target.value;
-                    const mascara = aplicarMascaraCEP(valor);
-                    if (mascara.length <= 9) {
-                      handleInputChange('endereco', 'cep', mascara);
-                    }
-                  }}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.endereco?.cep ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="00000-000"
-                  maxLength={9}
-                />
-                {errors.endereco?.cep && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.endereco.cep}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Aba Empresa */}
-          {abaAtiva === 2 && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nome da Empresa <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.empresa?.nome || ''}
-                  onChange={(e) => {
-                    handleInputChange('empresa', 'nome', e.target.value);
-                  }}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.empresa?.nome ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Nome da empresa"
-                />
-                {errors.empresa?.nome && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.empresa.nome}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  CNPJ <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.empresa?.cnpj || ''}
-                  onChange={(e) => {
-                    const valor = e.target.value;
-                    const mascara = aplicarMascaraCNPJ(valor);
-                    if (mascara.length <= 18) {
-                      handleInputChange('empresa', 'cnpj', mascara);
-                    }
-                  }}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.empresa?.cnpj ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="00.000.000/0000-00"
-                  maxLength={18}
-                />
-                {errors.empresa?.cnpj && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.empresa.cnpj}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipo de Empresa <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.empresa?.tipo || ''}
-                  onChange={(e) => {
-                    handleInputChange('empresa', 'tipo', e.target.value);
-                  }}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.empresa?.tipo ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="">Selecione o tipo</option>
-                  {TIPOS_EMPRESA.map(tipo => (
-                    <option key={tipo} value={tipo}>{tipo}</option>
-                  ))}
-                </select>
-                {errors.empresa?.tipo && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.empresa.tipo}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Botões */}
-        <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleSalvar}
-            disabled={loading || !podeSalvar()}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>Salvando...</span>
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4" />
-                <span>Salvar Cliente</span>
-              </>
             )}
-          </button>
+          </div>
+
+          {/* Botões */}
+          <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSalvar}
+              disabled={loading || !podeSalvar()}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Salvando...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  <span>Salvar Cliente</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
