@@ -36,14 +36,28 @@ def get_funcionarios():
 
     funcionarios = paginate_query(query.order_by(Funcionario.nome), page, per_page)
 
-    data = [f.to_json() for f in funcionarios.items]
+    data = []
+    for f in funcionarios.items:
+        funcionario_data = f.to_json()
+        # Adicionar dados do cargo
+        if f.cargo:
+            funcionario_data['cargo'] = {
+                'nome': f.cargo.nome,
+                'codigo': f.cargo.codigo,
+                'nivel': f.cargo.nivel
+            }
+        # Adicionar dados da empresa
+        if f.empresa:
+            funcionario_data['empresa'] = {
+                'nome': f.empresa.nome,
+                'cnpj': f.empresa.cnpj
+            }
+        data.append(funcionario_data)
     return jsonify({
-        'items': data,
         'funcionarios': data,
         'total': funcionarios.total,
         'pages': funcionarios.pages,
-        'current_page': page,
-        'per_page': per_page
+        'page': page
     })
 
 @funcionarios_bp.route('/<int:funcionario_id>', methods=['GET'])

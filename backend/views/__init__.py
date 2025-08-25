@@ -22,6 +22,8 @@ from .auth import auth_bp
 from .health import health_bp
 from .chat import chat_bp
 from .error_handlers import error_handlers_bp
+from .cargos import cargos_bp
+from .empresas import empresas_bp
 
 # =====================================================
 # BLUEPRINT PRINCIPAL
@@ -44,6 +46,8 @@ def register_blueprints(app):
     api_bp.register_blueprint(auth_bp, url_prefix='/auth')
     api_bp.register_blueprint(health_bp, url_prefix='/health')
     api_bp.register_blueprint(chat_bp, url_prefix='/chat')
+    api_bp.register_blueprint(cargos_bp, url_prefix='/cargos')
+    api_bp.register_blueprint(empresas_bp, url_prefix='/empresas')
     
     # Registra o blueprint principal na aplicação
     app.register_blueprint(api_bp)

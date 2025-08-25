@@ -10,18 +10,7 @@ import { PropostasPage } from './components/pages/PropostasPage';
 import { AgendaPage } from './components/pages/AgendaPage';
 
 // Placeholder components for other pages
-const FuncionariosPage = () => (
-  <div className="space-y-6">
-    <div className="mb-6">
-      <h1 className="text-2xl font-bold text-gray-900">Funcionários</h1>
-      <p className="text-sm text-gray-500">Gerencie a equipe e colaboradores da empresa</p>
-    </div>
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-      <h2 className="text-xl font-bold mb-4">Funcionários</h2>
-      <p>Página em desenvolvimento...</p>
-    </div>
-  </div>
-);
+import { FuncionariosPage } from './components/pages/FuncionariosPage';
 
 const TiposAtividadePage = () => (
   <div className="space-y-6">
@@ -108,7 +97,7 @@ const AppContent: React.FC = () => {
   const handleNavigate = (page: string, options?: { openModal?: boolean }) => {
     setCurrentPage(page);
     setNavigationOptions(options || {});
-    
+
     // Limpar as opções após um breve delay para evitar que o modal abra novamente
     setTimeout(() => {
       setNavigationOptions({});
@@ -124,7 +113,7 @@ const AppContent: React.FC = () => {
       case 'clientes':
         return <ClientesPage openModalOnLoad={navigationOptions.openModal} />;
       case 'funcionarios':
-        return <FuncionariosPage />;
+        return <FuncionariosPage openModalOnLoad={navigationOptions.openModal} />;
       case 'tipos-atividade':
         return <TiposAtividadePage />;
       case 'regimes-tributarios':

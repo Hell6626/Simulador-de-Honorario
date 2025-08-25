@@ -107,6 +107,88 @@ class ApiService {
     return this.request(`/funcionarios/${id}`, { method: 'DELETE' });
   }
 
+  // Cargos
+  async getCargos(params?: {
+    page?: number;
+    per_page?: number;
+    ativo?: boolean;
+    search?: string;
+    empresa_id?: number;
+  }) {
+    const query = new URLSearchParams();
+    if (params?.page) query.append('page', params.page.toString());
+    if (params?.per_page) query.append('per_page', params.per_page.toString());
+    if (params?.ativo !== undefined) query.append('ativo', params.ativo.toString());
+    if (params?.search) query.append('search', params.search);
+    if (params?.empresa_id) query.append('empresa_id', params.empresa_id.toString());
+    
+    return this.request<any>(`/cargos?${query}`);
+  }
+
+  async getCargo(id: number) {
+    return this.request<any>(`/cargos/${id}`);
+  }
+
+  async createCargo(data: any) {
+    return this.request<any>('/cargos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  }
+
+  async updateCargo(id: number, data: any) {
+    return this.request<any>(`/cargos/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  }
+
+  async deleteCargo(id: number) {
+    return this.request(`/cargos/${id}`, { method: 'DELETE' });
+  }
+
+  // Empresas
+  async getEmpresas(params?: {
+    page?: number;
+    per_page?: number;
+    ativo?: boolean;
+    search?: string;
+  }) {
+    const query = new URLSearchParams();
+    if (params?.page) query.append('page', params.page.toString());
+    if (params?.per_page) query.append('per_page', params.per_page.toString());
+    if (params?.ativo !== undefined) query.append('ativo', params.ativo.toString());
+    if (params?.search) query.append('search', params.search);
+    
+    return this.request<any>(`/empresas?${query}`);
+  }
+
+  async getEmpresa(id: number) {
+    return this.request<any>(`/empresas/${id}`);
+  }
+
+  async createEmpresa(data: any) {
+    return this.request<any>('/empresas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  }
+
+  async updateEmpresa(id: number, data: any) {
+    return this.request<any>(`/empresas/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  }
+
+  async deleteEmpresa(id: number) {
+    return this.request(`/empresas/${id}`, { method: 'DELETE' });
+  }
+
   // Clientes
   async getClientes(params?: {
     page?: number;

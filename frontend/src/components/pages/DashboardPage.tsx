@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Users, 
-  FileText, 
-  TrendingUp, 
-  DollarSign, 
+import {
+  Users,
+  FileText,
+  TrendingUp,
+  DollarSign,
   Calendar,
   AlertCircle,
   CheckCircle,
   Clock,
-  BarChart3
+  BarChart3,
+  UserCheck
 } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { LoadingSpinner } from '../common/LoadingSpinner';
+import { useAuth } from '../../context/AuthContext';
 
 interface DashboardStats {
   totalClientes: number;
@@ -51,15 +53,17 @@ interface DashboardPageProps {
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
+  const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isGerente, setIsGerente] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        
+
         // Fetch data from multiple endpoints
         const [clientesRes, propostasRes] = await Promise.all([
           apiService.getClientes({ per_page: 1 }),
@@ -69,13 +73,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         const totalClientes = clientesRes.total || 0;
         const totalPropostas = propostasRes.total || 0;
         const propostas = propostasRes.items || [];
-        
+
         const propostasAbertas = propostas.filter(
           (p: any) => p.status === 'RASCUNHO' || p.status === 'ENVIADA'
         ).length;
 
         const valorTotalPropostas = propostas.reduce(
-          (sum: number, p: any) => sum + (p.valor_total || 0), 
+          (sum: number, p: any) => sum + (p.valor_total || 0),
           0
         );
 
@@ -86,6 +90,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           valorTotalPropostas,
           propostas
         });
+
+        // Por enquanto, assumir que o usuário é gerente
+        // Em uma implementação real, você verificaria isso na API
+        setIsGerente(true);
 
       } catch (err: any) {
         setError('Erro ao carregar dados do dashboard');
@@ -165,6 +173,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const handleAgendaClick = () => {
     if (onNavigate) {
       onNavigate('agenda');
+    }
+  };
+
+  const handleFuncionariosClick = () => {
+    if (onNavigate) {
+      onNavigate('funcionarios', { openModal: true });
     }
   };
 
@@ -264,7 +278,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           </div>
           <div className="p-6">
             <div className="grid grid-cols-2 gap-4">
-              <button 
+              <button
                 onClick={handleNovaPropostaClick}
                 className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors group cursor-pointer"
               >
@@ -273,7 +287,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                   Nova Proposta
                 </p>
               </button>
-              <button 
+              <button
                 onClick={handleNovoClienteClick}
                 className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors group cursor-pointer"
               >
@@ -282,7 +296,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                   Novo Cliente
                 </p>
               </button>
-              <button 
+              {isGerente && (
+                <button
+                  onClick={handleFuncionariosClick}
+                  className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-colors group cursor-pointer"
+                >
+                  <UserCheck className="w-8 h-8 text-gray-400 group-hover:text-orange-500 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-gray-600 group-hover:text-orange-600">
+                    Novo Funcionário
+                  </p>
+                </button>
+              )}
+              <button
                 onClick={handleRelatoriosClick}
                 className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors group cursor-pointer"
               >
@@ -291,7 +316,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                   Relatórios
                 </p>
               </button>
-              <button 
+              <button
                 onClick={handleAgendaClick}
                 className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 transition-colors group cursor-pointer"
               >
