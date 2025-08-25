@@ -6,6 +6,8 @@ Inclui o catálogo de serviços disponíveis para propostas.
 from datetime import datetime
 from config import db
 from .base import TimestampMixin, ActiveMixin
+from sqlalchemy import UniqueConstraint
+from .tributario import RegimeTributario
 
 
 class Servico(db.Model, TimestampMixin, ActiveMixin):
@@ -22,6 +24,7 @@ class Servico(db.Model, TimestampMixin, ActiveMixin):
     
     # Relacionamentos
     itens_proposta = db.relationship('ItemProposta', backref='servico', lazy=True)
+    servico_regime = db.relationship('ServicoRegime', backref='servico', lazy=True, cascade="all, delete-orphan")
     
     def __repr__(self):
         return f'<Servico {self.nome}>'
@@ -35,6 +38,31 @@ class Servico(db.Model, TimestampMixin, ActiveMixin):
             "tipo_cobranca": self.tipo_cobranca,
             "valor_base": float(self.valor_base),
             "descricao": self.descricao,
+            "ativo": self.ativo,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+        }
+
+class ServicoRegime(db.Model, TimestampMixin, ActiveMixin):
+    """Modelo para relacionamento entre serviço e regime tributário"""
+    __tablename__ = "servico_regime"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    servico_id = db.Column(db.Integer, db.ForeignKey('servico.id'), nullable=False, index=True)
+    regime_tributario_id = db.Column(db.Integer, db.ForeignKey('regime_tributario.id'), nullable=False, index=True)
+    
+    __table_args__ = (
+        UniqueConstraint('servico_id', 'regime_tributario_id', name='unique_servico_regime'),
+    )
+    
+    def __repr__(self):
+        return f'<ServicoRegime {self.servico_id} - {self.regime_tributario_id}>'
+    
+    def to_json(self):
+        return {
+            "id": self.id,
+            "servico_id": self.servico_id,
+            "regime_tributario_id": self.regime_tributario_id,
             "ativo": self.ativo,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None

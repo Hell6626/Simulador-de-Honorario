@@ -509,17 +509,10 @@ export const PropostasPage: React.FC = () => {
             faixa_faturamento_id: dados.faixa_faturamento_id
           }));
 
-          if (tipoEncontrado.aplicavel_pj) {
-            // Se for aplicável para PJ, ir para Passo 3
-            setTipoAtividade(tipoEncontrado);
-            setCurrentStep(3);
-            console.log('Tipo de atividade aplicável para PJ. Indo para Passo 3.');
-          } else {
-            // Se não for aplicável para PJ, finalizar proposta
-            console.log('Tipo de atividade não aplicável para PJ. Finalizando proposta.');
-            alert('Proposta criada com sucesso!');
-            setCurrentStep(0);
-          }
+          // ⚠️ CORREÇÃO: Todos os tipos de atividade vão para Passo 3 (seleção de serviços)
+          setTipoAtividade(tipoEncontrado);
+          setCurrentStep(3);
+          console.log('Indo para Passo 3 - Seleção de Serviços');
         } else {
           console.error('Dados não encontrados');
           alert('Erro: Dados não encontrados');
@@ -659,10 +652,11 @@ export const PropostasPage: React.FC = () => {
     );
   }
 
-  if (currentStep === 3 && tipoAtividade) {
+  if (currentStep === 3 && tipoAtividade && dadosProposta.regimeTributario) {
     return (
       <Passo3SelecaoServicos
         tipoAtividade={tipoAtividade}
+        regimeTributario={dadosProposta.regimeTributario}
         onVoltar={handleVoltarPasso3}
         onProximo={handleProximoPasso3}
       />

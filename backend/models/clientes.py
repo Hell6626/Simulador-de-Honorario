@@ -21,7 +21,7 @@ class Cliente(db.Model, TimestampMixin, ActiveMixin):
     # Relacionamentos
     enderecos = db.relationship('Endereco', backref='cliente', lazy=True, cascade="all, delete-orphan")
     entidades_juridicas = db.relationship('EntidadeJuridica', backref='cliente', lazy=True, cascade="all, delete-orphan")
-    propostas = db.relationship('Proposta', backref='cliente', lazy=True)
+    propostas = db.relationship('Proposta', lazy=True)
     
     def __repr__(self):
         return f'<Cliente {self.nome}>'

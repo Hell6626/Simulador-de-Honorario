@@ -8,7 +8,8 @@ Script para inicializar o sistema do zero
 
 from config import create_app, db
 from models import *
-from models.initialization import inicializar_dados_basicos, inicializar_faixas_faturamento
+from models.servicos import ServicoRegime
+from models.initialization import inicializar_dados_basicos, inicializar_faixas_faturamento, inicializar_relacionamentos_atividade_regime, inicializar_relacionamentos_servico_regime
 from werkzeug.security import generate_password_hash
 from datetime import datetime
 
@@ -56,7 +57,7 @@ def criar_usuario_admin():
         # Criar usuário administrador
         admin = Funcionario(
             nome="Administrador",
-            email="admin@admin.com",
+            email="admin@gmail.com",
             senha_hash=generate_password_hash("admin123"),
             gerente=True,
             cargo_id=cargo.id,
@@ -68,7 +69,7 @@ def criar_usuario_admin():
         db.session.commit()
         
         print(f"✅ Usuário administrador criado!")
-        print(f"📧 Email: admin@admin.com")
+        print(f"📧 Email: admin@gmail.com")
         print(f"🔐 Senha: admin123")
 
 def inicializar_dados():
@@ -80,9 +81,17 @@ def inicializar_dados():
         inicializar_dados_basicos()
         print("✅ Dados básicos inicializados!")
         
+        # Inicializar relacionamentos atividade x regime
+        inicializar_relacionamentos_atividade_regime()
+        print("✅ Relacionamentos atividade x regime inicializados!")
+        
         # Inicializar faixas de faturamento
         inicializar_faixas_faturamento()
         print("✅ Faixas de faturamento inicializadas!")
+        
+        # Inicializar relacionamentos serviço x regime
+        inicializar_relacionamentos_servico_regime()
+        print("✅ Relacionamentos serviço x regime inicializados!")
 
 def verificar_sistema():
     """Verifica se o sistema foi inicializado corretamente"""
@@ -96,16 +105,25 @@ def verificar_sistema():
             'funcionarios': Funcionario.query.count(),
             'tipos_atividade': TipoAtividade.query.count(),
             'regimes_tributarios': RegimeTributario.query.count(),
+            'atividades_regime': AtividadeRegime.query.count(),
             'faixas_faturamento': FaixaFaturamento.query.count(),
-            'servicos': Servico.query.count()
+            'servicos': Servico.query.count(),
+            'servico_regime': ServicoRegime.query.count()
         }
         
         print("📊 Contagem de registros:")
         for tabela, count in counts.items():
             print(f"  - {tabela}: {count}")
         
+        # Verificar relacionamentos específicos
+        print("\n🔗 Verificando relacionamentos:")
+        for atividade in TipoAtividade.query.all():
+            regimes = AtividadeRegime.query.filter_by(tipo_atividade_id=atividade.id).all()
+            regime_nomes = [rel.regime_tributario.nome for rel in regimes if rel.regime_tributario]
+            print(f"  - {atividade.nome}: {', '.join(regime_nomes) if regime_nomes else 'Nenhum regime'}")
+        
         # Verificar usuário admin
-        admin = Funcionario.query.filter_by(email="admin@admin.com").first()
+        admin = Funcionario.query.filter_by(email="admin@gmail.com").first()
         if admin:
             print(f"\n✅ Usuário admin encontrado:")
             print(f"  - Nome: {admin.nome}")
@@ -137,7 +155,7 @@ def main():
         print("\n" + "=" * 50)
         print("🎉 SISTEMA INICIALIZADO COM SUCESSO!")
         print("\n📋 Credenciais de acesso:")
-        print("  📧 Email: admin@admin.com")
+        print("  📧 Email: admin@gmail.com")
         print("  🔐 Senha: admin123")
         print("\n🌐 Para testar:")
         print("  1. Execute: python main.py")

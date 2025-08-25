@@ -28,6 +28,8 @@ class Proposta(db.Model, TimestampMixin, ActiveMixin):
     # Relacionamentos
     itens = db.relationship('ItemProposta', back_populates='proposta', lazy=True, cascade="all, delete-orphan")
     logs = db.relationship('PropostaLog', backref='proposta', lazy=True, cascade="all, delete-orphan")
+    cliente = db.relationship('Cliente', lazy='joined')
+    funcionario_responsavel = db.relationship('Funcionario', lazy='joined')
     
     def __repr__(self):
         return f'<Proposta {self.numero}>'
@@ -48,6 +50,18 @@ class Proposta(db.Model, TimestampMixin, ActiveMixin):
             "ativo": self.ativo,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            # ⚠️ INCLUIR: Relacionamentos com cliente e funcionário
+            "cliente": {
+                "id": self.cliente.id,
+                "nome": self.cliente.nome,
+                "cpf": self.cliente.cpf,
+                "email": self.cliente.email
+            } if hasattr(self, 'cliente') and self.cliente else None,
+            "funcionario_responsavel": {
+                "id": self.funcionario_responsavel.id,
+                "nome": self.funcionario_responsavel.nome,
+                "email": self.funcionario_responsavel.email
+            } if hasattr(self, 'funcionario_responsavel') and self.funcionario_responsavel else None,
             # ⚠️ INCLUIR: Itens da proposta
             "itens": [item.to_json() for item in self.itens if item.ativo] if hasattr(self, 'itens') else []
         }

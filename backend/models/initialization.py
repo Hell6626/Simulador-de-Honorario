@@ -90,6 +90,13 @@ def inicializar_dados_basicos():
             'descricao': 'Regime para empregador doméstico',
             'aplicavel_pf': True,
             'aplicavel_pj': False
+        },
+        {
+            'codigo': 'CAT',
+            'nome': 'Cartório',
+            'descricao': 'Regime para Cartórios',
+            'aplicavel_pf': True,
+            'aplicavel_pj': False
         }
     ]
     
@@ -158,6 +165,150 @@ def inicializar_dados_basicos():
             'tipo_cobranca': 'VALOR_UNICO',
             'valor_base': 1000.00,
             'descricao': 'Realização de todo processo de registro de Orgão de Classe'
+        },
+        {
+            'codigo': 'INSCRICAO-PRODUTOR-RURAL_C_CERTIFICADO',
+            'nome': 'Inscrição Produtores Rurais com Certificado',
+            'categoria': 'FISCAL',
+            'tipo_cobranca': 'VALOR_UNICO',
+            'valor_base': 750.00,
+            'descricao': 'Realização de todo processo de inscrição de Produtores Rurais com Certificado'
+        },
+        {
+            'codigo': 'INSCRICAO-PRODUTOR-RURAL_SEM_CERTIFICADO',
+            'nome': 'Inscrição Produtores Rurais sem Certificado',
+            'categoria': 'FISCAL',
+            'tipo_cobranca': 'VALOR_UNICO',
+            'valor_base': 550.00,
+            'descricao': 'Realização de todo processo de inscrição de Produtores Rurais sem Certificado'
+        },
+        {
+            'codigo': 'OPERACAO-INSCRICAO-PRODUTOR-RURAL',
+            'nome': 'Operação de Inscrição de Produtores Rurais',
+            'categoria': 'FISCAL',
+            'tipo_cobranca': 'VALOR_UNICO',
+            'valor_base': 300.00,
+            'descricao': 'Realização de todo processo de operação de inscrição de Produtores Rurais'
+        },
+        {
+            'codigo': 'BAIXA-INSCRICAO-PRODUTOR-RURAL',
+            'nome': 'Baixa de Inscrição de Produtores Rurais',
+            'categoria': 'FISCAL',
+            'tipo_cobranca': 'VALOR_UNICO',
+            'valor_base': 400.00,
+            'descricao': 'Realização de todo processo de baixa de inscrição de Produtores Rurais'
+        },
+        {
+            'codigo': 'HONORARIO-C-FUNCIONARIO-PRODUTOR-RURAL',
+            'nome': 'Honorário de Funcionário - Produtor Rural',
+            'categoria': 'PESSOAL',
+            'tipo_cobranca': 'MENSAL',
+            'valor_base': 200.00,
+            'descricao': 'Honorário de departamento pessoal por funcionário - Produtor Rural'
+        },
+        {
+            'codigo': 'HONORARIO-C-DOIS-FUNCIONARIOS-PRODUTOR-RURAL',
+            'nome': 'Honorário de Dois Funcionários - Produtor Rural',
+            'categoria': 'PESSOAL',
+            'tipo_cobranca': 'MENSAL',
+            'valor_base': 240.00,
+            'descricao': 'Honorário de departamento pessoal por dois funcionários - Produtor Rural'
+        },
+        {
+            'codigo': 'HONORARIO-C-TRES-FUNCIONARIOS-PRODUTOR-RURAL',
+            'nome': 'Honorário de Três Funcionários - Produtor Rural',
+            'categoria': 'PESSOAL',
+            'tipo_cobranca': 'MENSAL',
+            'valor_base': 290.00,
+            'descricao': 'Honorário de departamento pessoal por três funcionários - Produtor Rural'
+        },
+        {
+            'codigo': 'HONORARIO-DEMAIS-FUNCIONARIOS-PRODUTOR-RURAL',
+            'nome': 'Honorário de Funcionários (acima de 3) - Produtor Rural',
+            'categoria': 'PESSOAL',
+            'tipo_cobranca': 'MENSAL',
+            'valor_base': 30.00,
+            'descricao': 'Honorário de departamento pessoal por funcionários (acima de 3, Acrescido de R$30.00 por funcionário) - Produtor Rural'
+        },
+        {
+            'codigo': 'CALCULO-DE-INSS-AUTONOMO',
+            'nome': 'Cálculo de INSS - Autônomo',
+            'categoria': 'PESSOAL',
+            'tipo_cobranca': 'MENSAL',
+            'valor_base': 100.00,
+            'descricao': 'Cálculo de INSS - Autônomo'
+        },
+        {
+            'codigo': 'HONORARIO-C-UNICO-FUNCIONARIO-EMPREGADOR-DOMÉSTICO',
+            'nome': 'Honorário de Funcionário - Empregador Doméstico',
+            'categoria': 'PESSOAL',
+            'tipo_cobranca': 'MENSAL',
+            'valor_base': 110.00,
+            'descricao': 'Honorário de departamento pessoal por funcionário - Empregador Doméstico'
+        },
+        {
+            'codigo': 'HONORARIO-C-DOIS-FUNCIONARIOS-EMPREGADOR-DOMÉSTICO',
+            'nome': 'Honorário de Dois Funcionários - Empregador Doméstico',
+            'categoria': 'PESSOAL',
+            'tipo_cobranca': 'MENSAL',
+            'valor_base': 150.00,
+            'descricao': 'Honorário de departamento pessoal por dois funcionários - Empregador Doméstico'
+        },
+        {
+            'codigo': 'HONORARIO-C-TRES-FUNCIONARIOS-EMPREGADOR-DOMÉSTICO',
+            'nome': 'Honorário de Três Funcionários - Empregador Doméstico',
+            'categoria': 'PESSOAL',
+            'tipo_cobranca': 'MENSAL',
+            'valor_base': 170.00,
+            'descricao': 'Honorário de departamento pessoal por três funcionários - Empregador Doméstico'
+        },
+        {
+            'codigo': 'HONORARIO-DEMAIS-FUNCIONARIOS-EMPREGADOR-DOMÉSTICO',
+            'nome': 'Honorário de Funcionários (acima de 3) - Empregador Doméstico',
+            'categoria': 'PESSOAL',
+            'tipo_cobranca': 'MENSAL',
+            'valor_base': 30.00,
+            'descricao': 'Honorário de departamento pessoal por funcionários (acima de 3, Acrescido de R$30.00 por funcionário) - Empregador Doméstico'
+        },
+        {
+            'codigo': 'BASE+UM-FUNCIONARIO-CARTORIO',
+            'nome': 'Base + 1 Funcionário - Cartório',
+            'categoria': 'CARTORIO',
+            'tipo_cobranca': 'MENSAL',
+            'valor_base': 450.00,
+            'descricao': 'Base + 1 Funcionário - Cartório'
+        },
+        {
+            'codigo': 'BASE+DOIS-FUNCIONARIOS-CARTORIO',
+            'nome': 'Base + 2 Funcionários - Cartório',
+            'categoria': 'CARTORIO',
+            'tipo_cobranca': 'MENSAL',
+            'valor_base': 490.00,
+            'descricao': 'Base + 2 Funcionários - Cartório'
+        },
+        {
+            'codigo': 'BASE+TRES-FUNCIONARIOS-CARTORIO',
+            'nome': 'Base + 3 Funcionários - Cartório',
+            'categoria': 'CARTORIO',
+            'tipo_cobranca': 'MENSAL',
+            'valor_base': 520.00,
+            'descricao': 'Base + 3 Funcionários - Cartório'
+        },
+        {
+            'codigo': 'BASE+DEMAIS-FUNCIONARIOS-CARTORIO',
+            'nome': 'Base + Funcionários (acima de 3) - Cartório',
+            'categoria': 'CARTORIO',
+            'tipo_cobranca': 'MENSAL',
+            'valor_base': 30.00,
+            'descricao': 'Base + Funcionários (acima de 3, Acrescido de R$30.00 por funcionário) - Cartório'
+        },
+        {
+            'codigo': 'CARNE-LEAO-CARTORIO',
+            'nome': 'Carne-Leão - Cartório',
+            'categoria': 'CARTORIO',
+            'tipo_cobranca': 'MENSAL',
+            'valor_base': 200.00,
+            'descricao': 'Carne-Leão - Cartório'
         }
     ]
     
@@ -509,6 +660,189 @@ def criar_usuario_admin():
         return False
 
 
+def inicializar_relacionamentos_atividade_regime():
+    """
+    Inicializa os relacionamentos entre tipos de atividade e regimes tributários.
+    Define quais combinações são permitidas no sistema.
+    """
+    print("\n🔗 Inicializando relacionamentos atividade x regime...")
+    
+    try:
+        from .tributario import AtividadeRegime
+        
+        # Relacionamentos permitidos
+        relacionamentos = [
+            # Serviços, Comércio, Indústria podem ser: MEI, SN, LP, LR
+            ('SERV', ['MEI', 'SN', 'LP', 'LR']),
+            ('COM', ['MEI', 'SN', 'LP', 'LR']),
+            ('IND', ['MEI', 'SN', 'LP', 'LR']),
+            # Pessoa Física pode ser: PR, Aut, DOM, CAT
+            ('PF', ['PR', 'Aut', 'DOM', 'CAT']),
+        ]
+        
+        relacionamentos_criados = 0
+        
+        for atividade_codigo, regimes_codigos in relacionamentos:
+            atividade = TipoAtividade.query.filter_by(codigo=atividade_codigo).first()
+            if not atividade:
+                print(f"⚠️  Tipo de atividade '{atividade_codigo}' não encontrado")
+                continue
+                
+            for regime_codigo in regimes_codigos:
+                regime = RegimeTributario.query.filter_by(codigo=regime_codigo).first()
+                if not regime:
+                    print(f"⚠️  Regime tributário '{regime_codigo}' não encontrado")
+                    continue
+                
+                # Verificar se o relacionamento já existe
+                if not AtividadeRegime.query.filter_by(
+                    tipo_atividade_id=atividade.id,
+                    regime_tributario_id=regime.id
+                ).first():
+                    rel = AtividadeRegime(
+                        tipo_atividade_id=atividade.id,
+                        regime_tributario_id=regime.id
+                    )
+                    db.session.add(rel)
+                    relacionamentos_criados += 1
+                    print(f"✅ Criado relacionamento: {atividade.nome} x {regime.nome}")
+        
+        db.session.commit()
+        print(f"✅ {relacionamentos_criados} relacionamentos criados com sucesso!")
+        return True
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Erro ao inicializar relacionamentos: {e}")
+        return False
+
+
+def inicializar_relacionamentos_servico_regime():
+    """
+    Inicializa os relacionamentos entre serviços e regimes tributários.
+    Define quais serviços são compatíveis com cada regime.
+    """
+    print("\n🔗 Inicializando relacionamentos serviço x regime...")
+    
+    try:
+        from .servicos import ServicoRegime
+        
+        # Mapeamento de serviços por regime tributário
+        relacionamentos = {
+            # MEI - Serviços básicos
+            'MEI': [
+                'BALANCETE-SN',  # Balancete para Simples Nacional
+                'NF-e',          # Nota Fiscal Eletrônica
+                'NFS-e',         # Nota Fiscal de Serviços
+                'CT-e',          # Conhecimento de Transporte
+                'FUNCIONARIO',   # Gestão de Funcionários
+            ],
+            
+            # Simples Nacional - Serviços completos para PJ
+            'SN': [
+                'BALANCETE-SN',  # Balancete para Simples Nacional
+                'NF-e',          # Nota Fiscal Eletrônica
+                'NFS-e',         # Nota Fiscal de Serviços
+                'CT-e',          # Conhecimento de Transporte
+                'FUNCIONARIO',   # Gestão de Funcionários
+                'PRO-LABORE',    # Retirada de Pró-labore
+                'ORGAO-CLASSE',  # Registro de Órgão de Classe
+            ],
+            
+            # Lucro Presumido - Serviços complexos
+            'LP': [
+                'BALANCETE-LP-LR',  # Balancete para LP/LR
+                'NF-e',             # Nota Fiscal Eletrônica
+                'NFS-e',            # Nota Fiscal de Serviços
+                'CT-e',             # Conhecimento de Transporte
+                'FUNCIONARIO',      # Gestão de Funcionários
+                'PRO-LABORE',       # Retirada de Pró-labore
+                'ORGAO-CLASSE',     # Registro de Órgão de Classe
+            ],
+            
+            # Lucro Real - Serviços complexos
+            'LR': [
+                'BALANCETE-LP-LR',  # Balancete para LP/LR
+                'NF-e',             # Nota Fiscal Eletrônica
+                'NFS-e',            # Nota Fiscal de Serviços
+                'CT-e',             # Conhecimento de Transporte
+                'FUNCIONARIO',      # Gestão de Funcionários
+                'PRO-LABORE',       # Retirada de Pró-labore
+                'ORGAO-CLASSE',     # Registro de Órgão de Classe
+            ],
+            
+            # Produtor Rural - Serviços específicos
+            'PR': [
+                'INSCRICAO-PRODUTOR-RURAL_C_CERTIFICADO',
+                'INSCRICAO-PRODUTOR-RURAL_SEM_CERTIFICADO',
+                'OPERACAO-INSCRICAO-PRODUTOR-RURAL',
+                'BAIXA-INSCRICAO-PRODUTOR-RURAL',
+                'HONORARIO-C-FUNCIONARIO-PRODUTOR-RURAL',
+                'HONORARIO-C-DOIS-FUNCIONARIOS-PRODUTOR-RURAL',
+                'HONORARIO-C-TRES-FUNCIONARIOS-PRODUTOR-RURAL',
+                'HONORARIO-DEMAIS-FUNCIONARIOS-PRODUTOR-RURAL',
+            ],
+            
+            # Autônomo - Serviços específicos
+            'Aut': [
+                'CALCULO-DE-INSS-AUTONOMO',
+            ],
+            
+            # Empregador Doméstico - Serviços específicos
+            'DOM': [
+                'HONORARIO-C-UNICO-FUNCIONARIO-EMPREGADOR-DOMÉSTICO',
+                'HONORARIO-C-DOIS-FUNCIONARIOS-EMPREGADOR-DOMÉSTICO',
+                'HONORARIO-C-TRES-FUNCIONARIOS-EMPREGADOR-DOMÉSTICO',
+                'HONORARIO-DEMAIS-FUNCIONARIOS-EMPREGADOR-DOMÉSTICO',
+            ],
+            
+            # Cartório - Serviços específicos
+            'CAT': [
+                'BASE+UM-FUNCIONARIO-CARTORIO',
+                'BASE+DOIS-FUNCIONARIOS-CARTORIO',
+                'BASE+TRES-FUNCIONARIOS-CARTORIO',
+                'BASE+DEMAIS-FUNCIONARIOS-CARTORIO',
+                'CARNE-LEAO-CARTORIO',
+            ]
+        }
+        
+        relacionamentos_criados = 0
+        
+        for regime_codigo, servicos_codigos in relacionamentos.items():
+            regime = RegimeTributario.query.filter_by(codigo=regime_codigo).first()
+            if not regime:
+                print(f"⚠️  Regime tributário '{regime_codigo}' não encontrado")
+                continue
+                
+            for servico_codigo in servicos_codigos:
+                servico = Servico.query.filter_by(codigo=servico_codigo).first()
+                if not servico:
+                    print(f"⚠️  Serviço '{servico_codigo}' não encontrado")
+                    continue
+                
+                # Verificar se o relacionamento já existe
+                if not ServicoRegime.query.filter_by(
+                    servico_id=servico.id,
+                    regime_tributario_id=regime.id
+                ).first():
+                    rel = ServicoRegime(
+                        servico_id=servico.id,
+                        regime_tributario_id=regime.id
+                    )
+                    db.session.add(rel)
+                    relacionamentos_criados += 1
+                    print(f"✅ Criado relacionamento: {servico.nome} x {regime.nome}")
+        
+        db.session.commit()
+        print(f"✅ {relacionamentos_criados} relacionamentos serviço x regime criados com sucesso!")
+        return True
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Erro ao inicializar relacionamentos serviço x regime: {e}")
+        return False
+
+
 def inicializar_sistema_completo():
     """
     Inicializa o sistema completo com dados básicos e usuário administrador.
@@ -523,7 +857,19 @@ def inicializar_sistema_completo():
             print("❌ Falha ao inicializar dados básicos")
             return False
         
-        # 2. Criar usuário administrador
+        # 2. Inicializar relacionamentos atividade x regime
+        print("\n🔗 Inicializando relacionamentos...")
+        if not inicializar_relacionamentos_atividade_regime():
+            print("❌ Falha ao inicializar relacionamentos")
+            return False
+        
+        # 3. Inicializar relacionamentos serviço x regime
+        print("\n🔗 Inicializando relacionamentos serviço x regime...")
+        if not inicializar_relacionamentos_servico_regime():
+            print("❌ Falha ao inicializar relacionamentos serviço x regime")
+            return False
+        
+        # 4. Criar usuário administrador
         if not criar_usuario_admin():
             print("❌ Falha ao criar usuário administrador")
             return False

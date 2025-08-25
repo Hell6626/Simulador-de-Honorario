@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   Settings, List, CheckCircle, User, Plus, Trash2, Save,
   Calendar, DollarSign, AlertTriangle, X
 } from 'lucide-react';
@@ -18,10 +18,10 @@ interface DadosProposta {
   tipo_atividade_id: number;
   regime_tributario_id: number;
   faixa_faturamento_id: number | null;
-  
+
   // Serviços (corrigido para buscar da proposta)
   servicosSelecionados: any[];
-  
+
   // Finalização
   percentual_desconto: number;
   observacoes: string;
@@ -30,6 +30,15 @@ interface DadosProposta {
   valor_total: number;
   valor_servicos: number; // NOVO: Soma dos serviços
   valor_desconto: number; // NOVO: Valor do desconto
+
+  // ⚠️ NOVOS CAMPOS: Taxa de abertura e dados financeiros
+  taxa_abertura: number;
+  valor_base: number;
+  desconto_valor: number;
+  desconto_percentual: number;
+  desconto_tipo: string;
+  taxa_abertura_aplicavel: boolean;
+  taxa_abertura_motivo: string;
 }
 
 export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
@@ -41,7 +50,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
   const [abaSelecionada, setAbaSelecionada] = useState('configuracoes');
   const [loading, setLoading] = useState(false);
   const [salvando, setSalvando] = useState(false);
-  
+
   // Estados dos dados corrigidos
   const [dados, setDados] = useState<DadosProposta>({
     tipo_atividade_id: 0,
@@ -54,7 +63,15 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
     data_validade: '',
     valor_total: 0,
     valor_servicos: 0,
-    valor_desconto: 0
+    valor_desconto: 0,
+    // ⚠️ NOVOS CAMPOS: Taxa de abertura e dados financeiros
+    taxa_abertura: 0,
+    valor_base: 0,
+    desconto_valor: 0,
+    desconto_percentual: 0,
+    desconto_tipo: 'sem_desconto',
+    taxa_abertura_aplicavel: false,
+    taxa_abertura_motivo: ''
   });
 
   // Dados auxiliares
@@ -74,7 +91,8 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
   const carregarDadosCompletos = async () => {
     setLoading(true);
     try {
-      // Buscar dados completos da proposta com itens
+      console.log('🔍 Carregando dados da proposta:', proposta!.id);
+
       const [propostaCompleta, cliente, tipos, regimes, servicos] = await Promise.all([
         apiService.getProposta(proposta!.id),
         apiService.getCliente(proposta!.cliente_id),
@@ -83,57 +101,86 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
         apiService.getServicos()
       ]);
 
-      console.log('📄 Proposta completa carregada:', propostaCompleta);
-      console.log('👤 Cliente carregado:', cliente);
-      console.log('🔧 Serviços disponíveis:', servicos);
+      console.log('📄 Proposta completa:', propostaCompleta);
+      console.log('💰 Resumo financeiro:', propostaCompleta.resumo_financeiro);
+      console.log('🏢 Taxa abertura:', propostaCompleta.taxa_abertura);
 
       setClienteCompleto(cliente);
       setTiposAtividade(tipos || []);
       setRegimesTributarios(regimes || []);
       setTodosServicos(servicos || []);
 
-      // Converter itens da proposta para serviços selecionados
-      const servicosSelecionados = (propostaCompleta.itens || []).map((item: any) => {
-        const servicoCompleto = servicos?.find((s: any) => s.id === item.servico_id);
-        return {
-          servico_id: item.servico_id,
-          quantidade: item.quantidade,
-          valor_unitario: item.valor_unitario,
-          subtotal: item.valor_total,
-          extras: {
-            descricao_personalizada: item.descricao_personalizada
-          },
-          // Dados do serviço para exibição
-          servico: servicoCompleto || { nome: `Serviço ID: ${item.servico_id}`, categoria: 'DESCONHECIDO' }
-        };
+      // ⚠️ CONVERTER: Itens para servicosSelecionados
+      const servicosSelecionados = (propostaCompleta.itens || []).map((item: any) => ({
+        servico_id: item.servico_id,
+        quantidade: item.quantidade,
+        valor_unitario: item.valor_unitario,
+        subtotal: item.valor_total,
+        extras: {
+          descricao_personalizada: item.descricao_personalizada || ''
+        },
+        servico: item.servico || servicos?.find((s: any) => s.id === item.servico_id) || {
+          nome: `Serviço ID: ${item.servico_id}`,
+          categoria: 'DESCONHECIDO'
+        }
+      }));
+
+      // ⚠️ DADOS FINANCEIROS: Do backend (valores corretos)
+      const resumo = propostaCompleta.resumo_financeiro || {};
+      const valorServicos = resumo.valor_servicos || 0;
+      const taxaAbertura = resumo.taxa_abertura || 0;
+      const valorBase = resumo.valor_base || (valorServicos + taxaAbertura);
+      const valorFinal = resumo.valor_final || propostaCompleta.valor_total;
+      const descontoValor = resumo.desconto_valor || 0;
+      const descontoPercentual = Math.abs(resumo.desconto_percentual || 0);
+      const descontoTipo = resumo.desconto_tipo || 'sem_desconto';
+
+      console.log('💰 Valores financeiros corretos:', {
+        valorServicos,
+        taxaAbertura,
+        valorBase,
+        valorFinal,
+        descontoValor,
+        descontoPercentual,
+        descontoTipo
       });
 
-      console.log('🔧 Serviços convertidos:', servicosSelecionados);
-
-      // Calcular valores corretamente
-      const valorServicos = servicosSelecionados.reduce((sum: number, item: any) => sum + item.subtotal, 0);
-      const valorDesconto = propostaCompleta.valor_total - valorServicos;
-      const percentualDesconto = valorServicos > 0 ? (valorDesconto / valorServicos) * 100 : 0;
-
-      // Definir dados corrigidos
+      // ⚠️ DEFINIR: Dados do estado
       setDados({
         tipo_atividade_id: propostaCompleta.tipo_atividade_id,
         regime_tributario_id: propostaCompleta.regime_tributario_id,
         faixa_faturamento_id: propostaCompleta.faixa_faturamento_id,
         servicosSelecionados: servicosSelecionados,
-        percentual_desconto: Math.max(0, percentualDesconto),
+
+        // ⚠️ VALORES CORRETOS DO BACKEND
+        valor_servicos: valorServicos,
+        taxa_abertura: taxaAbertura,
+        valor_base: valorBase,
+        valor_total: valorFinal,
+
+        // ⚠️ DESCONTO REAL
+        desconto_valor: descontoValor,
+        desconto_percentual: descontoPercentual,
+        desconto_tipo: descontoTipo,
+
+        // Outros campos
         observacoes: limparObservacoes(propostaCompleta.observacoes || ''),
         status: propostaCompleta.status,
         data_validade: propostaCompleta.data_validade || '',
-        valor_total: propostaCompleta.valor_total,
-        valor_servicos: valorServicos,
-        valor_desconto: Math.max(0, valorDesconto)
+
+        // Campos obrigatórios da interface
+        percentual_desconto: descontoPercentual,
+        valor_desconto: Math.abs(descontoValor),
+
+        // Flags da taxa de abertura
+        taxa_abertura_aplicavel: propostaCompleta.taxa_abertura?.aplicavel || false,
+        taxa_abertura_motivo: propostaCompleta.taxa_abertura?.motivo || ''
       });
 
-      // Carregar faixas de faturamento se necessário
+      // Carregar faixas se necessário
       if (propostaCompleta.regime_tributario_id) {
-        const faixas = await apiService.getFaixasFaturamento({ 
-          regime_tributario_id: propostaCompleta.regime_tributario_id 
+        const faixas = await apiService.getFaixasFaturamento({
+          regime_tributario_id: propostaCompleta.regime_tributario_id
         });
         setFaixasFaturamento(faixas || []);
       }
@@ -146,32 +193,78 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
     }
   };
 
-  // Recalcular valores quando serviços ou desconto mudam
+  // ⚠️ CORRIGIDO: useEffect para recálculo automático
   useEffect(() => {
-    const valorServicos = dados.servicosSelecionados.reduce((sum, item) => sum + item.subtotal, 0);
-    const valorDesconto = (valorServicos * dados.percentual_desconto) / 100;
-    const valorTotal = valorServicos + valorDesconto;
+    // ⚠️ CALCULAR: Valor atual dos serviços
+    const valorServicosAtual = dados.servicosSelecionados.reduce((sum, item) => sum + item.subtotal, 0);
 
-    setDados(prev => ({
-      ...prev,
-      valor_servicos: valorServicos,
-      valor_desconto: valorDesconto,
-      valor_total: valorTotal
-    }));
-  }, [dados.servicosSelecionados, dados.percentual_desconto]);
+    // ⚠️ RECALCULAR: Taxa de abertura se regime mudou  
+    let taxaAberturaAtual = 0;
+    if (dados.taxa_abertura_aplicavel && clienteCompleto?.abertura_empresa) {
+      const regimeSelecionado = regimesTributarios.find(r => r.id === dados.regime_tributario_id);
+      const codigoRegime = regimeSelecionado?.codigo || '';
+
+      // ⚠️ REGRA: MEI = R$ 300, outros = R$ 1.000
+      taxaAberturaAtual = codigoRegime.toUpperCase() === 'MEI' ? 300 : 1000;
+    }
+
+    // ⚠️ VALOR BASE: Serviços + Taxa
+    const valorBaseAtual = valorServicosAtual + taxaAberturaAtual;
+
+    // ⚠️ DESCONTO REAL: Base - Final
+    const descontoRealValor = valorBaseAtual - dados.valor_total;
+    const descontoRealPercentual = valorBaseAtual > 0 ? (descontoRealValor / valorBaseAtual) * 100 : 0;
+
+    // ⚠️ TIPO DE DESCONTO
+    let tipoDesconto = 'sem_desconto';
+    if (descontoRealValor > 0) {
+      tipoDesconto = 'desconto';
+    } else if (descontoRealValor < 0) {
+      tipoDesconto = 'acrescimo';
+    }
+
+    // ⚠️ ATUALIZAR: Estado apenas se valores mudaram
+    if (
+      valorServicosAtual !== dados.valor_servicos ||
+      taxaAberturaAtual !== dados.taxa_abertura ||
+      valorBaseAtual !== dados.valor_base ||
+      descontoRealValor !== dados.desconto_valor
+    ) {
+      setDados((prev: DadosProposta) => ({
+        ...prev,
+        valor_servicos: valorServicosAtual,
+        taxa_abertura: taxaAberturaAtual,
+        valor_base: valorBaseAtual,
+        desconto_valor: descontoRealValor,
+        desconto_percentual: Math.abs(descontoRealPercentual),
+        desconto_tipo: tipoDesconto
+      }));
+
+      console.log('💰 Valores recalculados:', {
+        valorServicosAtual,
+        taxaAberturaAtual,
+        valorBaseAtual,
+        valorTotal: dados.valor_total,
+        descontoRealValor,
+        descontoRealPercentual,
+        tipoDesconto
+      });
+    }
+
+  }, [dados.servicosSelecionados, dados.regime_tributario_id, dados.valor_total, clienteCompleto, regimesTributarios, dados.taxa_abertura_aplicavel]);
 
   // Alterar regime tributário
   const handleRegimeChange = async (regimeId: number) => {
-    setDados(prev => ({ 
-      ...prev, 
+    setDados((prev: DadosProposta) => ({
+      ...prev,
       regime_tributario_id: regimeId,
-      faixa_faturamento_id: null 
+      faixa_faturamento_id: null
     }));
 
     if (regimeId > 0) {
       try {
-        const faixas = await apiService.getFaixasFaturamento({ 
-          regime_tributario_id: regimeId 
+        const faixas = await apiService.getFaixasFaturamento({
+          regime_tributario_id: regimeId
         });
         setFaixasFaturamento(faixas || []);
       } catch (error) {
@@ -208,11 +301,11 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
       console.log('💾 Salvando dados:', dadosUpdate);
 
       await apiService.updateProposta(proposta!.id, dadosUpdate);
-      
+
       console.log(`✅ Proposta #${proposta!.numero} atualizada completamente`);
       onSaved();
       onClose();
-      
+
     } catch (error) {
       console.error('❌ Erro ao salvar proposta:', error);
       alert('Erro ao salvar alterações. Tente novamente.');
@@ -228,7 +321,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
 
   const montarObservacoesCompletas = (): string => {
     let observacoesCompletas = dados.observacoes;
-    
+
     if (dados.percentual_desconto > 0) {
       const infoDesconto = [
         '--- INFORMAÇÕES DE DESCONTO ---',
@@ -239,12 +332,12 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
         `Requer aprovação: ${dados.percentual_desconto > 20 ? 'Sim' : 'Não'}`,
         '--- FIM INFORMAÇÕES DESCONTO ---'
       ].join('\n');
-      
-      observacoesCompletas = observacoesCompletas 
+
+      observacoesCompletas = observacoesCompletas
         ? `${observacoesCompletas}\n\n${infoDesconto}`
         : infoDesconto;
     }
-    
+
     return observacoesCompletas;
   };
 
@@ -290,25 +383,25 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
             <div className="w-80 bg-gray-50 border-r flex-shrink-0 overflow-y-auto">
               <div className="p-4">
                 <h4 className="font-medium text-gray-900 mb-4">Seções Editáveis</h4>
-                
+
                 {/* Abas de navegação */}
                 <div className="space-y-2 mb-6">
                   {[
-                    { 
-                      id: 'configuracoes', 
-                      nome: 'Configurações Tributárias', 
+                    {
+                      id: 'configuracoes',
+                      nome: 'Configurações Tributárias',
                       icone: <Settings className="w-4 h-4" />,
                       descricao: 'Tipo de atividade, regime tributário, faixa de faturamento'
                     },
-                    { 
-                      id: 'servicos', 
-                      nome: 'Serviços', 
+                    {
+                      id: 'servicos',
+                      nome: 'Serviços',
                       icone: <List className="w-4 h-4" />,
                       descricao: 'Serviços selecionados, quantidades e valores'
                     },
-                    { 
-                      id: 'finalizacao', 
-                      nome: 'Finalização', 
+                    {
+                      id: 'finalizacao',
+                      nome: 'Finalização',
                       icone: <CheckCircle className="w-4 h-4" />,
                       descricao: 'Status, desconto, observações e validade'
                     }
@@ -316,16 +409,14 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
                     <button
                       key={aba.id}
                       onClick={() => setAbaSelecionada(aba.id)}
-                      className={`w-full text-left p-3 rounded-lg transition-colors border ${
-                        abaSelecionada === aba.id
-                          ? 'bg-blue-100 border-blue-200 text-blue-900'
-                          : 'bg-white border-gray-200 hover:bg-gray-50'
-                      }`}
+                      className={`w-full text-left p-3 rounded-lg transition-colors border ${abaSelecionada === aba.id
+                        ? 'bg-blue-100 border-blue-200 text-blue-900'
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                        }`}
                     >
                       <div className="flex items-start space-x-3">
-                        <div className={`mt-0.5 ${
-                          abaSelecionada === aba.id ? 'text-blue-600' : 'text-gray-400'
-                        }`}>
+                        <div className={`mt-0.5 ${abaSelecionada === aba.id ? 'text-blue-600' : 'text-gray-400'
+                          }`}>
                           {aba.icone}
                         </div>
                         <div>
@@ -355,11 +446,10 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
                         <span className="text-gray-500">Email:</span> {clienteCompleto.email}
                       </div>
                       <div>
-                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                          clienteCompleto.abertura_empresa 
-                            ? 'bg-orange-100 text-orange-800'
-                            : 'bg-green-100 text-green-800'
-                        }`}>
+                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${clienteCompleto.abertura_empresa
+                          ? 'bg-orange-100 text-orange-800'
+                          : 'bg-green-100 text-green-800'
+                          }`}>
                           {clienteCompleto.abertura_empresa ? 'Abertura de Empresa' : 'Cliente Existente'}
                         </span>
                       </div>
@@ -378,16 +468,57 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
                       <span className="text-gray-600">Valor dos serviços:</span>
                       <span className="font-medium">{formatarMoeda(dados.valor_servicos)}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Desconto ({dados.percentual_desconto.toFixed(1)}%):</span>
-                      <span className="font-medium text-green-600">+{formatarMoeda(dados.valor_desconto)}</span>
+
+                    {/* ⚠️ TAXA DE ABERTURA CORRIGIDA */}
+                    {dados.taxa_abertura > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Taxa de abertura:</span>
+                        <span className="font-medium text-orange-600">{formatarMoeda(dados.taxa_abertura)}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between border-t pt-2">
+                      <span className="text-gray-600">Base de cálculo:</span>
+                      <span className="font-medium">{formatarMoeda(dados.valor_base)}</span>
                     </div>
+
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Valor final:</span>
+                      <span className="font-medium text-blue-600">{formatarMoeda(dados.valor_total)}</span>
+                    </div>
+
+                    {/* ⚠️ DESCONTO REAL */}
                     <div className="border-t pt-2">
                       <div className="flex justify-between">
-                        <span className="font-medium text-gray-900">Total final:</span>
-                        <span className="font-bold text-blue-600">{formatarMoeda(dados.valor_total)}</span>
+                        <span className="text-gray-600">
+                          {dados.desconto_tipo === 'desconto' ? 'Desconto aplicado:' :
+                            dados.desconto_tipo === 'acrescimo' ? 'Acréscimo aplicado:' : 'Diferença:'}
+                        </span>
+                        <span className={`font-medium ${dados.desconto_tipo === 'desconto' ? 'text-green-600' :
+                          dados.desconto_tipo === 'acrescimo' ? 'text-red-600' : 'text-gray-600'
+                          }`}>
+                          {formatarMoeda(Math.abs(dados.desconto_valor))} ({dados.desconto_percentual.toFixed(1)}%)
+                        </span>
                       </div>
                     </div>
+
+                    {/* ⚠️ EXPLICAÇÃO DA FÓRMULA */}
+                    <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+                      <p className="font-medium">Fórmula do desconto:</p>
+                      <p>Base ({formatarMoeda(dados.valor_base)}) - Final ({formatarMoeda(dados.valor_total)}) = {formatarMoeda(dados.desconto_valor)}</p>
+                      {dados.taxa_abertura > 0 && (
+                        <p className="text-orange-700 mt-1">
+                          💡 {dados.taxa_abertura_motivo}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* ⚠️ AVISO PARA DESCONTO ALTO */}
+                    {dados.desconto_percentual > 20 && (
+                      <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-800">
+                        ⚠️ {dados.desconto_tipo === 'desconto' ? 'Desconto' : 'Acréscimo'} acima de 20% requer aprovação administrativa
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -433,10 +564,10 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
           <div className="text-sm text-gray-600">
             <span className="font-medium">Editando:</span> {
               abaSelecionada === 'configuracoes' ? 'Configurações Tributárias' :
-              abaSelecionada === 'servicos' ? 'Serviços' : 'Finalização'
+                abaSelecionada === 'servicos' ? 'Serviços' : 'Finalização'
             }
           </div>
-          
+
           <div className="flex space-x-3">
             <button
               onClick={onClose}
@@ -478,7 +609,7 @@ const ConfiguracoesTributariasEdit: React.FC<{
   faixasFaturamento: any[];
   onRegimeChange: (regimeId: number) => void;
 }> = ({ dados, setDados, tiposAtividade, regimesTributarios, faixasFaturamento, onRegimeChange }) => {
-  
+
   return (
     <div className="space-y-6">
       <div>
@@ -534,9 +665,9 @@ const ConfiguracoesTributariasEdit: React.FC<{
           </label>
           <select
             value={dados.faixa_faturamento_id || ''}
-            onChange={(e) => setDados(prev => ({ 
-              ...prev, 
-              faixa_faturamento_id: e.target.value ? parseInt(e.target.value) : null 
+            onChange={(e) => setDados(prev => ({
+              ...prev,
+              faixa_faturamento_id: e.target.value ? parseInt(e.target.value) : null
             }))}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
@@ -560,7 +691,7 @@ const ServicosEditCorrigido: React.FC<{
   todosServicos: any[];
   formatarMoeda: (valor: number) => string;
 }> = ({ dados, setDados, todosServicos, formatarMoeda }) => {
-  
+
   const adicionarServico = () => {
     const novoServico = {
       servico_id: 0,
@@ -572,7 +703,7 @@ const ServicosEditCorrigido: React.FC<{
       },
       servico: null
     };
-    
+
     setDados((prev: any) => ({
       ...prev,
       servicosSelecionados: [...prev.servicosSelecionados, novoServico]
@@ -592,7 +723,7 @@ const ServicosEditCorrigido: React.FC<{
       servicosSelecionados: prev.servicosSelecionados.map((servico: any, i: number) => {
         if (i === index) {
           const servicoAtualizado = { ...servico };
-          
+
           if (campo === 'servico_id') {
             const servicoCompleto = todosServicos.find(s => s.id === valor);
             servicoAtualizado.servico_id = valor;
@@ -603,13 +734,13 @@ const ServicosEditCorrigido: React.FC<{
             }
           } else {
             servicoAtualizado[campo] = valor;
-            
+
             // Recalcular subtotal
             if (campo === 'quantidade' || campo === 'valor_unitario') {
               servicoAtualizado.subtotal = servicoAtualizado.quantidade * servicoAtualizado.valor_unitario;
             }
           }
-          
+
           return servicoAtualizado;
         }
         return servico;
@@ -626,7 +757,7 @@ const ServicosEditCorrigido: React.FC<{
             Adicione, remova ou altere os serviços da proposta.
           </p>
         </div>
-        
+
         <button
           onClick={adicionarServico}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
@@ -725,9 +856,9 @@ const ServicosEditCorrigido: React.FC<{
               <input
                 type="text"
                 value={servico.extras?.descricao_personalizada || ''}
-                onChange={(e) => atualizarServico(index, 'extras', { 
-                  ...servico.extras, 
-                  descricao_personalizada: e.target.value 
+                onChange={(e) => atualizarServico(index, 'extras', {
+                  ...servico.extras,
+                  descricao_personalizada: e.target.value
                 })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                 placeholder="Ex: Órgão de Classe: CRC-DF"
@@ -771,7 +902,7 @@ const FinalizacaoEditCorrigida: React.FC<{
   setDados: (dados: any) => void;
   formatarMoeda: (valor: number) => string;
 }> = ({ dados, setDados, formatarMoeda }) => {
-  
+
   const statusOptions = [
     { value: 'RASCUNHO', label: 'Rascunho', color: 'bg-yellow-100 text-yellow-800' },
     { value: 'PENDENTE', label: 'Pendente', color: 'bg-blue-100 text-blue-800' },
@@ -810,11 +941,10 @@ const FinalizacaoEditCorrigida: React.FC<{
             <button
               key={status.value}
               onClick={() => setDados((prev: any) => ({ ...prev, status: status.value }))}
-              className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
-                dados.status === status.value
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
+              className={`p-3 rounded-lg border text-sm font-medium transition-colors ${dados.status === status.value
+                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                : 'border-gray-200 hover:border-gray-300'
+                }`}
             >
               <span className={`inline-block px-2 py-1 rounded-full text-xs ${status.color}`}>
                 {status.label}
@@ -836,22 +966,22 @@ const FinalizacaoEditCorrigida: React.FC<{
             max="100"
             step="0.1"
             value={dados.percentual_desconto}
-            onChange={(e) => setDados((prev: any) => ({ 
-              ...prev, 
-              percentual_desconto: parseFloat(e.target.value) || 0 
+            onChange={(e) => setDados((prev: any) => ({
+              ...prev,
+              percentual_desconto: parseFloat(e.target.value) || 0
             }))}
             className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             placeholder="0.0"
           />
           <span className="absolute right-3 top-2 text-gray-500">%</span>
         </div>
-        
+
         <div className="mt-2 text-sm text-gray-600 space-y-1">
           <p>Valor dos serviços: <span className="font-medium">{formatarMoeda(dados.valor_servicos)}</span></p>
           <p>Valor do desconto: <span className="font-medium text-green-600">+{formatarMoeda(dados.valor_desconto)}</span></p>
           <p>Valor total final: <span className="font-bold text-blue-600">{formatarMoeda(dados.valor_total)}</span></p>
         </div>
-        
+
         {dados.percentual_desconto > 20 && (
           <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-800">
             ⚠️ Desconto acima de 20% requer aprovação administrativa

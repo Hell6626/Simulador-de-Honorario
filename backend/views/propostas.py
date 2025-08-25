@@ -9,10 +9,69 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 import json
 
 from config import db
-from models import Proposta, Funcionario, Cliente, ItemProposta, Servico, PropostaLog
+from models import Proposta, Funcionario, Cliente, ItemProposta, Servico, PropostaLog, RegimeTributario
 from .utils import handle_api_errors, validate_required_fields, paginate_query
 
 propostas_bp = Blueprint('propostas', __name__)
+
+def calcular_taxa_abertura_empresa(cliente_abertura: bool, regime_codigo: str) -> float:
+    """
+    Calcula taxa de abertura de empresa
+    
+    Args:
+        cliente_abertura: Se o cliente é abertura de empresa (tabela cliente.abertura_empresa)
+        regime_codigo: Código do regime tributário
+        
+    Returns:
+        float: Valor da taxa (MEI: R$ 300, Outros: R$ 1.000, Cliente existente: R$ 0)
+    """
+    if not cliente_abertura:
+        return 0.0
+    
+    # ⚠️ REGRA CORRIGIDA: MEI = R$ 300, outros = R$ 1.000
+    if regime_codigo and regime_codigo.upper() == 'MEI':
+        return 300.0
+    else:
+        return 1000.0
+
+
+def obter_dados_completos_proposta(proposta_id: int) -> dict:
+    """Obtém dados completos da proposta para cálculos"""
+    proposta = Proposta.query.get_or_404(proposta_id)
+    
+    # ⚠️ BUSCAR: Dados necessários com relacionamentos
+    cliente = proposta.cliente
+    regime = proposta.regime_tributario
+    
+    # ⚠️ CALCULAR: Valor dos serviços
+    valor_servicos = sum(float(item.valor_total) for item in proposta.itens if item.ativo)
+    
+    # ⚠️ CALCULAR: Taxa de abertura
+    taxa_abertura = calcular_taxa_abertura_empresa(
+        cliente.abertura_empresa if cliente else False,
+        regime.codigo if regime else ''
+    )
+    
+    # ⚠️ VALOR BASE: Serviços + Taxa de abertura
+    valor_base = valor_servicos + taxa_abertura
+    
+    # ⚠️ CALCULAR: Desconto real (Base - Valor Final)
+    valor_final = float(proposta.valor_total)
+    desconto_valor = valor_base - valor_final
+    desconto_percentual = (desconto_valor / valor_base * 100) if valor_base > 0 else 0
+    
+    return {
+        'proposta': proposta,
+        'cliente_abertura': cliente.abertura_empresa if cliente else False,
+        'regime_codigo': regime.codigo if regime else '',
+        'valor_servicos': valor_servicos,
+        'taxa_abertura': taxa_abertura,
+        'valor_base': valor_base,
+        'valor_final': valor_final,
+        'desconto_valor': desconto_valor,
+        'desconto_percentual': desconto_percentual
+    }
+
 
 @propostas_bp.route('/', methods=['GET'])
 @handle_api_errors
@@ -53,10 +112,51 @@ def get_propostas():
     })
 
 @propostas_bp.route('/<int:proposta_id>', methods=['GET'])
-@handle_api_errors
+@handle_api_errors  
 def get_proposta(proposta_id: int):
-    proposta = Proposta.query.get_or_404(proposta_id)
-    return jsonify(proposta.to_json())
+    """Busca uma proposta específica com dados completos"""
+    
+    # ⚠️ BUSCAR: Dados completos com cálculos corretos
+    dados_completos = obter_dados_completos_proposta(proposta_id)
+    proposta = dados_completos['proposta']
+    
+    # ⚠️ PREPARAR: Resposta com dados enriquecidos
+    resposta = proposta.to_json()
+    
+    # ⚠️ ADICIONAR: Informações de taxa de abertura
+    resposta['taxa_abertura'] = {
+        'aplicavel': dados_completos['cliente_abertura'],
+        'valor': dados_completos['taxa_abertura'],
+        'motivo': (
+            f"Taxa de abertura MEI (R$ 300)" if dados_completos['regime_codigo'].upper() == 'MEI'
+            else f"Taxa de abertura empresa (R$ 1.000)"
+        ) if dados_completos['cliente_abertura'] else None
+    }
+    
+    # ⚠️ ADICIONAR: Resumo financeiro completo
+    resposta['resumo_financeiro'] = {
+        'valor_servicos': dados_completos['valor_servicos'],
+        'taxa_abertura': dados_completos['taxa_abertura'],
+        'valor_base': dados_completos['valor_base'],  # Serviços + Taxa
+        'valor_final': dados_completos['valor_final'],
+        'desconto_valor': dados_completos['desconto_valor'],
+        'desconto_percentual': dados_completos['desconto_percentual'],
+        'desconto_tipo': (
+            'desconto' if dados_completos['desconto_valor'] > 0 else
+            'acrescimo' if dados_completos['desconto_valor'] < 0 else 'sem_desconto'
+        )
+    }
+    
+    current_app.logger.info(
+        f"Proposta {proposta_id} consultada - "
+        f"Serviços: R$ {dados_completos['valor_servicos']:.2f}, "
+        f"Taxa abertura: R$ {dados_completos['taxa_abertura']:.2f}, "
+        f"Base: R$ {dados_completos['valor_base']:.2f}, "
+        f"Final: R$ {dados_completos['valor_final']:.2f}, "
+        f"Desconto: R$ {dados_completos['desconto_valor']:.2f}"
+    )
+    
+    return jsonify(resposta)
 
 @propostas_bp.route('/', methods=['POST'])
 @jwt_required()
@@ -210,30 +310,67 @@ def update_proposta(proposta_id: int):
     # ⚠️ ITENS: Comparar e atualizar serviços
     itens_alterados = False
     if 'itens' in data:
-        itens_alterados = atualizar_itens_proposta(proposta, data['itens'], alteracoes_realizadas)
+        itens_alterados = processar_itens_proposta(proposta, data['itens'], alteracoes_realizadas)
     
     # ⚠️ SALVAR: Alterações no banco
-    db.session.commit()
+    try:
+        db.session.commit()
+        current_app.logger.info(f"Proposta {proposta_id} salva com sucesso")
+        
+        # ⚠️ CRIAR: Logs das alterações
+        if alteracoes_realizadas:
+            criar_logs_alteracoes(proposta.id, funcionario_id, alteracoes_realizadas)
+            current_app.logger.info(f"Criados {len(alteracoes_realizadas)} logs de alteração")
+        
+        # ⚠️ LOG: Especial para finalização
+        if data.get('status') == 'REALIZADA':
+            criar_log_especifico(
+                proposta.id, 
+                funcionario_id, 
+                'PROPOSTA_FINALIZADA',
+                f'Proposta finalizada com valor total de R$ {float(proposta.valor_total):.2f}'
+            )
     
-    # ⚠️ CRIAR: Logs das alterações
-    if alteracoes_realizadas:
-        criar_logs_alteracoes(proposta.id, funcionario_id, alteracoes_realizadas)
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erro ao salvar proposta {proposta_id}: {str(e)}")
+        raise e
     
-    # ⚠️ LOG: Especial para finalização
-    if data.get('status') == 'REALIZADA':
-        criar_log_especifico(
-            proposta.id, 
-            funcionario_id, 
-            'PROPOSTA_FINALIZADA',
-            f'Proposta finalizada com valor total de R$ {float(proposta.valor_total):.2f}'
+    # ⚠️ RETORNAR: Proposta atualizada com cálculos corretos
+    dados_atualizados = obter_dados_completos_proposta(proposta_id)
+    resposta = proposta.to_json()
+    
+    # ⚠️ INCLUIR: Dados financeiros calculados
+    resposta['taxa_abertura'] = {
+        'aplicavel': dados_atualizados['cliente_abertura'],
+        'valor': dados_atualizados['taxa_abertura'],
+        'motivo': (
+            f"Taxa de abertura MEI (R$ 300)" if dados_atualizados['regime_codigo'].upper() == 'MEI'
+            else f"Taxa de abertura empresa (R$ 1.000)"
+        ) if dados_atualizados['cliente_abertura'] else None
+    }
+    
+    resposta['resumo_financeiro'] = {
+        'valor_servicos': dados_atualizados['valor_servicos'],
+        'taxa_abertura': dados_atualizados['taxa_abertura'],
+        'valor_base': dados_atualizados['valor_base'],
+        'valor_final': dados_atualizados['valor_final'],
+        'desconto_valor': dados_atualizados['desconto_valor'],
+        'desconto_percentual': dados_atualizados['desconto_percentual'],
+        'desconto_tipo': (
+            'desconto' if dados_atualizados['desconto_valor'] > 0 else
+            'acrescimo' if dados_atualizados['desconto_valor'] < 0 else 'sem_desconto'
         )
+    }
     
     current_app.logger.info(
-        f"Proposta #{proposta.numero} atualizada por funcionário {funcionario_id} - "
-        f"{len(alteracoes_realizadas)} alterações registradas"
+        f"Proposta {proposta_id} atualizada - "
+        f"Taxa: R$ {dados_atualizados['taxa_abertura']:.2f}, "
+        f"Base: R$ {dados_atualizados['valor_base']:.2f}, "
+        f"Final: R$ {dados_atualizados['valor_final']:.2f}"
     )
     
-    return jsonify(proposta.to_json())
+    return jsonify(resposta)
 
 def capturar_dados_atuais(proposta: Proposta) -> dict:
     """Captura o estado atual da proposta para comparação"""
@@ -412,7 +549,6 @@ def criar_log_especifico(proposta_id: int, funcionario_id: int, acao: str, detal
     db.session.add(log)
 
 @propostas_bp.route('/<int:proposta_id>/logs', methods=['GET'])
-@jwt_required()
 @handle_api_errors
 def get_logs_proposta(proposta_id: int):
     """Busca o histórico de logs de uma proposta"""
@@ -545,3 +681,73 @@ def delete_proposta(proposta_id: int):
         f"(ID: {proposta.id}, Funcionário: {funcionario.nome})"
     )
     return jsonify({'message': 'Proposta excluída com sucesso'})
+
+
+def processar_itens_proposta(proposta: Proposta, novos_itens: list, alteracoes_realizadas: list) -> bool:
+    """Processa a atualização dos itens da proposta"""
+    from models.propostas import ItemProposta
+    
+    current_app.logger.info(f"Processando {len(novos_itens)} itens para proposta {proposta.id}")
+    
+    # ⚠️ DESATIVAR: Todos os itens atuais (soft delete)
+    itens_atuais = ItemProposta.query.filter_by(proposta_id=proposta.id, ativo=True).all()
+    for item in itens_atuais:
+        item.ativo = False
+        current_app.logger.info(f"Item {item.id} desativado")
+    
+    # ⚠️ CRIAR: Novos itens
+    itens_criados = []
+    valor_total_itens = 0
+    
+    for item_data in novos_itens:
+        if not item_data.get('servico_id') or item_data['servico_id'] <= 0:
+            current_app.logger.warning(f"Item ignorado - servico_id inválido: {item_data}")
+            continue
+            
+        try:
+            novo_item = ItemProposta(
+                proposta_id=proposta.id,
+                servico_id=item_data['servico_id'],
+                quantidade=float(item_data.get('quantidade', 1)),
+                valor_unitario=float(item_data.get('valor_unitario', 0)),
+                valor_total=float(item_data.get('valor_total', 0)),
+                descricao_personalizada=item_data.get('descricao_personalizada'),
+                ativo=True
+            )
+            
+            db.session.add(novo_item)
+            itens_criados.append(novo_item)
+            valor_total_itens += novo_item.valor_total
+            
+            current_app.logger.info(
+                f"Item criado: Serviço {novo_item.servico_id}, "
+                f"Qtd: {novo_item.quantidade}, "
+                f"Valor: {novo_item.valor_total}"
+            )
+            
+        except Exception as e:
+            current_app.logger.error(f"Erro ao criar item: {item_data} - {str(e)}")
+            continue
+    
+    # ⚠️ REGISTRAR: Alteração dos itens
+    if itens_criados:
+        alteracoes_realizadas.append({
+            'campo': 'itens_proposta',
+            'detalhes': {
+                'total_itens_antigos': len(itens_atuais),
+                'total_itens_novos': len(itens_criados),
+                'valor_total_itens': valor_total_itens,
+                'itens_criados': [
+                    {
+                        'servico_id': item.servico_id,
+                        'quantidade': float(item.quantidade),
+                        'valor_unitario': float(item.valor_unitario),
+                        'valor_total': float(item.valor_total)
+                    } for item in itens_criados
+                ]
+            }
+        })
+        
+        current_app.logger.info(f"Registrada alteração dos itens: {len(itens_criados)} novos itens")
+    
+    return len(itens_criados) > 0

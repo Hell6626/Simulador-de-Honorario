@@ -84,7 +84,7 @@ class Funcionario(db.Model, TimestampMixin, ActiveMixin):
     
     # Relacionamentos
     empresa = db.relationship('Empresa', backref='funcionarios', lazy=True)
-    propostas = db.relationship('Proposta', backref='funcionario_responsavel', lazy=True)
+    propostas = db.relationship('Proposta', lazy=True)
     logs_proposta = db.relationship('PropostaLog', backref='funcionario', lazy=True)
     
     def __repr__(self):

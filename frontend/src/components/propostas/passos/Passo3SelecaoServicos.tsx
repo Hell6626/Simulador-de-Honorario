@@ -42,8 +42,17 @@ interface TipoAtividade {
   ativo: boolean;
 }
 
+interface RegimeTributario {
+  id: number;
+  codigo: string;
+  nome: string;
+  aplicavel_pf: boolean;
+  aplicavel_pj: boolean;
+}
+
 interface Passo3Props {
   tipoAtividade: TipoAtividade;
+  regimeTributario: RegimeTributario; // ⚠️ NOVO: Receber regime do Passo 2
   onVoltar: () => void;
   onProximo: (servicos: ServicoSelecionado[]) => void;
   // ⚠️ NOVO: Props para salvamento automático
@@ -71,6 +80,7 @@ const formatarTipoCobranca = (tipoCobranca: string): string => {
 
 export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
   tipoAtividade,
+  regimeTributario, // ⚠️ NOVO: Usar regime
   onVoltar,
   onProximo,
   dadosSalvos,
@@ -89,10 +99,17 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
   const [ultimoSalvamento, setUltimoSalvamento] = useState<Date | null>(null);
   const [erroSalvamento, setErroSalvamento] = useState<string | null>(null);
 
+  // ⚠️ NOVO: Estado para informações de filtro
+  const [infoFiltros, setInfoFiltros] = useState<{
+    regime: string;
+    totalDisponiveis: number;
+    totalFiltrados: number;
+  }>({ regime: '', totalDisponiveis: 0, totalFiltrados: 0 });
+
   // Verificar se é atividade de serviços (para filtro especial na aba FISCAL)
   const isAtividadeServicos = useMemo(() => {
-    return tipoAtividade.nome.toLowerCase().includes('serviç') ||
-      tipoAtividade.codigo.toLowerCase().includes('serv');
+    return tipoAtividade?.nome?.toLowerCase().includes('serviç') ||
+      tipoAtividade?.codigo?.toLowerCase().includes('serv');
   }, [tipoAtividade]);
 
   // ⚠️ CORREÇÃO 1: Identificar serviços que devem ser booleanos
@@ -161,7 +178,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
 
   // ⚠️ NOVO: Função de salvamento automático
   const salvarProgresso = useCallback(async () => {
-    if (servicosSelecionados.size === 0) return;
+    if (servicosSelecionados.size === 0 || !tipoAtividade?.id || !regimeTributario?.id) return;
 
     setSalvando(true);
     setErroSalvamento(null);
@@ -172,13 +189,15 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
 
       const dadosParaSalvar = {
         passo: 3,
-        tipoAtividadeId: tipoAtividade.id,
+        tipoAtividadeId: tipoAtividade?.id || 0,
+        regimeTributarioId: regimeTributario?.id || 0,
         servicosSelecionados: servicosArray,
         informacoesExtras: extrasObject,
         abaAtiva,
         timestamp: new Date().toISOString(),
         dadosCompletos: {
-          tipoAtividade,
+          tipoAtividade: tipoAtividade || null,
+          regimeTributario: regimeTributario || null,
           servicos: servicosArray.map(s => ({
             ...s,
             servico: todosServicos.find(ts => ts.id === s.servico_id)
@@ -203,15 +222,15 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
     } finally {
       setSalvando(false);
     }
-  }, [servicosSelecionados, informacoesExtras, abaAtiva, tipoAtividade, todosServicos, onSalvarProgresso]);
+  }, [servicosSelecionados, informacoesExtras, abaAtiva, tipoAtividade?.id, regimeTributario?.id, todosServicos, onSalvarProgresso]);
 
   // ⚠️ NOVO: Salvamento automático quando serviços mudam
   useEffect(() => {
-    if (servicosSelecionados.size > 0) {
+    if (servicosSelecionados.size > 0 && tipoAtividade?.id && regimeTributario?.id) {
       const timeoutId = setTimeout(salvarProgresso, 2000); // Debounce de 2 segundos
       return () => clearTimeout(timeoutId);
     }
-  }, [servicosSelecionados, informacoesExtras, salvarProgresso]);
+  }, [servicosSelecionados, informacoesExtras, salvarProgresso, tipoAtividade?.id, regimeTributario?.id]);
 
   // ⚠️ NOVO: Limpar backup ao sair
   useEffect(() => {
@@ -259,7 +278,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
     });
 
     return totais;
-  }, [servicosSelecionados, servicosPorCategoria, todosServicos]);
+  }, [servicosSelecionados, servicosPorCategoria, todosServicos, tipoAtividade?.id, regimeTributario?.id]);
 
   // Total geral de todos os serviços
   const totalGeral = useMemo(() => {
@@ -277,7 +296,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
     return servicos;
   };
 
-  const agruparServicosPorCategoria = (servicos: Servico[]): ServicoPorCategoria[] => {
+  const agruparServicosPorCategoria = useCallback((servicos: Servico[]): ServicoPorCategoria[] => {
     // Agrupar por categoria
     const grupos = servicos.reduce((acc, servico) => {
       if (!acc[servico.categoria]) {
@@ -293,140 +312,191 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
       servicos: aplicarFiltroEspecial(servicosCategoria, categoria),
       total: 0 // Será calculado dinamicamente
     }));
-  };
+  }, []);
 
-  // Carregar todos os serviços
-  const carregarTodosServicos = async () => {
+  // ⚠️ CORREÇÃO: Função de carregamento com filtros - MEMOIZADA
+  const carregarServicosFiltrados = useCallback(async () => {
+    if (!tipoAtividade?.id || !regimeTributario?.id) {
+      console.warn('Dados obrigatórios não disponíveis para carregar serviços');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      // Carregar todos os serviços ativos
-      const response = await apiService.getServicos();
-      const servicos = response || [];
+      console.log('🔍 Carregando serviços filtrados:', {
+        tipoAtividade: tipoAtividade?.nome,
+        regime: regimeTributario?.nome
+      });
 
+      // ⚠️ CHAMAR: API específica para proposta
+      const response = await apiService.getServicosParaProposta(
+        tipoAtividade.id,
+        regimeTributario.id
+      );
+
+      const servicos = response.servicos || [];
       setTodosServicos(servicos);
 
-      // Agrupar por categoria e aplicar filtros
+      // ⚠️ AGRUPAR: Serviços por categoria
       const grupos = agruparServicosPorCategoria(servicos);
       setServicosPorCategoria(grupos);
 
-      console.log(`Carregados ${servicos.length} serviços em ${grupos.length} categorias`);
+      // ⚠️ DEFINIR: Informações de filtro
+      setInfoFiltros({
+        regime: regimeTributario?.nome || '',
+        totalDisponiveis: servicos.length,
+        totalFiltrados: servicos.length
+      });
+
+      console.log(`✅ Carregados ${servicos.length} serviços filtrados para ${regimeTributario?.nome || 'Regime'}`);
 
     } catch (err: unknown) {
-      console.error('Erro ao carregar serviços:', err);
+      console.error('❌ Erro ao carregar serviços filtrados:', err);
 
-      // Fallback com dados mockados
       const errorMessage = (err as Error)?.message || '';
-      if (errorMessage.includes('404') || errorMessage.includes('Failed to fetch')) {
-        const servicosMockados: Servico[] = [
-          {
-            id: 1,
-            codigo: 'CONT-MENSAL',
-            nome: 'Contabilidade Mensal',
-            categoria: 'CONTABIL',
-            tipo_cobranca: 'MENSAL',
-            valor_base: 150.00,
-            descricao: 'Serviços de contabilidade mensal incluindo escrituração, DRE e balanço',
-            ativo: true
-          },
-          {
-            id: 2,
-            codigo: 'BALANCETE',
-            nome: 'Balancete Mensal',
-            categoria: 'CONTABIL',
-            tipo_cobranca: 'MENSAL',
-            valor_base: 50.00,
-            descricao: 'Elaboração de balancete mensal',
-            ativo: true
-          },
-          {
-            id: 3,
-            codigo: 'NF-e',
-            nome: 'Nota Fiscal Eletrônica (NF-e)',
-            categoria: 'FISCAL',
-            tipo_cobranca: 'POR_NF',
-            valor_base: 20.00,
-            descricao: 'Emissão de notas fiscais eletrônicas',
-            ativo: true
-          },
-          {
-            id: 4,
-            codigo: 'NFS-e',
-            nome: 'Nota Fiscal de Serviços (NFS-e)',
-            categoria: 'FISCAL',
-            tipo_cobranca: 'POR_NF',
-            valor_base: 10.00,
-            descricao: 'Emissão de notas fiscais de serviços eletrônicas',
-            ativo: true
-          },
-          {
-            id: 5,
-            codigo: 'FOLHA',
-            nome: 'Folha de Pagamento',
-            categoria: 'PESSOAL',
-            tipo_cobranca: 'MENSAL',
-            valor_base: 80.00,
-            descricao: 'Processamento da folha de pagamento mensal',
-            ativo: true
-          },
-          {
-            id: 6,
-            codigo: 'FUNCIONARIO',
-            nome: 'Gestão de Funcionários',
-            categoria: 'PESSOAL',
-            tipo_cobranca: 'MENSAL',
-            valor_base: 50.00,
-            descricao: 'Gestão de funcionários',
-            ativo: true
-          },
-          {
-            id: 7,
-            codigo: 'PRO-LABORE',
-            nome: 'Retirada de Pró-labore',
-            categoria: 'PESSOAL',
-            tipo_cobranca: 'MENSAL',
-            valor_base: 30.00,
-            descricao: 'Retirada de pró-labore',
-            ativo: true
-          },
-          {
-            id: 8,
-            codigo: 'SOCIETARIO',
-            nome: 'Serviços Societários',
-            categoria: 'SOCIETARIO',
-            tipo_cobranca: 'VALOR_UNICO',
-            valor_base: 1000.00,
-            descricao: 'Constituição e alterações societárias',
-            ativo: true
-          },
-          {
-            id: 9,
-            codigo: 'ORGAO-CLASSE',
-            nome: 'Registro de Órgão de Classe',
-            categoria: 'SOCIETARIO',
-            tipo_cobranca: 'VALOR_UNICO',
-            valor_base: 200.00,
-            descricao: 'Registro em órgão de classe profissional',
-            ativo: true
-          }
-        ];
-
+      if (errorMessage.includes('Combinação inválida')) {
+        setError(`Combinação inválida: ${tipoAtividade?.nome || 'Atividade'} com ${regimeTributario?.nome || 'Regime'}. Contacte o suporte.`);
+      } else if (errorMessage.includes('404') || errorMessage.includes('Failed to fetch')) {
+        // ⚠️ FALLBACK: Usar dados mockados filtrados
+        const servicosMockados = obterServicosMockadosPorRegime(regimeTributario?.codigo || 'SN');
         setTodosServicos(servicosMockados);
         const grupos = agruparServicosPorCategoria(servicosMockados);
         setServicosPorCategoria(grupos);
-        setError('API não disponível. Usando dados de demonstração.');
+        setError('API não disponível. Usando dados de demonstração filtrados.');
       } else {
         setError(errorMessage || 'Erro ao carregar serviços');
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [tipoAtividade?.id, regimeTributario?.id, tipoAtividade?.nome, regimeTributario?.nome, regimeTributario?.codigo]);
 
+  // ⚠️ CORREÇÃO: Função de fallback com dados mockados - MEMOIZADA
+  const obterServicosMockadosPorRegime = useCallback((codigoRegime: string): Servico[] => {
+    const todosServicos: Servico[] = [
+      {
+        id: 1,
+        codigo: 'BALANCETE-SN',
+        nome: 'Geração de Balancete Mensal para Simples Nacional',
+        categoria: 'CONTABIL',
+        tipo_cobranca: 'MENSAL',
+        valor_base: 50.00,
+        descricao: 'Serviços de geração balancete completa para Simples Nacional',
+        ativo: true
+      },
+      {
+        id: 2,
+        codigo: 'BALANCETE-LP-LR',
+        nome: 'Geração de Balancete Mensal para Lucro Presumido e Lucro Real',
+        categoria: 'CONTABIL',
+        tipo_cobranca: 'MENSAL',
+        valor_base: 100.00,
+        descricao: 'Serviços de geração balancete completa para LP e LR',
+        ativo: true
+      },
+      {
+        id: 3,
+        codigo: 'NF-e',
+        nome: 'Nota Fiscal Eletrônica',
+        categoria: 'FISCAL',
+        tipo_cobranca: 'POR_NF',
+        valor_base: 20.00,
+        descricao: 'Emissão de Nota Fiscal Eletrônica',
+        ativo: true
+      },
+      {
+        id: 4,
+        codigo: 'NFS-e',
+        nome: 'Nota Fiscal de Serviços Eletrônica',
+        categoria: 'FISCAL',
+        tipo_cobranca: 'POR_NF',
+        valor_base: 10.00,
+        descricao: 'Emissão de Nota Fiscal de Serviços',
+        ativo: true
+      },
+      {
+        id: 5,
+        codigo: 'CT-e',
+        nome: 'Conhecimento de Transporte Eletrônico',
+        categoria: 'FISCAL',
+        tipo_cobranca: 'POR_NF',
+        valor_base: 20.00,
+        descricao: 'Emissão de Conhecimento de Transporte Eletrônico',
+        ativo: true
+      },
+      {
+        id: 6,
+        codigo: 'FUNCIONARIO',
+        nome: 'Gestão de Funcionários',
+        categoria: 'PESSOAL',
+        tipo_cobranca: 'MENSAL',
+        valor_base: 50.00,
+        descricao: 'Gestão de funcionários',
+        ativo: true
+      },
+      {
+        id: 7,
+        codigo: 'PRO-LABORE',
+        nome: 'Retirada de Pró-labore',
+        categoria: 'PESSOAL',
+        tipo_cobranca: 'MENSAL',
+        valor_base: 30.00,
+        descricao: 'Retirada de pró-labore',
+        ativo: true
+      },
+      {
+        id: 8,
+        codigo: 'ORGAO-CLASSE',
+        nome: 'Registro de Orgão de Classe',
+        categoria: 'SOCIETARIO',
+        tipo_cobranca: 'VALOR_UNICO',
+        valor_base: 1000.00,
+        descricao: 'Realização de todo processo de registro de Orgão de Classe',
+        ativo: true
+      }
+    ];
+
+    // ⚠️ APLICAR: Filtros básicos por regime
+    return todosServicos.filter(servico => {
+      switch (codigoRegime) {
+        case 'MEI':
+          return ['BALANCETE-SN', 'NFS-e'].some(codigo => servico.codigo.includes(codigo));
+
+        case 'SN':
+          return !['FUNCIONARIO', 'PRO-LABORE'].some(codigo => servico.codigo.includes(codigo)) ||
+            servico.categoria === 'CONTABIL';
+
+        case 'LP':
+        case 'LR':
+          return servico.categoria !== 'PESSOAL' ||
+            ['FUNCIONARIO', 'PRO-LABORE'].some(codigo => servico.codigo.includes(codigo));
+
+        case 'PR':
+          return ['RURAL', 'PRODUTOR'].some(codigo => servico.nome.toUpperCase().includes(codigo));
+
+        case 'Aut':
+          return ['INSS', 'AUTONOMO'].some(codigo => servico.codigo.includes(codigo));
+
+        case 'DOM':
+          return ['DOMESTICO', 'EMPREGADOR'].some(codigo => servico.codigo.includes(codigo));
+
+        case 'CAT':
+          return ['CARTORIO', 'CARNE-LEAO'].some(codigo => servico.codigo.includes(codigo));
+
+        default:
+          return true;
+      }
+    });
+  }, []);
+
+  // ⚠️ ATUALIZAR: useEffect para carregar na inicialização
   useEffect(() => {
-    carregarTodosServicos();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (tipoAtividade?.id && regimeTributario?.id) {
+      carregarServicosFiltrados();
+    }
+  }, [tipoAtividade?.id, regimeTributario?.id]); // Dependências corretas com verificação de segurança
 
   // Funções auxiliares para gerenciar seleções
   const isServicoSelecionado = (servicoId: number): boolean => {
@@ -509,12 +579,14 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
       });
 
     return temServicoValido || servicosPorCategoria.length === 0;
-  }, [servicosSelecionados, servicosPorCategoria, todosServicos]);
+  }, [servicosSelecionados, servicosPorCategoria, todosServicos, tipoAtividade?.id, regimeTributario?.id]);
 
   const handleProximo = () => {
     if (podeProximo) {
       // ⚠️ NOVO: Salvar antes de prosseguir
-      salvarProgresso();
+      if (tipoAtividade?.id && regimeTributario?.id) {
+        salvarProgresso();
+      }
 
       const servicosParaEnvio = Array.from(servicosSelecionados.values())
         .filter(item => {
@@ -539,6 +611,53 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
     }
   };
 
+  // ⚠️ NOVO: Componente de indicador de filtro
+  const IndicadorFiltro: React.FC<{
+    tipoAtividade: TipoAtividade;
+    regimeTributario: RegimeTributario;
+    infoFiltros: any;
+  }> = ({ tipoAtividade, regimeTributario, infoFiltros }) => (
+    <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="flex items-start space-x-3">
+        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+          <Info className="w-5 h-5 text-blue-600" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-medium text-blue-900">
+            Serviços Filtrados por Configuração
+          </p>
+          <div className="text-xs text-blue-700 mt-1 space-y-1">
+            <p><strong>Tipo de Atividade:</strong> {tipoAtividade.nome}</p>
+            <p><strong>Regime Tributário:</strong> {regimeTributario.nome} ({regimeTributario.codigo})</p>
+            <p><strong>Serviços Disponíveis:</strong> {infoFiltros.totalDisponiveis} serviços compatíveis</p>
+          </div>
+          <div className="mt-2 text-xs text-blue-600">
+            💡 Apenas serviços compatíveis com sua configuração são exibidos
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ⚠️ NOVO: Verificação de dados obrigatórios
+  if (!tipoAtividade?.id || !regimeTributario?.id) {
+    return (
+      <div className="min-h-screen pb-32 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl text-gray-400">⏳</span>
+          </div>
+          <p className="text-lg text-gray-500 mb-2">
+            Carregando configurações...
+          </p>
+          <p className="text-sm text-gray-400">
+            Aguarde enquanto preparamos os serviços disponíveis.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen pb-32">
       {/* Cabeçalho */}
@@ -547,9 +666,11 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Nova Proposta - Passo 3</h1>
             <p className="text-sm text-gray-500">Seleção de Serviços</p>
-            <p className="text-sm text-gray-600 mt-1">
-              Tipo de Atividade: {tipoAtividade.nome}
-            </p>
+            {tipoAtividade?.nome && regimeTributario?.nome && (
+              <p className="text-sm text-gray-600 mt-1">
+                {tipoAtividade.nome} • {regimeTributario.nome}
+              </p>
+            )}
 
             {/* ⚠️ NOVO: Indicador de salvamento */}
             <div className="flex items-center space-x-2 mt-2">
@@ -590,6 +711,15 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-700">{error}</p>
         </div>
+      )}
+
+      {/* ⚠️ NOVO: Indicador de filtro */}
+      {tipoAtividade?.nome && regimeTributario?.nome && (
+        <IndicadorFiltro
+          tipoAtividade={tipoAtividade}
+          regimeTributario={regimeTributario}
+          infoFiltros={infoFiltros}
+        />
       )}
 
       {/* ⚠️ NOVO: Aviso de recuperação se aplicável */}
@@ -687,8 +817,8 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                   <div
                     key={servico.id}
                     className={`border rounded-lg p-6 transition-all ${isSelecionado
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
                       }`}
                   >
                     <div className="flex items-start space-x-4">
@@ -955,7 +1085,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
             {/* ⚠️ NOVO: Botão de salvamento manual */}
             <button
               onClick={salvarProgresso}
-              disabled={servicosSelecionados.size === 0 || salvando}
+              disabled={servicosSelecionados.size === 0 || salvando || !tipoAtividade?.id || !regimeTributario?.id}
               className="flex items-center space-x-2 px-3 py-1 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
             >
               <Save className="w-4 h-4" />

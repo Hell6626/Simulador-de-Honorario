@@ -251,6 +251,21 @@ class ApiService {
     return this.request<any>(`/servicos/${id}`);
   }
 
+  // ⚠️ NOVO: Serviços filtrados por regime tributário
+  async getServicosPorRegime(regimeId: number) {
+    return this.request<any>(`/servicos/por-regime/${regimeId}`);
+  }
+
+  async getServicosParaProposta(tipoAtividadeId: number, regimeTributarioId: number) {
+    return this.request<any>('/servicos/para-proposta', {
+      method: 'POST',
+      body: JSON.stringify({
+        tipo_atividade_id: tipoAtividadeId,
+        regime_tributario_id: regimeTributarioId
+      }),
+    });
+  }
+
   // Propostas
   async getPropostas(params?: {
     page?: number;
@@ -366,7 +381,7 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         let errorMessage = 'Erro na requisição';
         try {
@@ -375,7 +390,7 @@ class ApiService {
         } catch {
           errorMessage = `Erro ${response.status}: ${response.statusText}`;
         }
-        
+
         // Incluir código de status na mensagem de erro
         const error = new Error(`${response.status} - ${errorMessage}`);
         (error as any).status = response.status;
@@ -386,7 +401,7 @@ class ApiService {
       if (contentType && contentType.includes('application/json')) {
         return await response.json();
       }
-      
+
       return response.text() as unknown as any;
     } catch (error) {
       if (error instanceof Error) {
