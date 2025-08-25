@@ -25,9 +25,9 @@ def create_app():
     app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
     app.config["JWT_SECRET_KEY"] = "troque-por-uma-chave-muito-segura"
     
-    # Configurações JWT para blacklist (logout)
-    app.config["JWT_BLACKLIST_ENABLED"] = True
-    app.config["JWT_BLACKLIST_TOKEN_CHECKS"] = ["access"]
+    # Configurações JWT simplificadas
+    app.config["JWT_BLACKLIST_ENABLED"] = False
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = False  # Tokens não expiram para desenvolvimento
 
     # Extensões
     db.init_app(app)
@@ -38,7 +38,7 @@ def create_app():
     # Configuração CORS mais robusta para desenvolvimento
     CORS(
         app,
-        origins=["http://192.168.0.99:5173", "http://localhost:5173", "http://127.0.0.1:5173"],
+        origins=["http://192.168.5.202:5173", "http://localhost:5173", "http://127.0.0.1:5173"],
         allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         supports_credentials=True,

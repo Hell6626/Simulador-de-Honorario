@@ -4,12 +4,22 @@ Views para gerenciamento de empresas.
 
 from flask import Blueprint, request, jsonify, current_app
 from datetime import datetime
-from models import Empresa
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from models import Empresa, Funcionario
 from .utils import handle_api_errors, paginate_query
 
 empresas_bp = Blueprint('empresas', __name__)
 
+def verificar_gerente():
+    """Verifica se o usuário logado é gerente"""
+    funcionario_id = int(get_jwt_identity())
+    funcionario = Funcionario.query.get(funcionario_id)
+    if not funcionario or not funcionario.gerente:
+        return False
+    return True
+
 @empresas_bp.route('/', methods=['GET'])
+@jwt_required()
 @handle_api_errors
 def get_empresas():
     """Lista todas as empresas com paginação e filtros"""
@@ -41,6 +51,7 @@ def get_empresas():
     })
 
 @empresas_bp.route('/<int:empresa_id>', methods=['GET'])
+@jwt_required()
 @handle_api_errors
 def get_empresa(empresa_id: int):
     """Busca uma empresa específica"""
@@ -48,9 +59,13 @@ def get_empresa(empresa_id: int):
     return jsonify(empresa.to_json())
 
 @empresas_bp.route('/', methods=['POST'])
+@jwt_required()
 @handle_api_errors
 def create_empresa():
-    """Cria uma nova empresa"""
+    """Cria uma nova empresa - apenas gerentes"""
+    if not verificar_gerente():
+        return jsonify({'error': 'Apenas gerentes podem criar empresas'}), 403
+
     data = request.get_json()
 
     if not data:
@@ -82,9 +97,13 @@ def create_empresa():
     return jsonify(empresa.to_json()), 201
 
 @empresas_bp.route('/<int:empresa_id>', methods=['PUT'])
+@jwt_required()
 @handle_api_errors
 def update_empresa(empresa_id: int):
-    """Atualiza uma empresa existente"""
+    """Atualiza uma empresa existente - apenas gerentes"""
+    if not verificar_gerente():
+        return jsonify({'error': 'Apenas gerentes podem atualizar empresas'}), 403
+
     empresa = Empresa.query.get_or_404(empresa_id)
     data = request.get_json()
 
@@ -118,9 +137,13 @@ def update_empresa(empresa_id: int):
     return jsonify(empresa.to_json())
 
 @empresas_bp.route('/<int:empresa_id>', methods=['DELETE'])
+@jwt_required()
 @handle_api_errors
 def delete_empresa(empresa_id: int):
-    """Desativa uma empresa (soft delete)"""
+    """Desativa uma empresa (soft delete) - apenas gerentes"""
+    if not verificar_gerente():
+        return jsonify({'error': 'Apenas gerentes podem excluir empresas'}), 403
+
     empresa = Empresa.query.get_or_404(empresa_id)
 
     # Verificar se há funcionários ou cargos vinculados

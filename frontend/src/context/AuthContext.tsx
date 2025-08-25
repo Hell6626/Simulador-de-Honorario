@@ -1,9 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiService } from '../services/api';
 
+interface User {
+  id: number;
+  nome: string;
+  email: string;
+  gerente: boolean;
+  ativo: boolean;
+  empresa_id: number;
+  cargo_id?: number;
+}
+
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: any | null;
+  user: User | null;
   login: (email: string, senha: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
@@ -13,23 +23,35 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const loadUserInfo = async () => {
+    try {
+      const userInfo = await apiService.getUserInfo();
+      setUser(userInfo);
+      setIsAuthenticated(true);
+    } catch (error) {
+      console.error('Erro ao carregar informações do usuário:', error);
+      setIsAuthenticated(false);
+      setUser(null);
+    }
+  };
 
   useEffect(() => {
     const token = apiService.getToken();
     if (token) {
-      setIsAuthenticated(true);
+      loadUserInfo();
     }
     setLoading(false);
   }, []);
 
-  const login = async (email: string, senha: string) => {
+  const login = async (email: string, senha: string): Promise<void> => {
     try {
       await apiService.login(email, senha);
-      setIsAuthenticated(true);
-      setUser({ email }); // Simplified user object
+      await loadUserInfo();
     } catch (error) {
+      console.error('Erro no login:', error);
       throw error;
     }
   };

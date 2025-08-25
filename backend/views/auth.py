@@ -26,23 +26,54 @@ def login():
     )
     return jsonify({"token": token})
 
+@auth_bp.route('/me', methods=['GET'])
+@jwt_required()
+def get_user_info():
+    """Retorna informações do usuário logado"""
+    funcionario_id = int(get_jwt_identity())
+    funcionario = Funcionario.query.get(funcionario_id)
+    
+    if not funcionario:
+        return jsonify({"error": "Usuário não encontrado"}), 404
+    
+    return jsonify({
+        "id": funcionario.id,
+        "nome": funcionario.nome,
+        "email": funcionario.email,
+        "gerente": funcionario.gerente,
+        "ativo": funcionario.ativo,
+        "empresa_id": funcionario.empresa_id,
+        "cargo_id": funcionario.cargo_id
+    })
+
+@auth_bp.route('/test', methods=['GET'])
+@jwt_required()
+def test_auth():
+    """Endpoint de teste para verificar se a autenticação está funcionando"""
+    funcionario_id = int(get_jwt_identity())
+    funcionario = Funcionario.query.get(funcionario_id)
+    
+    if not funcionario:
+        return jsonify({"error": "Usuário não encontrado"}), 404
+    
+    return jsonify({
+        "message": "Autenticação funcionando!",
+        "user": {
+            "id": funcionario.id,
+            "nome": funcionario.nome,
+            "email": funcionario.email,
+            "gerente": funcionario.gerente
+        }
+    })
+
 @auth_bp.route('/logout', methods=['POST'])
 @jwt_required()
 def logout():
     """
-    Faz logout do usuário invalidando o token JWT.
-    O token será adicionado à blacklist para não poder ser usado novamente.
+    Faz logout do usuário.
     """
     try:
-        # Obtém o token atual e o ID do funcionário
-        jti = get_jwt()["jti"]
         funcionario_id = get_jwt_identity()
-        
-        # Adiciona o token à blacklist
-        from config import jwt
-        
-        # Para uma implementação simples, vamos apenas retornar sucesso
-        # Em produção, você pode implementar uma blacklist no banco de dados
         
         return jsonify({
             "message": "Logout realizado com sucesso",

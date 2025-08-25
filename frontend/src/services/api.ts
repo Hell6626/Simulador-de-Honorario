@@ -47,9 +47,18 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify({ email, senha }),
     });
-
+    
     Cookies.set(TOKEN_KEY, response.token, { expires: 7 });
+    
     return response;
+  }
+
+  async getUserInfo() {
+    return this.request<any>('/auth/me');
+  }
+
+  async testAuth() {
+    return this.request<any>('/auth/test');
   }
 
   async logout() {
@@ -132,7 +141,6 @@ class ApiService {
   async createCargo(data: any) {
     return this.request<any>('/cargos', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
   }
@@ -140,7 +148,6 @@ class ApiService {
   async updateCargo(id: number, data: any) {
     return this.request<any>(`/cargos/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
   }
@@ -172,7 +179,6 @@ class ApiService {
   async createEmpresa(data: any) {
     return this.request<any>('/empresas', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
   }
@@ -180,7 +186,6 @@ class ApiService {
   async updateEmpresa(id: number, data: any) {
     return this.request<any>(`/empresas/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
   }

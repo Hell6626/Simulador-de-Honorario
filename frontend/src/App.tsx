@@ -11,6 +11,7 @@ import { AgendaPage } from './components/pages/AgendaPage';
 
 // Placeholder components for other pages
 import { FuncionariosPage } from './components/pages/FuncionariosPage';
+import { CargosPage } from './components/pages/CargosPage';
 
 const TiposAtividadePage = () => (
   <div className="space-y-6">
@@ -114,6 +115,8 @@ const AppContent: React.FC = () => {
         return <ClientesPage openModalOnLoad={navigationOptions.openModal} />;
       case 'funcionarios':
         return <FuncionariosPage openModalOnLoad={navigationOptions.openModal} />;
+      case 'cargos':
+        return <CargosPage openModalOnLoad={navigationOptions.openModal} />;
       case 'tipos-atividade':
         return <TiposAtividadePage />;
       case 'regimes-tributarios':

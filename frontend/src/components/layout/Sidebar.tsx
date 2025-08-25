@@ -13,7 +13,8 @@ import {
   LogOut,
   Bell,
   User,
-  Calendar
+  Calendar,
+  Briefcase
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -34,6 +35,7 @@ const menuItems: MenuItem[] = [
   { id: 'propostas', label: 'Propostas', icon: FileText, section: 'main' },
   { id: 'clientes', label: 'Clientes', icon: Users, section: 'main' },
   { id: 'funcionarios', label: 'Funcionários', icon: UserCheck, section: 'gestao' },
+  { id: 'cargos', label: 'Cargos', icon: Briefcase, section: 'gestao' },
   { id: 'tipos-atividade', label: 'Tipos de Atividade', icon: Building2, section: 'gestao' },
   { id: 'regimes-tributarios', label: 'Regimes Tributários', icon: Shield, section: 'gestao' },
   { id: 'servicos', label: 'Serviços', icon: Calculator, section: 'gestao' },
