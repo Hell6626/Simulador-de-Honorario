@@ -10,6 +10,27 @@ export interface User {
   updated_at: string;
 }
 
+export interface Funcionario {
+  id: number;
+  nome: string;
+  email: string;
+  gerente: boolean;
+  cargo_id: number;
+  empresa_id: number;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+  cargo?: {
+    nome: string;
+    codigo: string;
+    nivel?: string;
+  };
+  empresa?: {
+    nome: string;
+    cnpj: string;
+  };
+}
+
 export interface Cliente {
   id: number;
   nome: string;
@@ -19,6 +40,18 @@ export interface Cliente {
   ativo: boolean;
   created_at: string;
   updated_at: string;
+  endereco?: {
+    rua: string;
+    numero: string;
+    cidade: string;
+    estado: string;
+    cep: string;
+  };
+  entidades_juridicas?: Array<{
+    nome: string;
+    cnpj: string;
+    tipo: string;
+  }>;
 }
 
 export interface TipoAtividade {

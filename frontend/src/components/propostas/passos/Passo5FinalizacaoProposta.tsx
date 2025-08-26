@@ -21,6 +21,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { apiService } from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
+import { Cliente } from '../../../types';
 
 // Extend jsPDF type para autoTable
 declare module 'jspdf' {
@@ -33,14 +34,6 @@ declare module 'jspdf' {
 }
 
 // Interfaces TypeScript
-interface Cliente {
-    id: number;
-    nome: string;
-    cpf: string;
-    email: string;
-    abertura_empresa: boolean;
-    ativo: boolean;
-}
 
 interface TipoAtividade {
     id: number;

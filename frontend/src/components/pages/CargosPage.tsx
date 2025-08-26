@@ -3,6 +3,7 @@ import { Plus, Search, Trash2, UserCheck, Eye, Edit2, Shield, Building2 } from '
 import { apiService } from '../../services/api';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { Modal } from '../common/Modal';
+import { ModalVisualizacao } from '../common/ModalVisualizacao';
 import { useAuth } from '../../context/AuthContext';
 
 interface Cargo {
@@ -57,7 +58,7 @@ export const CargosPage: React.FC<CargosPageProps> = ({ openModalOnLoad = false 
     const isAdminUser = Boolean(user?.gerente);
     setIsAdmin(isAdminUser);
     setVerificandoPermissao(false);
-    
+
     if (isAdminUser) {
       fetchCargos();
     }
@@ -179,7 +180,7 @@ export const CargosPage: React.FC<CargosPageProps> = ({ openModalOnLoad = false 
           <h1 className="text-2xl font-bold text-gray-900">Cargos</h1>
           <p className="text-sm text-gray-500">Gerencie os cargos do sistema</p>
         </div>
-        
+
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
           <div className="flex items-center">
             <Shield className="w-8 h-8 text-red-400 mr-3" />
@@ -287,11 +288,10 @@ export const CargosPage: React.FC<CargosPageProps> = ({ openModalOnLoad = false 
                       {cargo.nivel || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        cargo.ativo
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${cargo.ativo
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                        }`}>
                         {cargo.ativo ? 'Ativo' : 'Inativo'}
                       </span>
                     </td>
@@ -421,7 +421,7 @@ export const CargosPage: React.FC<CargosPageProps> = ({ openModalOnLoad = false 
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Nível
             </label>
-            <select 
+            <select
               value={formData.nivel}
               onChange={(e) => handleInputChange('nivel', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -448,7 +448,7 @@ export const CargosPage: React.FC<CargosPageProps> = ({ openModalOnLoad = false 
           >
             Cancelar
           </button>
-          <button 
+          <button
             onClick={handleSalvar}
             disabled={loading}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
@@ -500,7 +500,7 @@ export const CargosPage: React.FC<CargosPageProps> = ({ openModalOnLoad = false 
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Nível
             </label>
-            <select 
+            <select
               value={formData.nivel}
               onChange={(e) => handleInputChange('nivel', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -528,7 +528,7 @@ export const CargosPage: React.FC<CargosPageProps> = ({ openModalOnLoad = false 
           >
             Cancelar
           </button>
-          <button 
+          <button
             onClick={handleEditar}
             disabled={loading}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
@@ -539,55 +539,12 @@ export const CargosPage: React.FC<CargosPageProps> = ({ openModalOnLoad = false 
       </Modal>
 
       {/* Modal de Visualização */}
-      {cargoParaVisualizar && (
-        <Modal
-          isOpen={!!cargoParaVisualizar}
-          onClose={() => setCargoParaVisualizar(null)}
-          title="Detalhes do Cargo"
-        >
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Nome</label>
-              <p className="mt-1 text-sm text-gray-900">{cargoParaVisualizar.nome}</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Código</label>
-              <p className="mt-1 text-sm text-gray-900">{cargoParaVisualizar.codigo}</p>
-            </div>
-            {cargoParaVisualizar.descricao && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Descrição</label>
-                <p className="mt-1 text-sm text-gray-900">{cargoParaVisualizar.descricao}</p>
-              </div>
-            )}
-            {cargoParaVisualizar.nivel && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Nível</label>
-                <p className="mt-1 text-sm text-gray-900">{cargoParaVisualizar.nivel}</p>
-              </div>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Status</label>
-              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full mt-1 ${
-                cargoParaVisualizar.ativo
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-red-100 text-red-800'
-              }`}>
-                {cargoParaVisualizar.ativo ? 'Ativo' : 'Inativo'}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex justify-end mt-6">
-            <button
-              onClick={() => setCargoParaVisualizar(null)}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Fechar
-            </button>
-          </div>
-        </Modal>
-      )}
+      <ModalVisualizacao
+        isOpen={!!cargoParaVisualizar}
+        onClose={() => setCargoParaVisualizar(null)}
+        type="cargo"
+        data={cargoParaVisualizar}
+      />
 
       {/* Modal de Confirmação de Exclusão */}
       {cargoParaDeletar && (

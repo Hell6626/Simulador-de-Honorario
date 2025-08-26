@@ -11,6 +11,7 @@ import {
 import { apiService } from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { ModalCadastroCliente } from './ModalCadastroCliente';
+import { Cliente } from '../../../types';
 
 interface EntidadeJuridica {
   id: number;
@@ -20,15 +21,7 @@ interface EntidadeJuridica {
   cliente_id: number;
 }
 
-interface Cliente {
-  id: number;
-  nome: string;
-  cpf: string;
-  email: string;
-  abertura_empresa: boolean;
-  ativo: boolean;
-  entidades_juridicas?: EntidadeJuridica[];
-}
+
 
 interface Passo1Props {
   onVoltar: () => void;

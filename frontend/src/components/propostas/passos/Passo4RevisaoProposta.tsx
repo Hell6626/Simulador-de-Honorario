@@ -32,18 +32,9 @@ import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { ModalConfirmacaoDesconto } from '../../common/ModalConfirmacaoDesconto';
 import { StatusSalvamento } from '../../common/StatusSalvamento';
 import { useSalvamentoAutomatico } from '../../../hooks/useSalvamentoAutomatico';
+import { Cliente } from '../../../types';
 
 // Interfaces TypeScript
-interface Cliente {
-  id: number;
-  nome: string;
-  cpf: string;
-  email: string;
-  abertura_empresa: boolean;
-  ativo: boolean;
-  created_at: string;
-  updated_at: string;
-}
 
 interface TipoAtividade {
   id: number;

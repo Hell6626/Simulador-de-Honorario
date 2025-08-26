@@ -4,28 +4,9 @@ import { apiService } from '../../services/api';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { Modal } from '../common/Modal';
 import { ModalCadastroFuncionario } from '../propostas/passos/ModalCadastroFuncionario';
+import { ModalVisualizacao } from '../common/ModalVisualizacao';
 import { useAuth } from '../../context/AuthContext';
-
-interface Funcionario {
-  id: number;
-  nome: string;
-  email: string;
-  gerente: boolean;
-  cargo_id: number;
-  empresa_id: number;
-  ativo: boolean;
-  created_at: string;
-  updated_at: string;
-  cargo?: {
-    nome: string;
-    codigo: string;
-    nivel?: string;
-  };
-  empresa?: {
-    nome: string;
-    cnpj: string;
-  };
-}
+import { Funcionario } from '../../types';
 
 interface FuncionariosPageProps {
   openModalOnLoad?: boolean;
@@ -126,6 +107,7 @@ export const FuncionariosPage: React.FC<FuncionariosPageProps> = ({ openModalOnL
 
   const handleEditar = (funcionario: Funcionario) => {
     setFuncionarioParaEditar(funcionario);
+    setIsModalEdicaoOpen(true);
   };
 
   const handleDeletar = (funcionario: Funcionario) => {
@@ -150,11 +132,6 @@ export const FuncionariosPage: React.FC<FuncionariosPageProps> = ({ openModalOnL
     setFuncionarioParaEditar(null);
   };
 
-  const abrirModalEdicao = () => {
-    setFuncionarioParaEditar(null);
-    setIsModalEdicaoOpen(true);
-  };
-
   // Se não for gerente, mostrar mensagem de acesso negado
   if (verificandoPermissao) {
     return (
@@ -171,7 +148,7 @@ export const FuncionariosPage: React.FC<FuncionariosPageProps> = ({ openModalOnL
           <h1 className="text-2xl font-bold text-gray-900">Funcionários</h1>
           <p className="text-sm text-gray-500">Gerencie a equipe e colaboradores da empresa</p>
         </div>
-        
+
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
           <div className="flex items-center">
             <Shield className="w-8 h-8 text-red-400 mr-3" />
@@ -292,20 +269,18 @@ export const FuncionariosPage: React.FC<FuncionariosPageProps> = ({ openModalOnL
                         {funcionario.empresa?.nome || `Empresa ID: ${funcionario.empresa_id}`}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          funcionario.gerente
-                            ? 'bg-purple-100 text-purple-800'
-                            : 'bg-green-100 text-green-800'
-                        }`}>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${funcionario.gerente
+                          ? 'bg-purple-100 text-purple-800'
+                          : 'bg-green-100 text-green-800'
+                          }`}>
                           {funcionario.gerente ? 'Gerente' : 'Funcionário'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          funcionario.ativo
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${funcionario.ativo
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                          }`}>
                           {funcionario.ativo ? 'Ativo' : 'Inativo'}
                         </span>
                       </td>
@@ -389,121 +364,14 @@ export const FuncionariosPage: React.FC<FuncionariosPageProps> = ({ openModalOnL
       />
 
       {/* Modal de Visualização */}
-      <Modal
+      <ModalVisualizacao
         isOpen={!!funcionarioParaVisualizar}
         onClose={() => setFuncionarioParaVisualizar(null)}
-        title="Visualizar Funcionário"
-        size="lg"
-      >
-        {funcionarioParaVisualizar && (
-          <div className="space-y-6">
-            {/* Dados do Funcionário */}
-            <div>
-              <h4 className="text-lg font-medium text-gray-900 mb-4">Dados do Funcionário</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nome</label>
-                  <p className="mt-1 text-sm text-gray-900">{funcionarioParaVisualizar.nome}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">E-mail</label>
-                  <p className="mt-1 text-sm text-gray-900">{funcionarioParaVisualizar.email}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Tipo de Acesso</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {funcionarioParaVisualizar.gerente ? 'Gerente' : 'Funcionário'}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Status</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {funcionarioParaVisualizar.ativo ? 'Ativo' : 'Inativo'}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Data de Criação</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {new Date(funcionarioParaVisualizar.created_at).toLocaleDateString('pt-BR')}
-                  </p>
-                </div>
-              </div>
-            </div>
+        type="funcionario"
+        data={funcionarioParaVisualizar}
+      />
 
-            {/* Cargo */}
-            <div>
-              <h4 className="text-lg font-medium text-gray-900 mb-4">Cargo</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Cargo</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {funcionarioParaVisualizar.cargo?.nome || `Cargo ID: ${funcionarioParaVisualizar.cargo_id}`}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Código do Cargo</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {funcionarioParaVisualizar.cargo?.codigo || 'Não informado'}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nível</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {funcionarioParaVisualizar.cargo?.nivel || 'Não informado'}
-                  </p>
-                </div>
-              </div>
-            </div>
 
-            {/* Empresa */}
-            <div>
-              <h4 className="text-lg font-medium text-gray-900 mb-4">Empresa</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nome da Empresa</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {funcionarioParaVisualizar.empresa?.nome || `Empresa ID: ${funcionarioParaVisualizar.empresa_id}`}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">CNPJ</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {funcionarioParaVisualizar.empresa?.cnpj || 'Não informado'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* Modal de Confirmação para Editar */}
-      <Modal
-        isOpen={!!funcionarioParaEditar}
-        onClose={() => setFuncionarioParaEditar(null)}
-        title="Confirmar Edição"
-        size="sm"
-      >
-        <div className="space-y-4">
-          <p className="text-gray-700">
-            Deseja editar o funcionário <strong>{funcionarioParaEditar?.nome}</strong>?
-          </p>
-          <div className="flex justify-end space-x-3">
-            <button
-              onClick={() => setFuncionarioParaEditar(null)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={abrirModalEdicao}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-            >
-              Confirmar
-            </button>
-          </div>
-        </div>
-      </Modal>
 
       {/* Modal de Confirmação para Deletar */}
       <Modal

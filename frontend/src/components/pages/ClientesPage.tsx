@@ -4,29 +4,10 @@ import { apiService } from '../../services/api';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { Modal } from '../common/Modal';
 import { ModalCadastroCliente } from '../propostas/passos/ModalCadastroCliente';
+import { ModalVisualizacao } from '../common/ModalVisualizacao';
+import { Cliente } from '../../types';
 
-interface Cliente {
-  id: number;
-  nome: string;
-  cpf: string;
-  email: string;
-  abertura_empresa: boolean;
-  ativo: boolean;
-  created_at: string;
-  updated_at: string;
-  endereco?: {
-    rua: string;
-    numero: string;
-    cidade: string;
-    estado: string;
-    cep: string;
-  };
-  entidades_juridicas?: Array<{
-    nome: string;
-    cnpj: string;
-    tipo: string;
-  }>;
-}
+
 
 interface ClientesPageProps {
   openModalOnLoad?: boolean;
@@ -96,12 +77,20 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({ openModalOnLoad = fa
   };
 
   // Funções para os novos botões de ação
-  const handleVisualizar = (cliente: Cliente) => {
-    setClienteParaVisualizar(cliente);
+  const handleVisualizar = async (cliente: Cliente) => {
+    try {
+      const clienteCompleto = await apiService.getCliente(cliente.id);
+      setClienteParaVisualizar(clienteCompleto);
+    } catch (error) {
+      console.error('Erro ao carregar dados completos do cliente:', error);
+      // Fallback para dados básicos
+      setClienteParaVisualizar(cliente);
+    }
   };
 
   const handleEditar = (cliente: Cliente) => {
     setClienteParaEditar(cliente);
+    setIsModalEdicaoOpen(true);
   };
 
   const handleDeletar = (cliente: Cliente) => {
@@ -124,11 +113,6 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({ openModalOnLoad = fa
     fetchClientes(currentPage, searchTerm);
     setIsModalEdicaoOpen(false);
     setClienteParaEditar(null);
-  };
-
-  const abrirModalEdicao = () => {
-    setClienteParaEditar(null);
-    setIsModalEdicaoOpen(true);
   };
 
 
@@ -344,136 +328,18 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({ openModalOnLoad = fa
         isOpen={isModalEdicaoOpen}
         onClose={() => setIsModalEdicaoOpen(false)}
         onClienteCadastrado={handleClienteEditado}
+        clienteParaEditar={clienteParaEditar}
       />
 
       {/* Modal de Visualização */}
-      <Modal
+      <ModalVisualizacao
         isOpen={!!clienteParaVisualizar}
         onClose={() => setClienteParaVisualizar(null)}
-        title="Visualizar Cliente"
-        size="lg"
-      >
-        {clienteParaVisualizar && (
-          <div className="space-y-6">
-            {/* Dados do Cliente */}
-            <div>
-              <h4 className="text-lg font-medium text-gray-900 mb-4">Dados do Cliente</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nome</label>
-                  <p className="mt-1 text-sm text-gray-900">{clienteParaVisualizar.nome}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">CPF/CNPJ</label>
-                  <p className="mt-1 text-sm text-gray-900">{formatarDocumento(clienteParaVisualizar.cpf)}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">E-mail</label>
-                  <p className="mt-1 text-sm text-gray-900">{clienteParaVisualizar.email || 'Não informado'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Tipo</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {clienteParaVisualizar.abertura_empresa ? 'Abertura de Empresa' : 'Cliente Existente'}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Status</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {clienteParaVisualizar.ativo ? 'Ativo' : 'Inativo'}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Data de Criação</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {new Date(clienteParaVisualizar.created_at).toLocaleDateString('pt-BR')}
-                  </p>
-                </div>
-              </div>
-            </div>
+        type="cliente"
+        data={clienteParaVisualizar}
+      />
 
-            {/* Endereço */}
-            {clienteParaVisualizar.endereco && (
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-4">Endereço</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Rua</label>
-                    <p className="mt-1 text-sm text-gray-900">{clienteParaVisualizar.endereco.rua}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Número</label>
-                    <p className="mt-1 text-sm text-gray-900">{clienteParaVisualizar.endereco.numero}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Cidade</label>
-                    <p className="mt-1 text-sm text-gray-900">{clienteParaVisualizar.endereco.cidade}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Estado</label>
-                    <p className="mt-1 text-sm text-gray-900">{clienteParaVisualizar.endereco.estado}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">CEP</label>
-                    <p className="mt-1 text-sm text-gray-900">{formatarCEP(clienteParaVisualizar.endereco.cep)}</p>
-                  </div>
-                </div>
-              </div>
-            )}
 
-            {/* Empresa */}
-            {clienteParaVisualizar.entidades_juridicas && clienteParaVisualizar.entidades_juridicas.length > 0 && (
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-4">Empresa</h4>
-                {clienteParaVisualizar.entidades_juridicas.map((empresa, index) => (
-                  <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Nome da Empresa</label>
-                      <p className="mt-1 text-sm text-gray-900">{empresa.nome}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">CNPJ</label>
-                      <p className="mt-1 text-sm text-gray-900">{formatarDocumento(empresa.cnpj)}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Tipo</label>
-                      <p className="mt-1 text-sm text-gray-900">{empresa.tipo}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </Modal>
-
-      {/* Modal de Confirmação para Editar */}
-      <Modal
-        isOpen={!!clienteParaEditar}
-        onClose={() => setClienteParaEditar(null)}
-        title="Confirmar Edição"
-        size="sm"
-      >
-        <div className="space-y-4">
-          <p className="text-gray-700">
-            Deseja editar o cliente <strong>{clienteParaEditar?.nome}</strong>?
-          </p>
-          <div className="flex justify-end space-x-3">
-            <button
-              onClick={() => setClienteParaEditar(null)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={abrirModalEdicao}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-            >
-              Confirmar
-            </button>
-          </div>
-        </div>
-      </Modal>
 
       {/* Modal de Confirmação para Deletar */}
       <Modal

@@ -37,6 +37,20 @@ class Cliente(db.Model, TimestampMixin, ActiveMixin):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
+    
+    def to_json_completo(self):
+        return {
+            "id": self.id,
+            "nome": self.nome,
+            "cpf": self.cpf,
+            "email": self.email,
+            "abertura_empresa": self.abertura_empresa,
+            "ativo": self.ativo,
+            "enderecos": [endereco.to_json() for endereco in self.enderecos],
+            "entidades_juridicas": [ej.to_json() for ej in self.entidades_juridicas],
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+        }
 
 
 class Endereco(db.Model, TimestampMixin, ActiveMixin):
@@ -78,10 +92,10 @@ class EntidadeJuridica(db.Model, TimestampMixin, ActiveMixin):
     
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False, index=True)
-    cnpj = db.Column(db.String(18), nullable=False, unique=True, index=True)
+    cnpj = db.Column(db.String(18), nullable=True, unique=True, index=True)  # Mudado para nullable=True
     tipo = db.Column(db.String(50), nullable=False)
     cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id'), nullable=False, index=True)
-    endereco_id = db.Column(db.Integer, db.ForeignKey('endereco.id'), nullable=False, index=True)
+    endereco_id = db.Column(db.Integer, db.ForeignKey('endereco.id'), nullable=True, index=True)
     
     def __repr__(self):
         return f'<EntidadeJuridica {self.nome}>'

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, MapPin, Building, Check, AlertCircle } from 'lucide-react';
 import { apiService } from '../../../services/api';
+import { Cliente } from '../../../types';
 
 interface ClienteForm {
   nome: string;
@@ -35,20 +36,13 @@ interface FormErrors {
   empresa?: Partial<EntidadeJuridicaForm>;
 }
 
-interface Cliente {
-  id: number;
-  nome: string;
-  cpf: string;
-  email: string;
-  abertura_empresa: boolean;
-  ativo: boolean;
-  entidades_juridicas?: any[];
-}
+
 
 interface ModalCadastroClienteProps {
   isOpen: boolean;
   onClose: () => void;
   onClienteCadastrado: (cliente: Cliente) => void;
+  clienteParaEditar?: Cliente | null;
 }
 
 const ESTADOS_BRASIL = [
@@ -144,7 +138,8 @@ const aplicarMascaraCEP = (valor: string): string => {
 export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
   isOpen,
   onClose,
-  onClienteCadastrado
+  onClienteCadastrado,
+  clienteParaEditar
 }) => {
   const [abaAtiva, setAbaAtiva] = useState(0); // 0: Cliente, 1: Endereço, 2: Empresa
   const [formData, setFormData] = useState<ClienteCompleto>({
@@ -155,7 +150,7 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
 
-  // Resetar formulário quando modal abrir/fechar
+  // Resetar formulário quando modal fechar
   useEffect(() => {
     if (!isOpen) {
       setFormData({
@@ -168,6 +163,67 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
     }
   }, [isOpen]);
 
+  // Carregar dados do cliente para edição
+  useEffect(() => {
+    if (clienteParaEditar && isOpen) {
+      // Buscar dados completos do cliente se necessário
+      const carregarDadosCompletos = async () => {
+        try {
+          console.log('Carregando dados completos do cliente ID:', clienteParaEditar.id);
+          const clienteCompleto = await apiService.getCliente(clienteParaEditar.id);
+          console.log('Dados completos carregados:', clienteCompleto);
+
+          const formDataToSet = {
+            cliente: {
+              nome: clienteCompleto.nome,
+              cpf: aplicarMascaraCPF(clienteCompleto.cpf),
+              email: clienteCompleto.email || '',
+              abertura_empresa: clienteCompleto.abertura_empresa
+            },
+            endereco: clienteCompleto.enderecos && clienteCompleto.enderecos.length > 0 ? {
+              rua: clienteCompleto.enderecos[0].rua,
+              numero: clienteCompleto.enderecos[0].numero,
+              cidade: clienteCompleto.enderecos[0].cidade,
+              estado: clienteCompleto.enderecos[0].estado,
+              cep: aplicarMascaraCEP(clienteCompleto.enderecos[0].cep)
+            } : null,
+            empresa: clienteCompleto.entidades_juridicas && clienteCompleto.entidades_juridicas.length > 0 ? {
+              nome: clienteCompleto.entidades_juridicas[0].nome,
+              cnpj: aplicarMascaraCNPJ(clienteCompleto.entidades_juridicas[0].cnpj),
+              tipo: clienteCompleto.entidades_juridicas[0].tipo
+            } : null
+          };
+
+          console.log('FormData a ser definido:', formDataToSet);
+          setFormData(formDataToSet);
+        } catch (error) {
+          console.error('Erro ao carregar dados completos do cliente:', error);
+          // Fallback para dados básicos
+          const fallbackData = {
+            cliente: {
+              nome: clienteParaEditar.nome,
+              cpf: aplicarMascaraCPF(clienteParaEditar.cpf),
+              email: clienteParaEditar.email || '',
+              abertura_empresa: clienteParaEditar.abertura_empresa
+            },
+            endereco: null,
+            empresa: null
+          };
+          console.log('Usando dados fallback:', fallbackData);
+          setFormData(fallbackData);
+        }
+      };
+
+      carregarDadosCompletos();
+    } else if (isOpen) {
+      // Reset form para novo cliente
+      setFormData({
+        cliente: { nome: '', cpf: '', email: '', abertura_empresa: false },
+        endereco: null,
+        empresa: null
+      });
+    }
+  }, [clienteParaEditar, isOpen]);
 
 
   // Validações
@@ -236,13 +292,14 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
       formData.empresa.cnpj ||
       formData.empresa.tipo
     )) {
-      if (!validacoes.empresa.nome(formData.empresa.nome)) {
+      // Só validar se o campo estiver preenchido
+      if (formData.empresa.nome && !validacoes.empresa.nome(formData.empresa.nome)) {
         novosErrors.empresa = { ...novosErrors.empresa, nome: 'Nome da empresa deve ter pelo menos 3 caracteres' };
       }
-      if (!validacoes.empresa.cnpj(formData.empresa.cnpj)) {
+      if (formData.empresa.cnpj && !validacoes.empresa.cnpj(formData.empresa.cnpj)) {
         novosErrors.empresa = { ...novosErrors.empresa, cnpj: 'CNPJ inválido' };
       }
-      if (!validacoes.empresa.tipo(formData.empresa.tipo)) {
+      if (formData.empresa.tipo && !validacoes.empresa.tipo(formData.empresa.tipo)) {
         novosErrors.empresa = { ...novosErrors.empresa, tipo: 'Tipo de empresa inválido' };
       }
     }
@@ -305,25 +362,48 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
           estado: formData.endereco.estado,
           cep: formData.endereco.cep.replace(/\D/g, '')
         } : null,
-        entidade_juridica: formData.empresa && formData.empresa.nome ? {
-          nome: formData.empresa.nome,
-          cnpj: formData.empresa.cnpj.replace(/\D/g, ''),
-          tipo: formData.empresa.tipo
+        entidade_juridica: !formData.cliente.abertura_empresa && formData.empresa && (formData.empresa.nome || formData.empresa.cnpj || formData.empresa.tipo) ? {
+          nome: formData.empresa.nome || '',
+          cnpj: formData.empresa.cnpj ? formData.empresa.cnpj.replace(/\D/g, '') : '',
+          tipo: formData.empresa.tipo || ''
         } : null
       };
 
-      const response = await apiService.createCliente(dadosParaEnviar);
+      console.log('Dados para enviar:', dadosParaEnviar);
+      console.log('Cliente para editar:', clienteParaEditar);
+
+      let response: Cliente;
+
+      if (clienteParaEditar) {
+        // Atualizar cliente existente
+        console.log('Atualizando cliente ID:', clienteParaEditar.id);
+        response = await apiService.updateCliente(clienteParaEditar.id, dadosParaEnviar);
+      } else {
+        // Criar novo cliente
+        console.log('Criando novo cliente');
+        response = await apiService.createCliente(dadosParaEnviar);
+      }
+
+      console.log('Resposta do servidor:', response);
       onClienteCadastrado(response);
       onClose();
     } catch (error: any) {
-      console.error('Erro ao cadastrar cliente:', error);
-      alert('Erro ao cadastrar cliente. Tente novamente.');
+      console.error('Erro ao salvar cliente:', error);
+      console.error('Detalhes do erro:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+
+      // Mostrar mensagem de erro mais específica
+      const mensagemErro = error.message || 'Erro desconhecido';
+      alert(`Erro ao ${clienteParaEditar ? 'atualizar' : 'cadastrar'} cliente: ${mensagemErro}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const podeIrParaEmpresa = true; // Aba empresa sempre disponível
+  const podeIrParaEmpresa = !formData.cliente.abertura_empresa; // Aba empresa só disponível se não for abertura de empresa
 
   const podeSalvar = (): boolean => {
     // Dados do cliente sempre obrigatórios
@@ -371,7 +451,14 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
         <div className="inline-block w-full max-w-2xl p-0 my-8 text-left align-middle transition-all transform bg-white shadow-xl rounded-lg max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Cadastrar Novo Cliente</h2>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {clienteParaEditar ? 'Editar Cliente' : 'Cadastrar Novo Cliente'}
+              </h2>
+              <p className="text-sm text-gray-500">
+                {clienteParaEditar ? 'Atualize os dados do cliente' : 'Preencha os dados do novo cliente'}
+              </p>
+            </div>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -404,9 +491,12 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
             </button>
             <button
               onClick={() => setAbaAtiva(2)}
-              className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${abaAtiva === 2
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
+              disabled={!podeIrParaEmpresa}
+              className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${!podeIrParaEmpresa
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : abaAtiva === 2
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
               <Building className="w-4 h-4" />
@@ -491,7 +581,22 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
                     type="checkbox"
                     id="abertura_empresa"
                     checked={formData.cliente.abertura_empresa}
-                    onChange={(e) => handleInputChange('cliente', 'abertura_empresa', e.target.checked)}
+                    onChange={(e) => {
+                      const isAberturaEmpresa = e.target.checked;
+                      handleInputChange('cliente', 'abertura_empresa', isAberturaEmpresa);
+
+                      // Se marcar como abertura de empresa, limpar dados de empresa
+                      if (isAberturaEmpresa) {
+                        setFormData(prev => ({
+                          ...prev,
+                          empresa: null
+                        }));
+                        // Voltar para a primeira aba se estiver na aba empresa
+                        if (abaAtiva === 2 as number) {
+                          setAbaAtiva(0);
+                        }
+                      }
+                    }}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                   <label htmlFor="abertura_empresa" className="ml-2 text-sm text-gray-700">
@@ -631,79 +736,91 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
             {/* Aba Empresa */}
             {abaAtiva === 2 && (
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nome da Empresa <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.empresa?.nome || ''}
-                    onChange={(e) => {
-                      handleInputChange('empresa', 'nome', e.target.value);
-                    }}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.empresa?.nome ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    placeholder="Nome da empresa"
-                  />
-                  {errors.empresa?.nome && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="w-4 h-4 mr-1" />
-                      {errors.empresa.nome}
+                {formData.cliente.abertura_empresa ? (
+                  <div className="text-center py-8">
+                    <Building className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Cliente para Abertura de Empresa</h3>
+                    <p className="text-gray-500">
+                      Este cliente é para abertura de empresa, portanto não possui dados de empresa cadastrados.
                     </p>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Nome da Empresa <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.empresa?.nome || ''}
+                        onChange={(e) => {
+                          handleInputChange('empresa', 'nome', e.target.value);
+                        }}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.empresa?.nome ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        placeholder="Nome da empresa"
+                      />
+                      {errors.empresa?.nome && (
+                        <p className="mt-1 text-sm text-red-600 flex items-center">
+                          <AlertCircle className="w-4 h-4 mr-1" />
+                          {errors.empresa.nome}
+                        </p>
+                      )}
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    CNPJ <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.empresa?.cnpj || ''}
-                    onChange={(e) => {
-                      const valor = e.target.value;
-                      const mascara = aplicarMascaraCNPJ(valor);
-                      if (mascara.length <= 18) {
-                        handleInputChange('empresa', 'cnpj', mascara);
-                      }
-                    }}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.empresa?.cnpj ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    placeholder="00.000.000/0000-00"
-                    maxLength={18}
-                  />
-                  {errors.empresa?.cnpj && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="w-4 h-4 mr-1" />
-                      {errors.empresa.cnpj}
-                    </p>
-                  )}
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        CNPJ <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.empresa?.cnpj || ''}
+                        onChange={(e) => {
+                          const valor = e.target.value;
+                          const mascara = aplicarMascaraCNPJ(valor);
+                          if (mascara.length <= 18) {
+                            handleInputChange('empresa', 'cnpj', mascara);
+                          }
+                        }}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.empresa?.cnpj ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        placeholder="00.000.000/0000-00"
+                        maxLength={18}
+                      />
+                      {errors.empresa?.cnpj && (
+                        <p className="mt-1 text-sm text-red-600 flex items-center">
+                          <AlertCircle className="w-4 h-4 mr-1" />
+                          {errors.empresa.cnpj}
+                        </p>
+                      )}
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tipo de Empresa <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={formData.empresa?.tipo || ''}
-                    onChange={(e) => {
-                      handleInputChange('empresa', 'tipo', e.target.value);
-                    }}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.empresa?.tipo ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                  >
-                    <option value="">Selecione o tipo</option>
-                    {TIPOS_EMPRESA.map(tipo => (
-                      <option key={tipo} value={tipo}>{tipo}</option>
-                    ))}
-                  </select>
-                  {errors.empresa?.tipo && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="w-4 h-4 mr-1" />
-                      {errors.empresa.tipo}
-                    </p>
-                  )}
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Tipo de Empresa <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={formData.empresa?.tipo || ''}
+                        onChange={(e) => {
+                          handleInputChange('empresa', 'tipo', e.target.value);
+                        }}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.empresa?.tipo ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                      >
+                        <option value="">Selecione o tipo</option>
+                        {TIPOS_EMPRESA.map(tipo => (
+                          <option key={tipo} value={tipo}>{tipo}</option>
+                        ))}
+                      </select>
+                      {errors.empresa?.tipo && (
+                        <p className="mt-1 text-sm text-red-600 flex items-center">
+                          <AlertCircle className="w-4 h-4 mr-1" />
+                          {errors.empresa.tipo}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -729,7 +846,7 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
               ) : (
                 <>
                   <Check className="w-4 h-4" />
-                  <span>Salvar Cliente</span>
+                  <span>{clienteParaEditar ? 'Atualizar Cliente' : 'Salvar Cliente'}</span>
                 </>
               )}
             </button>

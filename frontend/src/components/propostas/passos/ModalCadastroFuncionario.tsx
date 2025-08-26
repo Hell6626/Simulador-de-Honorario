@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Building, Shield, Check, AlertCircle } from 'lucide-react';
 import { apiService } from '../../../services/api';
+import { Funcionario } from '../../../types';
 
-interface Funcionario {
+interface FuncionarioForm {
   id?: number;
   nome: string;
   email: string;
@@ -46,7 +47,7 @@ export const ModalCadastroFuncionario: React.FC<ModalCadastroFuncionarioProps> =
   const [success, setSuccess] = useState('');
 
   // Estados para dados do funcionário
-  const [formData, setFormData] = useState<Funcionario>({
+  const [formData, setFormData] = useState<FuncionarioForm>({
     nome: '',
     email: '',
     senha: '',
@@ -112,7 +113,7 @@ export const ModalCadastroFuncionario: React.FC<ModalCadastroFuncionarioProps> =
     }
   };
 
-  const handleInputChange = (field: keyof Funcionario, value: any) => {
+  const handleInputChange = (field: keyof FuncionarioForm, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -234,8 +235,8 @@ export const ModalCadastroFuncionario: React.FC<ModalCadastroFuncionarioProps> =
               <button
                 onClick={() => setActiveTab('dados')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'dados'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
               >
                 <User className="w-4 h-4 inline mr-2" />
@@ -244,8 +245,8 @@ export const ModalCadastroFuncionario: React.FC<ModalCadastroFuncionarioProps> =
               <button
                 onClick={() => setActiveTab('cargo')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'cargo'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
               >
                 <Building className="w-4 h-4 inline mr-2" />
