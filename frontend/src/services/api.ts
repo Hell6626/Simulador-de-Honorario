@@ -370,65 +370,13 @@ class ApiService {
     if (params?.funcionario_id) query.append('funcionario_id', params.funcionario_id.toString());
     if (params?.search) query.append('search', params.search);
 
-    // Endpoint de propostas não requer autenticação
-    const url = `${BASE_URL}/propostas?${query}`;
-    const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    };
-
-    try {
-      const response = await fetch(url, config);
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || error.error || 'Erro na requisição');
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return await response.json();
-      }
-
-      return response.text() as unknown as any;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Erro desconhecido');
-    }
+    // ⚠️ CORRIGIDO: Endpoint de propostas agora requer autenticação
+    return this.request<any>(`/propostas?${query}`);
   }
 
   async getProposta(id: number) {
-    // Endpoint de proposta individual não requer autenticação
-    const url = `${BASE_URL}/propostas/${id}`;
-    const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    };
-
-    try {
-      const response = await fetch(url, config);
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || error.error || 'Erro na requisição');
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return await response.json();
-      }
-
-      return response.text() as unknown as any;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Erro desconhecido');
-    }
+    // ⚠️ CORRIGIDO: Endpoint de proposta individual agora requer autenticação
+    return this.request<any>(`/propostas/${id}`);
   }
 
   async createProposta(data: any) {
@@ -526,6 +474,39 @@ class ApiService {
     return this.request<any>('/chat/clear-session', {
       method: 'POST',
       body: JSON.stringify({ session_id: sessionId }),
+    });
+  }
+
+  // PDF Endpoints
+  async gerarPDFProposta(propostaId: number) {
+    return this.request<any>(`/propostas/${propostaId}/gerar-pdf`, {
+      method: 'POST',
+    });
+  }
+
+  async visualizarPDFProposta(propostaId: number) {
+    const token = this.getToken();
+    const url = `${BASE_URL}/propostas/${propostaId}/pdf`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Erro ao visualizar PDF');
+    }
+
+    // Retornar blob para download
+    const blob = await response.blob();
+    return blob;
+  }
+
+  async excluirPDFProposta(propostaId: number) {
+    return this.request<any>(`/propostas/${propostaId}/pdf`, {
+      method: 'DELETE',
     });
   }
 }

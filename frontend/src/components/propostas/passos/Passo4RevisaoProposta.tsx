@@ -18,16 +18,9 @@ import {
   Save,
   RefreshCw
 } from 'lucide-react';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-
-// Extend jsPDF type para autoTable
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-  }
-}
 import { apiService } from '../../../services/api';
+import jsPDF from 'jspdf';
+// Removido: import { PropostaPDFGenerator } from '../PropostaPDFGenerator';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { ModalConfirmacaoDesconto } from '../../common/ModalConfirmacaoDesconto';
 import { StatusSalvamento } from '../../common/StatusSalvamento';
@@ -115,6 +108,8 @@ interface PropostaComDesconto {
   totalFinal: number;
   requerAprovacao: boolean;
   observacoes?: string;
+  propostaId?: number;
+  propostaNumero?: string;
 }
 
 interface Passo4Props {
@@ -817,7 +812,7 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
     doc.save(nomeArquivo);
   };
 
-  // ⚠️ FUNÇÃO COM FEEDBACK VISUAL
+  // ⚠️ NOVA FUNÇÃO PARA GERAR PDF COM TEMPLATE CHRISTINO
   const gerarPDFComFeedback = async () => {
     setGerandoPDF(true);
 
@@ -825,10 +820,29 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
       // Pequeno delay para mostrar loading
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      gerarPDFProposta();
+      // Preparar dados para o novo gerador de PDF
+      const dadosPDF = {
+        cliente: dadosProposta.cliente,
+        tipoAtividade: dadosProposta.tipoAtividade,
+        regimeTributario: dadosProposta.regimeTributario,
+        faixaFaturamento: dadosProposta.faixaFaturamento,
+        servicosSelecionados: dadosProposta.servicosSelecionados.map(item => {
+          const servico = todosServicos.find(s => s.id === item.servico_id);
+          return {
+            ...item,
+            nome: servico?.nome || `Serviço ${item.servico_id}`,
+            categoria: servico?.categoria || 'Geral',
+            descricao: servico?.descricao || ''
+          };
+        }),
+        percentualDesconto: percentualDesconto,
+        valorDesconto: resumoFinanceiro.valorDesconto,
+        totalFinal: resumoFinanceiro.totalFinal,
+        observacoes: observacoes
+      };
 
-      // Feedback de sucesso (opcional)
-      console.log('PDF gerado com sucesso!');
+      // PDF será gerado pelo backend quando a proposta for finalizada
+      console.log('Dados preparados para PDF - será gerado pelo backend');
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
       alert('Erro ao gerar PDF. Tente novamente.');
@@ -839,16 +853,92 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
 
   // Função para prosseguir para o passo 5
   const prosseguirParaPasso5 = () => {
-    const dadosCompletos = prepararDadosParaPasso5();
-    onProximo(dadosCompletos);
+    // ⚠️ CORRIGIDO: Chamar handleProximo que salva a proposta
+    handleProximo();
   };
 
-  const handleProximo = () => {
-    // ⚠️ NOVO: Salvar antes de prosseguir
-    salvarProgresso(true);
+  // ⚠️ NOVO: Estado para salvamento da proposta
+  const [salvandoProposta, setSalvandoProposta] = useState(false);
+  const [erroSalvamentoProposta, setErroSalvamentoProposta] = useState<string | null>(null);
 
-    const dadosCompletos = prepararDadosParaPasso5();
-    onProximo(dadosCompletos);
+  // ⚠️ NOVA FUNÇÃO: Tentar salvar novamente
+  const tentarSalvarNovamente = () => {
+    setErroSalvamento(null);
+    salvarProgresso(true);
+  };
+
+  const handleProximo = async () => {
+    setSalvandoProposta(true);
+    setErroSalvamentoProposta(null);
+
+    try {
+      // ⚠️ VALIDAR: Dados obrigatórios antes de salvar
+      if (!dadosProposta.cliente?.id) {
+        throw new Error('Cliente não selecionado');
+      }
+      if (!dadosProposta.tipoAtividade?.id) {
+        throw new Error('Tipo de atividade não selecionado');
+      }
+      if (!dadosProposta.regimeTributario?.id) {
+        throw new Error('Regime tributário não selecionado');
+      }
+      if (!dadosProposta.servicosSelecionados || dadosProposta.servicosSelecionados.length === 0) {
+        throw new Error('Nenhum serviço selecionado');
+      }
+      if (resumoFinanceiro.totalFinal <= 0) {
+        throw new Error('Valor total deve ser maior que zero');
+      }
+
+      // ⚠️ PREPARAR: Dados da proposta para API
+      const dadosPropostaAPI = {
+        cliente_id: dadosProposta.cliente.id,
+        tipo_atividade_id: dadosProposta.tipoAtividade.id,
+        regime_tributario_id: dadosProposta.regimeTributario.id,
+        faixa_faturamento_id: dadosProposta.faixaFaturamento?.id,
+        valor_total: resumoFinanceiro.totalFinal,
+        percentual_desconto: percentualDesconto,
+        valor_desconto: resumoFinanceiro.valorDesconto,
+        requer_aprovacao: requerAprovacao,
+        observacoes: observacoes.trim() || null,
+        itens: dadosProposta.servicosSelecionados.map(servico => ({
+          servico_id: servico.servico_id,
+          quantidade: servico.quantidade,
+          valor_unitario: servico.valor_unitario,
+          valor_total: servico.subtotal,
+          descricao_personalizada: servico.extras?.nomeOrgao
+            ? `Órgão de Classe: ${servico.extras.nomeOrgao}`
+            : undefined
+        }))
+      };
+
+      // ⚠️ SALVAR: Proposta no banco de dados
+      console.log('Salvando proposta no banco...', dadosPropostaAPI);
+      const propostaSalva = await apiService.createProposta(dadosPropostaAPI);
+
+      console.log('✅ Proposta salva com sucesso:', propostaSalva);
+
+      // ⚠️ SALVAR: Progresso local
+      await salvarProgresso(true);
+
+      // ⚠️ PREPARAR: Dados completos para Passo 5
+      const dadosCompletos = prepararDadosParaPasso5();
+
+      // ⚠️ ADICIONAR: ID da proposta salva
+      dadosCompletos.propostaId = propostaSalva.id;
+      dadosCompletos.propostaNumero = propostaSalva.numero;
+
+      // ⚠️ AVANÇAR: Para o Passo 5
+      onProximo(dadosCompletos);
+
+    } catch (error) {
+      console.error('❌ Erro ao salvar proposta:', error);
+      setErroSalvamentoProposta(error instanceof Error ? error.message : 'Erro desconhecido');
+
+      // ⚠️ MOSTRAR: Erro para o usuário
+      alert(`Erro ao salvar proposta: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    } finally {
+      setSalvandoProposta(false);
+    }
   };
 
   // Validação para habilitar botão próximo
@@ -1504,6 +1594,14 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
                 <Save className="w-3 h-3" />
                 <span>Salvar Agora</span>
               </button>
+
+              {/* ⚠️ NOVO: Mensagem de erro de salvamento da proposta */}
+              {erroSalvamentoProposta && (
+                <div className="flex items-center space-x-1 px-2 py-1 text-xs text-red-600 bg-red-50 rounded">
+                  <AlertTriangle className="w-3 h-3" />
+                  <span>Erro ao salvar proposta</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1517,13 +1615,18 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
 
             <button
               onClick={handleProximoClick} // ⚠️ MUDANÇA: Nova função
-              disabled={!podeProximo}
+              disabled={!podeProximo || salvandoProposta}
               className={`px-6 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 ${requerAprovacao
                 ? 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600'
                 : 'bg-blue-600 hover:bg-blue-700'
                 }`}
             >
-              {requerAprovacao ? (
+              {salvandoProposta ? (
+                <>
+                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                  <span>Salvando...</span>
+                </>
+              ) : requerAprovacao ? (
                 <>
                   <AlertTriangle className="w-4 h-4 mr-2" />
                   Confirmar Desconto

@@ -25,6 +25,11 @@ class Proposta(db.Model, TimestampMixin, ActiveMixin):
     status = db.Column(db.String(20), nullable=False, default='RASCUNHO', index=True)
     observacoes = db.Column(db.Text, nullable=True)
     
+    # Campos para PDF
+    pdf_gerado = db.Column(db.Boolean, default=False, index=True)
+    pdf_caminho = db.Column(db.String(500), nullable=True)
+    pdf_data_geracao = db.Column(db.DateTime, nullable=True)
+    
     # Relacionamentos
     itens = db.relationship('ItemProposta', back_populates='proposta', lazy=True, cascade="all, delete-orphan")
     logs = db.relationship('PropostaLog', backref='proposta', lazy=True, cascade="all, delete-orphan")
@@ -63,7 +68,11 @@ class Proposta(db.Model, TimestampMixin, ActiveMixin):
                 "email": self.funcionario_responsavel.email
             } if hasattr(self, 'funcionario_responsavel') and self.funcionario_responsavel else None,
             # ⚠️ INCLUIR: Itens da proposta
-            "itens": [item.to_json() for item in self.itens if item.ativo] if hasattr(self, 'itens') else []
+            "itens": [item.to_json() for item in self.itens if item.ativo] if hasattr(self, 'itens') else [],
+            # Campos de PDF
+            "pdf_gerado": self.pdf_gerado,
+            "pdf_caminho": self.pdf_caminho,
+            "pdf_data_geracao": self.pdf_data_geracao.isoformat() if self.pdf_data_geracao else None
         }
 
 

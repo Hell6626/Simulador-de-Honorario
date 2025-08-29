@@ -4,7 +4,7 @@ Views relacionadas às propostas.
 
 from flask import Blueprint, request, jsonify, current_app
 from sqlalchemy import or_
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import json
 
@@ -74,6 +74,7 @@ def obter_dados_completos_proposta(proposta_id: int) -> dict:
 
 
 @propostas_bp.route('/', methods=['GET'])
+@jwt_required()
 @handle_api_errors
 def get_propostas():
     page = request.args.get('page', 1, type=int)
@@ -112,6 +113,7 @@ def get_propostas():
     })
 
 @propostas_bp.route('/<int:proposta_id>', methods=['GET'])
+@jwt_required()
 @handle_api_errors  
 def get_proposta(proposta_id: int):
     """Busca uma proposta específica com dados completos"""
@@ -194,7 +196,7 @@ def create_proposta():
         regime_tributario_id=data['regime_tributario_id'],
         faixa_faturamento_id=data.get('faixa_faturamento_id'),
         valor_total=data.get('valor_total', 0),
-        data_validade=datetime.fromisoformat(data.get('data_validade')) if data.get('data_validade') else datetime.now(),
+        data_validade=datetime.fromisoformat(data.get('data_validade')) if data.get('data_validade') else datetime.now() + timedelta(days=30),
         status=data.get('status', 'RASCUNHO'),
         observacoes=(data.get('observacoes') or '').strip() or None,
     )
@@ -751,3 +753,157 @@ def processar_itens_proposta(proposta: Proposta, novos_itens: list, alteracoes_r
         current_app.logger.info(f"Registrada alteração dos itens: {len(itens_criados)} novos itens")
     
     return len(itens_criados) > 0
+
+
+# ============================================================================
+# ENDPOINTS PARA PDF
+# ============================================================================
+
+import os
+from flask import send_file, current_app
+from services.pdf_generator import pdf_generator
+
+
+@propostas_bp.route('/<int:proposta_id>/gerar-pdf', methods=['POST'])
+@jwt_required()
+@handle_api_errors
+def gerar_pdf_proposta(proposta_id: int):
+    """Gera PDF da proposta e salva no servidor"""
+    try:
+        # Verificar se funcionário existe
+        funcionario_id = int(get_jwt_identity())
+        funcionario = Funcionario.query.get(funcionario_id)
+        if not funcionario or not funcionario.ativo:
+            raise ValueError('Funcionário não encontrado')
+        
+        # Se proposta_id é 0, significa que é uma proposta nova (mock)
+        if proposta_id == 0:
+            # Gerar PDF temporário para proposta nova
+            caminho_pdf = pdf_generator.gerar_pdf_proposta_temp()
+            
+            current_app.logger.info(
+                f"PDF temporário gerado para proposta nova: {caminho_pdf} "
+                f"(Funcionário: {funcionario.nome})"
+            )
+            
+            return jsonify({
+                'message': 'PDF gerado com sucesso',
+                'pdf_caminho': caminho_pdf,
+                'pdf_data_geracao': datetime.now().isoformat(),
+                'temporario': True
+            })
+        else:
+            # Verificar se proposta existe
+            proposta = Proposta.query.get_or_404(proposta_id)
+            
+            # Gerar PDF
+            caminho_pdf = pdf_generator.gerar_pdf_proposta(proposta_id)
+            
+            # Atualizar proposta com informações do PDF
+            proposta.pdf_gerado = True
+            proposta.pdf_caminho = caminho_pdf
+            proposta.pdf_data_geracao = datetime.now()
+            
+            db.session.commit()
+            
+            current_app.logger.info(
+                f"PDF gerado para proposta {proposta.numero}: {caminho_pdf} "
+                f"(Funcionário: {funcionario.nome})"
+            )
+            
+            return jsonify({
+                'message': 'PDF gerado com sucesso',
+                'pdf_caminho': caminho_pdf,
+                'pdf_data_geracao': proposta.pdf_data_geracao.isoformat()
+            })
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erro ao gerar PDF da proposta {proposta_id}: {str(e)}")
+        return jsonify({'error': f'Erro ao gerar PDF: {str(e)}'}), 500
+
+
+@propostas_bp.route('/<int:proposta_id>/pdf', methods=['GET'])
+@jwt_required()
+@handle_api_errors
+def visualizar_pdf_proposta(proposta_id: int):
+    """Visualiza/baixa o PDF da proposta"""
+    try:
+        # Verificar se proposta existe
+        proposta = Proposta.query.get_or_404(proposta_id)
+        
+        # Verificar se funcionário existe
+        funcionario_id = int(get_jwt_identity())
+        funcionario = Funcionario.query.get(funcionario_id)
+        if not funcionario or not funcionario.ativo:
+            raise ValueError('Funcionário não encontrado')
+        
+        # Verificar se PDF existe
+        if not proposta.pdf_gerado or not proposta.pdf_caminho:
+            return jsonify({'error': 'PDF não foi gerado para esta proposta'}), 404
+        
+        # Verificar se arquivo existe
+        if not os.path.exists(proposta.pdf_caminho):
+            # Marcar como não gerado se arquivo não existe
+            proposta.pdf_gerado = False
+            proposta.pdf_caminho = None
+            proposta.pdf_data_geracao = None
+            db.session.commit()
+            return jsonify({'error': 'Arquivo PDF não encontrado'}), 404
+        
+        # Retornar arquivo
+        nome_arquivo = os.path.basename(proposta.pdf_caminho)
+        return send_file(
+            proposta.pdf_caminho,
+            as_attachment=True,
+            download_name=nome_arquivo,
+            mimetype='application/pdf'
+        )
+        
+    except Exception as e:
+        current_app.logger.error(f"Erro ao visualizar PDF da proposta {proposta_id}: {str(e)}")
+        return jsonify({'error': f'Erro ao visualizar PDF: {str(e)}'}), 500
+
+
+@propostas_bp.route('/<int:proposta_id>/pdf', methods=['DELETE'])
+@jwt_required()
+@handle_api_errors
+def excluir_pdf_proposta(proposta_id: int):
+    """Exclui o PDF da proposta"""
+    try:
+        # Verificar se proposta existe
+        proposta = Proposta.query.get_or_404(proposta_id)
+        
+        # Verificar se funcionário existe
+        funcionario_id = int(get_jwt_identity())
+        funcionario = Funcionario.query.get(funcionario_id)
+        if not funcionario or not funcionario.ativo:
+            raise ValueError('Funcionário não encontrado')
+        
+        # Verificar se PDF existe
+        if not proposta.pdf_gerado or not proposta.pdf_caminho:
+            return jsonify({'error': 'PDF não foi gerado para esta proposta'}), 404
+        
+        # Excluir arquivo físico
+        if os.path.exists(proposta.pdf_caminho):
+            os.remove(proposta.pdf_caminho)
+            current_app.logger.info(f"Arquivo PDF excluído: {proposta.pdf_caminho}")
+        
+        # Limpar campos da proposta
+        proposta.pdf_gerado = False
+        proposta.pdf_caminho = None
+        proposta.pdf_data_geracao = None
+        
+        db.session.commit()
+        
+        current_app.logger.info(
+            f"PDF excluído da proposta {proposta.numero} "
+            f"(Funcionário: {funcionario.nome})"
+        )
+        
+        return jsonify({'message': 'PDF excluído com sucesso'})
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erro ao excluir PDF da proposta {proposta_id}: {str(e)}")
+        return jsonify({'error': f'Erro ao excluir PDF: {str(e)}'}), 500

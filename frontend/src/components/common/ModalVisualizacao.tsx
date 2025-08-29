@@ -2,7 +2,7 @@ import React from 'react';
 import {
   X, User, Mail, Hash, Calendar, MapPin, Building, Shield,
   Phone, Globe, Fingerprint, Home, FileText, CreditCard,
-  IdCard, UserCheck, TrendingUp, Briefcase
+  UserCheck, TrendingUp, Briefcase
 } from 'lucide-react';
 
 interface ModalVisualizacaoProps {
@@ -59,7 +59,7 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
   const getIconForField = (fieldType: string) => {
     const iconMap: { [key: string]: any } = {
       'cpf': Fingerprint, // Ícone de digital para CPF/CNPJ
-      'cnpj': IdCard,
+      'cnpj': CreditCard, // Usando CreditCard como substituto para IdCard
       'nome': User,
       'email': Mail,
       'endereco': Home,

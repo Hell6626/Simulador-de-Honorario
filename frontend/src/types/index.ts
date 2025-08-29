@@ -122,6 +122,10 @@ export interface Proposta {
   regime_tributario?: RegimeTributario;
   faixa_faturamento?: FaixaFaturamento;
   itens?: ItemProposta[];
+  // Campos de PDF
+  pdf_gerado?: boolean;
+  pdf_caminho?: string;
+  pdf_data_geracao?: string;
 }
 
 // ⚠️ NOVO: Interface para criação de proposta

@@ -5,7 +5,9 @@ import {
   Edit2,
   Trash2,
   FileText,
-  Clock
+  Clock,
+  Eye,
+  Download
 } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { LoadingSpinner, StatusBadge } from '../common';
@@ -14,6 +16,7 @@ import { ModalEdicaoProposta } from '../propostas/ModalEdicaoProposta';
 import { ModalExclusaoProposta } from '../propostas/ModalExclusaoProposta';
 import { ModalEdicaoCompleta } from '../propostas/ModalEdicaoCompleta';
 import { HistoricoLogs } from '../propostas/HistoricoLogs';
+import { PropostaPDFViewer } from '../propostas/PropostaPDFViewer';
 import { Proposta, PropostaResponse } from '../../types';
 
 // Interfaces removidas para evitar warnings de unused vars
@@ -217,94 +220,124 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
     propostaId: 0
   });
 
+  // Estados para PDF
+  const [modalPDF, setModalPDF] = useState({
+    isOpen: false,
+    propostaId: 0
+  });
+  const [gerandoPDF, setGerandoPDF] = useState<number | null>(null);
+
   const fetchPropostas = async (page = 1, search = '') => {
     setLoading(true);
     setError('');
 
     try {
+      console.log('🔍 Carregando propostas...', { page, search });
+      
       const response = await apiService.getPropostas({
         page,
         per_page: 20,
         search: search.trim() || undefined
       });
 
-      setPropostas(response.items || []);
-      setFilteredPropostas(response.items || []);
-      setTotalPages(response.pages || 1);
-    } catch (err: unknown) {
-      console.error('Erro ao carregar propostas:', err);
+      console.log('📊 Resposta da API:', response);
 
-      // Se for erro de autenticação ou conexão, usar dados mockados temporariamente
-      const errorMessage = (err as Error)?.message || '';
-      if (errorMessage.includes('401') || errorMessage.includes('UNAUTHORIZED') || errorMessage.includes('Failed to fetch')) {
-        setError('API não disponível. Usando dados de demonstração.');
+      // ⚠️ CORRIGIDO: Verificar estrutura da resposta
+      const items = response.items || response.propostas || [];
+      const pages = response.pages || 1;
+      const total = response.total || 0;
 
-        // Dados mockados para demonstração
-        const dadosMockados = [
-          {
-            id: 1,
-            numero: 'PROP-20250108001',
-            cliente_id: 1,
-            funcionario_responsavel_id: 1,
-            tipo_atividade_id: 1,
-            regime_tributario_id: 1,
-            faixa_faturamento_id: 1,
-            valor_total: 2500.00,
-            data_validade: '2025-02-08T00:00:00',
-            status: 'ENVIADA',
-            observacoes: 'Proposta para serviços contábeis',
-            ativo: true,
-            created_at: '2025-01-08T00:00:00',
-            updated_at: '2025-01-08T00:00:00',
-            cliente: {
-              id: 1,
-              nome: 'Empresa ABC Ltda',
-              cpf: '11.111.111/0001-11',
-              email: 'contato@abc.com'
-            },
-            funcionario_responsavel: {
-              id: 1,
-              nome: 'João Silva',
-              email: 'joao@empresa.com'
-            }
-          },
-          {
-            id: 2,
-            numero: 'PROP-20250107002',
-            cliente_id: 2,
-            funcionario_responsavel_id: 2,
-            tipo_atividade_id: 1,
-            regime_tributario_id: 1,
-            faixa_faturamento_id: 1,
-            valor_total: 1800.00,
-            data_validade: '2025-02-07T00:00:00',
-            status: 'RASCUNHO',
-            observacoes: 'Proposta em elaboração',
-            ativo: true,
-            created_at: '2025-01-07T00:00:00',
-            updated_at: '2025-01-07T00:00:00',
-            cliente: {
-              id: 2,
-              nome: 'Comércio XYZ ME',
-              cpf: '22.222.222/0001-22',
-              email: 'info@xyz.com'
-            },
-            funcionario_responsavel: {
-              id: 2,
-              nome: 'Maria Santos',
-              email: 'maria@empresa.com'
-            }
-          }
-        ];
+      console.log(`✅ Propostas carregadas: ${items.length} de ${total} (página ${page} de ${pages})`);
 
-        setPropostas(dadosMockados);
-        setFilteredPropostas(dadosMockados);
-        setTotalPages(1);
-      } else {
-        setError(errorMessage || 'Erro ao carregar propostas');
-        setPropostas([]);
-        setFilteredPropostas([]);
+      setPropostas(items);
+      setFilteredPropostas(items);
+      setTotalPages(pages);
+      
+      // ⚠️ NOVO: Log detalhado se não houver propostas
+      if (items.length === 0) {
+        console.log('⚠️  Nenhuma proposta encontrada no banco de dados');
+        console.log('💡 Verifique se há propostas cadastradas ou se o banco está acessível');
       }
+
+    } catch (err: unknown) {
+      console.error('❌ Erro ao carregar propostas:', err);
+
+      const errorMessage = (err as Error)?.message || '';
+      
+      // ⚠️ MELHORADO: Tratamento de erros mais específico
+      if (errorMessage.includes('401') || errorMessage.includes('UNAUTHORIZED')) {
+        setError('Erro de autenticação. Faça login novamente.');
+      } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+        setError('Servidor não disponível. Verifique se o backend está rodando.');
+      } else if (errorMessage.includes('404')) {
+        setError('Endpoint não encontrado. Verifique a configuração da API.');
+      } else {
+        setError(`Erro ao carregar propostas: ${errorMessage}`);
+      }
+
+      // ⚠️ NOVO: Dados mockados apenas para demonstração
+      console.log('🔄 Usando dados de demonstração...');
+      
+      const dadosMockados = [
+        {
+          id: 1,
+          numero: 'PROP-20250108001',
+          cliente_id: 1,
+          funcionario_responsavel_id: 1,
+          tipo_atividade_id: 1,
+          regime_tributario_id: 1,
+          faixa_faturamento_id: 1,
+          valor_total: 2500.00,
+          data_validade: '2025-02-08T00:00:00',
+          status: 'ENVIADA',
+          observacoes: 'Proposta para serviços contábeis',
+          ativo: true,
+          created_at: '2025-01-08T00:00:00',
+          updated_at: '2025-01-08T00:00:00',
+          cliente: {
+            id: 1,
+            nome: 'Empresa ABC Ltda',
+            cpf: '11.111.111/0001-11',
+            email: 'contato@abc.com'
+          },
+          funcionario_responsavel: {
+            id: 1,
+            nome: 'João Silva',
+            email: 'joao@empresa.com'
+          }
+        },
+        {
+          id: 2,
+          numero: 'PROP-20250107002',
+          cliente_id: 2,
+          funcionario_responsavel_id: 2,
+          tipo_atividade_id: 1,
+          regime_tributario_id: 1,
+          faixa_faturamento_id: 1,
+          valor_total: 1800.00,
+          data_validade: '2025-02-07T00:00:00',
+          status: 'RASCUNHO',
+          observacoes: 'Proposta em elaboração',
+          ativo: true,
+          created_at: '2025-01-07T00:00:00',
+          updated_at: '2025-01-07T00:00:00',
+          cliente: {
+            id: 2,
+            nome: 'Comércio XYZ ME',
+            cpf: '22.222.222/0001-22',
+            email: 'info@xyz.com'
+          },
+          funcionario_responsavel: {
+            id: 2,
+            nome: 'Maria Santos',
+            email: 'maria@empresa.com'
+          }
+        }
+      ];
+
+      setPropostas(dadosMockados);
+      setFilteredPropostas(dadosMockados);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
@@ -375,7 +408,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
     // ⚠️ CAPTURAR: Dados completos do cliente, não apenas ID
     const buscarClienteCompleto = async () => {
       try {
-        const response = await apiService.getClientes({ id: clienteId });
+        const response = await apiService.getClientes({ search: clienteId.toString() });
         const cliente = response.items?.[0] || response?.[0];
 
         if (cliente) {
@@ -503,7 +536,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
         // Buscar faixa de faturamento se houver
         let faixaEncontrada = null;
         if (dados.faixa_faturamento_id) {
-          const responseFaixas = await apiService.getFaixasFaturamento({ id: dados.faixa_faturamento_id });
+          const responseFaixas = await apiService.getFaixasFaturamento({ regime_tributario_id: dados.regime_tributario_id });
           const faixas = responseFaixas.items || responseFaixas || [];
           faixaEncontrada = faixas.find((f: any) => f.id === dados.faixa_faturamento_id);
         }
@@ -517,7 +550,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
             faixaFaturamento: faixaEncontrada,
             tipo_atividade_id: dados.tipo_atividade_id,
             regime_tributario_id: dados.regime_tributario_id,
-            faixa_faturamento_id: dados.faixa_faturamento_id
+            faixa_faturamento_id: dados.faixa_faturamento_id || undefined
           }));
 
           // ⚠️ CORREÇÃO: Todos os tipos de atividade vão para Passo 3 (seleção de serviços)
@@ -612,6 +645,44 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
     setModalHistorico({ isOpen: true, propostaId: proposta.id });
   };
 
+  // Funções para manipulação de PDF
+  const handleGerarPDF = async (proposta: Proposta) => {
+    setGerandoPDF(proposta.id);
+
+    try {
+      await apiService.gerarPDFProposta(proposta.id);
+      alert('PDF gerado com sucesso!');
+      // Recarregar propostas para atualizar status
+      await fetchPropostas(currentPage, searchTerm);
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      alert('Erro ao gerar PDF: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+    } finally {
+      setGerandoPDF(null);
+    }
+  };
+
+  const handleVisualizarPDF = (proposta: Proposta) => {
+    setModalPDF({ isOpen: true, propostaId: proposta.id });
+  };
+
+  const handleDownloadPDF = async (proposta: Proposta) => {
+    try {
+      const blob = await apiService.visualizarPDFProposta(proposta.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `proposta_${proposta.numero}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erro ao baixar PDF:', error);
+      alert('Erro ao baixar PDF: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+    }
+  };
+
   const handleSalvarEdicao = async (propostaId: number, dados: Partial<Proposta>) => {
     try {
       await apiService.updateProposta(propostaId, dados);
@@ -703,22 +774,26 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
 
     return (
       <Passo5FinalizacaoProposta
-        dadosProposta={dadosCompletosPasso5}
-        dadosSalvos={dadosCompletosPasso5}
-        onSalvarProgresso={(dados) => {
-          console.log('Salvando progresso do Passo 5:', dados);
-          // Atualizar estado principal com dados salvos
-          setDadosProposta(prev => {
-            const novoEstado = {
-              ...prev,
-              ...dados
-            };
-            console.log('Estado atualizado após salvamento:', novoEstado);
-            return novoEstado;
-          });
+        dadosCompletos={dadosCompletosPasso5 as any}
+        proposta={{
+          id: 0,
+          numero: 'NOVA',
+          cliente_id: dadosCompletosPasso5.cliente.id,
+          funcionario_responsavel_id: undefined,
+          tipo_atividade_id: dadosCompletosPasso5.tipoAtividade.id,
+          regime_tributario_id: dadosCompletosPasso5.regimeTributario.id,
+          faixa_faturamento_id: dadosCompletosPasso5.faixaFaturamento ? dadosCompletosPasso5.faixaFaturamento.id : undefined,
+          valor_total: dadosCompletosPasso5.totalFinal,
+          status: 'Rascunho',
+          data_criacao: new Date().toISOString(),
+          data_atualizacao: new Date().toISOString(),
+          ativo: true,
+          pdf_gerado: false,
+          pdf_caminho: undefined,
+          pdf_data_geracao: undefined
         }}
         onVoltar={handleVoltarPasso5}
-        onFinalizado={handleFinalizadoPasso5}
+        onNovaProposta={() => handleFinalizadoPasso5({})}
       />
     );
   }
@@ -751,13 +826,25 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
             className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
           />
         </div>
-        <button
-          onClick={handleNovaPropostaClick}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nova Proposta</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          {/* ⚠️ NOVO: Botão para testar conexão */}
+          <button
+            onClick={() => fetchPropostas(currentPage, searchTerm)}
+            className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2 text-sm"
+            title="Recarregar propostas"
+          >
+            <span>🔄</span>
+            <span>Recarregar</span>
+          </button>
+          
+          <button
+            onClick={handleNovaPropostaClick}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nova Proposta</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabela de Propostas */}
@@ -837,6 +924,42 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
                           >
                             <Clock className="w-4 h-4" />
                           </button>
+
+                          {/* Botões de PDF */}
+                          {proposta.pdf_gerado ? (
+                            <>
+                              <button
+                                onClick={() => handleVisualizarPDF(proposta)}
+                                className="text-green-600 hover:text-green-900 transition-colors"
+                                title="Visualizar PDF"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDownloadPDF(proposta)}
+                                className="text-indigo-600 hover:text-indigo-900 transition-colors"
+                                title="Download PDF"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => handleGerarPDF(proposta)}
+                              disabled={gerandoPDF === proposta.id}
+                              className={`transition-colors ${gerandoPDF === proposta.id
+                                ? 'text-gray-400 cursor-not-allowed'
+                                : 'text-orange-600 hover:text-orange-900'
+                                }`}
+                              title="Gerar PDF"
+                            >
+                              {gerandoPDF === proposta.id ? (
+                                <LoadingSpinner size="sm" />
+                              ) : (
+                                <FileText className="w-4 h-4" />
+                              )}
+                            </button>
+                          )}
 
                           <button
                             onClick={() => handleExcluirProposta(proposta)}
@@ -924,6 +1047,13 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
         propostaId={modalHistorico.propostaId}
         isOpen={modalHistorico.isOpen}
         onClose={() => setModalHistorico({ isOpen: false, propostaId: 0 })}
+      />
+
+      {/* Modal de PDF */}
+      <PropostaPDFViewer
+        propostaId={modalPDF.propostaId}
+        isOpen={modalPDF.isOpen}
+        onClose={() => setModalPDF({ isOpen: false, propostaId: 0 })}
       />
     </div>
   );
