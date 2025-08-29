@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { apiService } from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
-import { ModalCadastroCliente } from './ModalCadastroCliente';
+import { ModalCadastroCliente } from '../../modals/ModalCadastroCliente';
 import { Cliente } from '../../../types';
 
 interface EntidadeJuridica {

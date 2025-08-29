@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, Mail, User, Building, Eye, Edit2 } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { LoadingSpinner } from '../common/LoadingSpinner';
-import { Modal } from '../common/Modal';
-import { ModalCadastroCliente } from '../propostas/passos/ModalCadastroCliente';
-import { ModalVisualizacao } from '../common/ModalVisualizacao';
+import { Modal } from '../modals/Modal';
+import { ModalCadastroCliente } from '../modals/ModalCadastroCliente';
+import { ModalVisualizacao } from '../modals/ModalVisualizacao';
 import { Cliente } from '../../types';
 
 

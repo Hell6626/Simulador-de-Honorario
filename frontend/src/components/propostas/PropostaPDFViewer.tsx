@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal } from '../common/Modal';
+import { Modal } from '../modals/Modal';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { apiService } from '../../services/api';
 
@@ -92,7 +92,7 @@ export const PropostaPDFViewer: React.FC<PropostaPDFViewerProps> = ({
                 Download
               </button>
             </div>
-            
+
             <div className="border border-gray-300 rounded-lg overflow-hidden">
               <iframe
                 src={URL.createObjectURL(pdfBlob)}

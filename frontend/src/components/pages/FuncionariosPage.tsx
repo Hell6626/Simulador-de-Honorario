@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, Mail, User, Building, Eye, Edit2, Shield, UserCheck } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { LoadingSpinner } from '../common/LoadingSpinner';
-import { Modal } from '../common/Modal';
-import { ModalCadastroFuncionario } from '../propostas/passos/ModalCadastroFuncionario';
-import { ModalVisualizacao } from '../common/ModalVisualizacao';
+import { Modal } from '../modals/Modal';
+import { ModalCadastroFuncionario } from '../modals/ModalCadastroFuncionario';
+import { ModalVisualizacao } from '../modals/ModalVisualizacao';
 import { useAuth } from '../../context/AuthContext';
 import { Funcionario } from '../../types';
 

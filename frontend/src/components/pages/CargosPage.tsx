@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, UserCheck, Eye, Edit2, Shield, Building2 } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { LoadingSpinner } from '../common/LoadingSpinner';
-import { Modal } from '../common/Modal';
-import { ModalVisualizacao } from '../common/ModalVisualizacao';
+import { Modal } from '../modals/Modal';
+import { ModalVisualizacao } from '../modals/ModalVisualizacao';
 import { useAuth } from '../../context/AuthContext';
 
 interface Cargo {

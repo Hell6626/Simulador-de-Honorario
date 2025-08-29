@@ -7,12 +7,40 @@ from sqlalchemy import or_
 from datetime import datetime, timedelta
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import json
+import random
+import time
 
 from config import db
 from models import Proposta, Funcionario, Cliente, ItemProposta, Servico, PropostaLog, RegimeTributario
 from .utils import handle_api_errors, validate_required_fields, paginate_query
 
 propostas_bp = Blueprint('propostas', __name__)
+
+def gerar_numero_proposta_unico():
+    """
+    ⚠️ CORREÇÃO: Gera um número único para a proposta usando timestamp + microsegundos + random
+    Esta função resolve o problema de números duplicados que estava causando a criação de duas propostas.
+    """
+    # Usar timestamp detalhado com microsegundos
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3]  # Remove últimos 3 dígitos dos microsegundos
+    
+    # Adicionar sufixo aleatório para garantir unicidade
+    random_suffix = random.randint(100, 999)
+    
+    numero_candidato = f"PROP-{timestamp}{random_suffix}"
+    
+    # Verificar se já existe no banco (loop até encontrar único)
+    tentativas = 0
+    while Proposta.query.filter_by(numero=numero_candidato).first() and tentativas < 10:
+        tentativas += 1
+        time.sleep(0.001)  # Aguardar 1ms para mudar timestamp
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3]
+        random_suffix = random.randint(100, 999)
+        numero_candidato = f"PROP-{timestamp}{random_suffix}"
+    
+    current_app.logger.info(f"Número único gerado após {tentativas} tentativas: {numero_candidato}")
+    return numero_candidato
+
 
 def calcular_taxa_abertura_empresa(cliente_abertura: bool, regime_codigo: str) -> float:
     """
@@ -184,8 +212,11 @@ def create_proposta():
     if not cliente.ativo:
         raise ValueError('Cliente está inativo')
 
-    # Gerar número da proposta
-    numero_proposta = data.get('numero', f"PROP-{datetime.now().strftime('%Y%m%d%H%M%S')}")
+    # Gerar número da proposta único
+    numero_proposta = data.get('numero')
+    if not numero_proposta:
+        numero_proposta = gerar_numero_proposta_unico()
+        current_app.logger.info(f"Número único gerado: {numero_proposta}")
 
     # Criar proposta
     proposta = Proposta(

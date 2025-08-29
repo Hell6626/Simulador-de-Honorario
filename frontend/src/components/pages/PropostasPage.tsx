@@ -12,12 +12,13 @@ import {
 import { apiService } from '../../services/api';
 import { LoadingSpinner, StatusBadge } from '../common';
 import { Passo1SelecionarCliente, Passo2ConfiguracoesTributarias, Passo3SelecaoServicos, Passo4RevisaoProposta, Passo5FinalizacaoProposta } from '../propostas/passos';
-import { ModalEdicaoProposta } from '../propostas/ModalEdicaoProposta';
-import { ModalExclusaoProposta } from '../propostas/ModalExclusaoProposta';
-import { ModalEdicaoCompleta } from '../propostas/ModalEdicaoCompleta';
+import { ModalEdicaoProposta } from '../modals/ModalEdicaoProposta';
+import { ModalExclusaoProposta } from '../modals/ModalExclusaoProposta';
+import { ModalEdicaoCompleta } from '../modals/ModalEdicaoCompleta';
 import { HistoricoLogs } from '../propostas/HistoricoLogs';
 import { PropostaPDFViewer } from '../propostas/PropostaPDFViewer';
 import { Proposta, PropostaResponse } from '../../types';
+import { PropostaProvider } from '../../store/PropostaStore';
 
 // Interfaces removidas para evitar warnings de unused vars
 // As interfaces estão definidas nos componentes específicos
@@ -90,6 +91,10 @@ interface PropostaCompleta {
   totalFinal?: number;
   requerAprovacao?: boolean;
   observacoes?: string;
+
+  // ⚠️ NOVO: ID da proposta criada no Passo 3
+  propostaId?: number;
+  propostaNumero?: string;
 }
 
 interface DadosPropostaCompleta {
@@ -178,6 +183,46 @@ interface PropostasPageProps {
   openModalOnLoad?: boolean;
 }
 
+// Funções helper para mapear status das propostas
+const getStatusBadgeType = (status: string): 'success' | 'warning' | 'error' | 'info' | 'neutral' => {
+  switch (status?.toUpperCase()) {
+    case 'APROVADA':
+    case 'REALIZADA':
+      return 'success';
+    case 'PENDENTE':
+    case 'ENVIADA':
+      return 'warning';
+    case 'REJEITADA':
+    case 'CANCELADA':
+      return 'error';
+    case 'RASCUNHO':
+      return 'info';
+    default:
+      return 'neutral';
+  }
+};
+
+const getStatusLabel = (status: string): string => {
+  switch (status?.toUpperCase()) {
+    case 'RASCUNHO':
+      return 'Rascunho';
+    case 'PENDENTE':
+      return 'Pendente';
+    case 'APROVADA':
+      return 'Aprovada';
+    case 'ENVIADA':
+      return 'Enviada';
+    case 'REALIZADA':
+      return 'Realizada';
+    case 'REJEITADA':
+      return 'Rejeitada';
+    case 'CANCELADA':
+      return 'Cancelada';
+    default:
+      return status || 'Indefinido';
+  }
+};
+
 export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = false }) => {
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [filteredPropostas, setFilteredPropostas] = useState<Proposta[]>([]);
@@ -227,13 +272,27 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
   });
   const [gerandoPDF, setGerandoPDF] = useState<number | null>(null);
 
+  // Estado para todos os serviços
+  const [todosServicos, setTodosServicos] = useState<any[]>([]);
+
+  const fetchTodosServicos = async () => {
+    try {
+      const servicos = await apiService.getServicos();
+      setTodosServicos(servicos);
+      console.log('✅ Todos os serviços carregados:', servicos.length);
+    } catch (error) {
+      console.error('❌ Erro ao carregar todos os serviços:', error);
+      setTodosServicos([]);
+    }
+  };
+
   const fetchPropostas = async (page = 1, search = '') => {
     setLoading(true);
     setError('');
 
     try {
       console.log('🔍 Carregando propostas...', { page, search });
-      
+
       const response = await apiService.getPropostas({
         page,
         per_page: 20,
@@ -252,7 +311,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
       setPropostas(items);
       setFilteredPropostas(items);
       setTotalPages(pages);
-      
+
       // ⚠️ NOVO: Log detalhado se não houver propostas
       if (items.length === 0) {
         console.log('⚠️  Nenhuma proposta encontrada no banco de dados');
@@ -263,7 +322,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
       console.error('❌ Erro ao carregar propostas:', err);
 
       const errorMessage = (err as Error)?.message || '';
-      
+
       // ⚠️ MELHORADO: Tratamento de erros mais específico
       if (errorMessage.includes('401') || errorMessage.includes('UNAUTHORIZED')) {
         setError('Erro de autenticação. Faça login novamente.');
@@ -277,7 +336,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
 
       // ⚠️ NOVO: Dados mockados apenas para demonstração
       console.log('🔄 Usando dados de demonstração...');
-      
+
       const dadosMockados = [
         {
           id: 1,
@@ -348,6 +407,11 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
       fetchPropostas(currentPage, searchTerm);
     }
   }, [currentPage, searchTerm, currentStep]);
+
+  // Carregar todos os serviços quando o componente montar
+  useEffect(() => {
+    fetchTodosServicos();
+  }, []);
 
   // Filtrar propostas baseado no termo de busca
   useEffect(() => {
@@ -461,8 +525,8 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
     setDadosPropostaCompleta(null);
   };
 
-  // ⚠️ CORRIGIDO: Função onProximo do Passo 3
-  const handleProximoPasso3 = (servicos: ServicoSelecionado[]) => {
+  // ⚠️ CORRIGIDO: Função onProximo do Passo 3 - Criar proposta como RASCUNHO
+  const handleProximoPasso3 = async (servicos: ServicoSelecionado[]) => {
     setServicosSelecionados(servicos);
 
     // ⚠️ ATUALIZAR: Estado principal com serviços selecionados
@@ -507,9 +571,50 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
         servicosSelecionados: servicos
       };
 
-      setDadosPropostaCompleta(dadosCompletos);
-      setCurrentStep(4);
-      console.log('Indo para Passo 4 - Revisão da Proposta com dados reais');
+      // ⚠️ NOVO: Criar proposta como RASCUNHO no Passo 3
+      try {
+        console.log('🔄 Criando proposta como RASCUNHO no Passo 3...');
+
+        // Calcular valor total dos serviços
+        const valorTotal = servicos.reduce((total, servico) => total + servico.subtotal, 0);
+
+        const dadosPropostaAPI = {
+          cliente_id: dadosProposta.cliente.id,
+          tipo_atividade_id: dadosProposta.tipoAtividade.id,
+          regime_tributario_id: dadosProposta.regimeTributario.id,
+          faixa_faturamento_id: dadosProposta.faixaFaturamento?.id,
+          valor_total: valorTotal,
+          percentual_desconto: 0, // Sem desconto no rascunho
+          valor_desconto: 0,
+          requer_aprovacao: false,
+          observacoes: null,
+          status: 'RASCUNHO', // ⚠️ Status explícito como RASCUNHO
+          itens: servicos.map(servico => ({
+            servico_id: servico.servico_id,
+            quantidade: servico.quantidade,
+            valor_unitario: servico.valor_unitario,
+            valor_total: servico.subtotal,
+            descricao_personalizada: undefined
+          }))
+        };
+
+        const propostaCriada = await apiService.createProposta(dadosPropostaAPI);
+        console.log('✅ Proposta criada como RASCUNHO:', propostaCriada);
+
+        // ⚠️ NOVO: Armazenar ID da proposta criada para atualização no Passo 4
+        setDadosProposta(prev => ({
+          ...prev,
+          propostaId: propostaCriada.id,
+          propostaNumero: propostaCriada.numero
+        }));
+
+        setDadosPropostaCompleta(dadosCompletos);
+        setCurrentStep(4);
+        console.log('Indo para Passo 4 - Revisão da Proposta com dados reais');
+      } catch (error) {
+        console.error('❌ Erro ao criar proposta como rascunho:', error);
+        alert('Erro ao criar proposta: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+      }
     } else {
       console.error('Dados incompletos para Passo 4:', dadosProposta);
       alert('Erro: Dados incompletos para prosseguir');
@@ -576,8 +681,9 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
     setDadosPropostaCompleta(null);
   };
 
-  const handleProximoPasso4 = (dadosComDesconto: PropostaComDesconto) => {
+  const handleProximoPasso4 = async (dadosComDesconto: PropostaComDesconto) => {
     console.log('Dados da proposta com desconto:', dadosComDesconto);
+
     // ⚠️ ATUALIZAR: Estado principal com dados completos incluindo desconto
     setDadosProposta(prev => ({
       ...prev,
@@ -587,14 +693,9 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
       requerAprovacao: dadosComDesconto.requerAprovacao,
       observacoes: dadosComDesconto.observacoes
     }));
-    console.log('Estado atualizado para Passo 5:', {
-      ...dadosProposta,
-      percentualDesconto: dadosComDesconto.percentualDesconto,
-      valorDesconto: dadosComDesconto.valorDesconto,
-      totalFinal: dadosComDesconto.totalFinal,
-      requerAprovacao: dadosComDesconto.requerAprovacao,
-      observacoes: dadosComDesconto.observacoes
-    });
+
+    // ⚠️ SIMPLIFICADO: A atualização da proposta já foi feita no Passo4RevisaoProposta
+    console.log('✅ Proposta já foi atualizada no Passo 4, indo para Passo 5');
     setCurrentStep(5);
   };
 
@@ -604,7 +705,6 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
 
   const handleFinalizadoPasso5 = (propostaFinalizada: any) => {
     console.log('Proposta finalizada:', propostaFinalizada);
-    alert('Proposta finalizada com sucesso!');
     setCurrentStep(0);
     setSelectedClienteId(null);
     setConfigTributarias(null);
@@ -651,7 +751,6 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
 
     try {
       await apiService.gerarPDFProposta(proposta.id);
-      alert('PDF gerado com sucesso!');
       // Recarregar propostas para atualizar status
       await fetchPropostas(currentPage, searchTerm);
     } catch (error) {
@@ -687,7 +786,6 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
     try {
       await apiService.updateProposta(propostaId, dados);
       await fetchPropostas(currentPage, searchTerm);
-      alert('Proposta atualizada com sucesso!');
     } catch (error) {
       console.error('Erro ao atualizar proposta:', error);
       throw error;
@@ -697,7 +795,6 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
   const handleSalvarEdicaoCompleta = async () => {
     try {
       await fetchPropostas(currentPage, searchTerm);
-      alert('Proposta atualizada com sucesso!');
     } catch (error) {
       console.error('Erro ao atualizar proposta:', error);
     }
@@ -707,7 +804,6 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
     try {
       await apiService.deleteProposta(propostaId);
       await fetchPropostas(currentPage, searchTerm);
-      alert('Proposta excluída com sucesso!');
     } catch (error) {
       console.error('Erro ao excluir proposta:', error);
       throw error;
@@ -747,11 +843,16 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
 
   if (currentStep === 4 && dadosPropostaCompleta) {
     return (
-      <Passo4RevisaoProposta
-        dadosProposta={dadosPropostaCompleta}
-        onVoltar={handleVoltarPasso4}
-        onProximo={handleProximoPasso4}
-      />
+      <PropostaProvider>
+        <Passo4RevisaoProposta
+          dadosProposta={dadosPropostaCompleta}
+          propostaId={dadosProposta.propostaId} // ⚠️ NOVO: Passar o ID da proposta criada no Passo 3
+          propostaNumero={dadosProposta.propostaNumero} // ⚠️ NOVO: Passar o número da proposta
+          onVoltar={handleVoltarPasso4}
+          onProximo={handleProximoPasso4}
+          todosServicos={todosServicos}
+        />
+      </PropostaProvider>
     );
   }
 
@@ -776,15 +877,15 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
       <Passo5FinalizacaoProposta
         dadosCompletos={dadosCompletosPasso5 as any}
         proposta={{
-          id: 0,
-          numero: 'NOVA',
+          id: dadosProposta.propostaId || 0,
+          numero: dadosProposta.propostaNumero || 'NOVA',
           cliente_id: dadosCompletosPasso5.cliente.id,
           funcionario_responsavel_id: undefined,
           tipo_atividade_id: dadosCompletosPasso5.tipoAtividade.id,
           regime_tributario_id: dadosCompletosPasso5.regimeTributario.id,
           faixa_faturamento_id: dadosCompletosPasso5.faixaFaturamento ? dadosCompletosPasso5.faixaFaturamento.id : undefined,
           valor_total: dadosCompletosPasso5.totalFinal,
-          status: 'Rascunho',
+          status: dadosCompletosPasso5.requerAprovacao ? 'PENDENTE' : 'APROVADA',
           data_criacao: new Date().toISOString(),
           data_atualizacao: new Date().toISOString(),
           ativo: true,
@@ -836,7 +937,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
             <span>🔄</span>
             <span>Recarregar</span>
           </button>
-          
+
           <button
             onClick={handleNovaPropostaClick}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
@@ -898,7 +999,9 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
                         R$ {proposta.valor_total ? proposta.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <StatusBadge status={proposta.status} />
+                        <StatusBadge status={getStatusBadgeType(proposta.status)}>
+                          {getStatusLabel(proposta.status)}
+                        </StatusBadge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {proposta.created_at ? new Date(proposta.created_at).toLocaleDateString('pt-BR') : 'N/A'}

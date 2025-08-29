@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, MapPin, Building, Check, AlertCircle } from 'lucide-react';
-import { apiService } from '../../../services/api';
-import { Cliente } from '../../../types';
+import { apiService } from '../../services/api';
+import { Cliente } from '../../types';
 
 interface ClienteForm {
   nome: string;
@@ -493,10 +493,10 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
               onClick={() => setAbaAtiva(2)}
               disabled={!podeIrParaEmpresa}
               className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${!podeIrParaEmpresa
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : abaAtiva === 2
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
+                ? 'text-gray-400 cursor-not-allowed'
+                : abaAtiva === 2
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
               <Building className="w-4 h-4" />
