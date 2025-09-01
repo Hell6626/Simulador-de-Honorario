@@ -9,7 +9,7 @@ interface ModalVisualizacaoProps {
   isOpen: boolean;
   onClose: () => void;
   data: any;
-  type: 'cliente' | 'funcionario' | 'cargo' | 'servico';
+  type: 'cliente' | 'funcionario' | 'cargo' | 'servico' | 'regime';
 }
 
 export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
@@ -555,6 +555,110 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
     </div>
   );
 
+  // Função para renderizar regime tributário
+  const renderRegime = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-white bg-opacity-20 rounded-xl">
+                <Shield className="w-8 h-8" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">Regime Tributário</h2>
+                <p className="text-blue-100">{data?.nome || 'Detalhes do Regime'}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <StatusBadge active={data?.ativo} label={data?.ativo ? 'Ativo' : 'Inativo'} />
+              <button
+                onClick={onClose}
+                className="p-2 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors duration-200"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-8 space-y-6">
+          {/* Informações Básicas */}
+          <InfoCard icon={Shield} title="Informações do Regime" color="blue">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InfoField iconType="nome" label="Nome do Regime" value={data?.nome} color="blue" />
+              <InfoField iconType="codigo" label="Código" value={data?.codigo} color="green" />
+              <InfoField iconType="data" label="Data de Cadastro" value={data?.created_at ? formatDate(data.created_at) : '-'} color="orange" />
+            </div>
+          </InfoCard>
+
+          {/* Aplicabilidade */}
+          <InfoCard icon={Shield} title="Aplicabilidade" color="emerald">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-emerald-50 rounded-lg">
+                <p className="text-sm font-medium text-emerald-600 mb-2">Aplicável para:</p>
+                <div className="space-y-2">
+                  {data?.aplicavel_pf && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                      Pessoa Física
+                    </span>
+                  )}
+                  {data?.aplicavel_pj && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                      Pessoa Jurídica
+                    </span>
+                  )}
+                  {!data?.aplicavel_pf && !data?.aplicavel_pj && (
+                    <span className="text-gray-500 text-sm">Não definido</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </InfoCard>
+
+          {/* Descrição */}
+          {data?.descricao && (
+            <InfoCard icon={FileText} title="Descrição" color="purple">
+              <div className="p-4 bg-purple-50 rounded-lg">
+                <p className="text-gray-700">{data.descricao}</p>
+              </div>
+            </InfoCard>
+          )}
+
+          {/* Status */}
+          <InfoCard icon={Shield} title="Status" color="indigo">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InfoField
+                iconType="data"
+                label="Última Atualização"
+                value={data?.updated_at ? formatDate(data.updated_at) : '-'}
+                color="indigo"
+              />
+              <div className="p-4 bg-indigo-50 rounded-lg">
+                <p className="text-sm font-medium text-indigo-600 mb-2">Status Atual</p>
+                <StatusBadge active={data?.ativo} label={data?.ativo ? 'Ativo' : 'Inativo'} />
+              </div>
+            </div>
+          </InfoCard>
+        </div>
+
+        {/* Footer */}
+        <div className="px-8 py-6 bg-gray-100 rounded-b-2xl">
+          <div className="flex justify-end">
+            <button
+              onClick={onClose}
+              className="px-6 py-3 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors duration-200 shadow-md"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   // Renderizar baseado no tipo
   switch (type) {
     case 'cliente':
@@ -565,6 +669,8 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
       return renderCargo();
     case 'servico':
       return renderServico();
+    case 'regime':
+      return renderRegime();
     default:
       return null;
   }

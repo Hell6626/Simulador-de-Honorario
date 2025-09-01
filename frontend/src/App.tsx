@@ -13,32 +13,9 @@ import { AgendaPage } from './components/pages/AgendaPage';
 import { FuncionariosPage } from './components/pages/FuncionariosPage';
 import { CargosPage } from './components/pages/CargosPage';
 import { ServicosPage } from './components/pages/ServicosPage';
+import { TiposAtividadePage } from './components/pages/TiposAtividadePage';
 
-const TiposAtividadePage = () => (
-  <div className="space-y-6">
-    <div className="mb-6">
-      <h1 className="text-2xl font-bold text-gray-900">Tipos de Atividade</h1>
-      <p className="text-sm text-gray-500">Configure os tipos de atividade contábil disponíveis</p>
-    </div>
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-      <h2 className="text-xl font-bold mb-4">Tipos de Atividade</h2>
-      <p>Página em desenvolvimento...</p>
-    </div>
-  </div>
-);
-
-const RegimesTributariosPage = () => (
-  <div className="space-y-6">
-    <div className="mb-6">
-      <h1 className="text-2xl font-bold text-gray-900">Regimes Tributários</h1>
-      <p className="text-sm text-gray-500">Gerencie os regimes tributários e suas configurações</p>
-    </div>
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-      <h2 className="text-xl font-bold mb-4">Regimes Tributários</h2>
-      <p>Página em desenvolvimento...</p>
-    </div>
-  </div>
-);
+import { RegimesTributariosPage } from './components/pages/RegimesTributariosPage';
 
 
 

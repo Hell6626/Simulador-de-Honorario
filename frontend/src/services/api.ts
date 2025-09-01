@@ -282,10 +282,17 @@ class ApiService {
     if (params?.ativo !== undefined) query.append('ativo', params.ativo.toString());
     if (params?.aplicavel_pf !== undefined) query.append('aplicavel_pf', params.aplicavel_pf.toString());
     if (params?.aplicavel_pj !== undefined) query.append('aplicavel_pj', params.aplicavel_pj.toString());
-    if (params?.atividades_ids) query.append('atividades_ids', params.atividades_ids.join(','));
+    if (params?.atividades_ids) {
+      console.log('🔍 DEBUG API: Enviando atividades_ids:', params.atividades_ids);
+      params.atividades_ids.forEach(id => query.append('atividades_ids', id.toString()));
+    }
     if (params?.search) query.append('search', params.search);
 
-    return this.request<any>(`/regimes-tributarios?${query}`);
+    const url = `/regimes-tributarios?${query}`;
+    console.log('🔍 DEBUG API: URL final:', url);
+    console.log('🔍 DEBUG API: Query string:', query.toString());
+    
+    return this.request<any>(url);
   }
 
   async getRegimeTributario(id: number) {
@@ -308,6 +315,38 @@ class ApiService {
 
   async deleteRegimeTributario(id: number) {
     return this.request(`/regimes-tributarios/${id}`, { method: 'DELETE' });
+  }
+
+  // Métodos para a página de Regimes Tributários (mesmo padrão de clientes)
+  async getRegimes(params: { page?: number; per_page?: number; search?: string; ativo?: boolean }) {
+    const query = new URLSearchParams();
+    if (params?.page) query.append('page', String(params.page));
+    if (params?.per_page) query.append('per_page', String(params.per_page));
+    if (params?.search) query.append('search', params.search);
+    if (params?.ativo !== undefined) query.append('ativo', String(params.ativo));
+    return this.request<any>(`/regimes-tributarios?${query.toString()}`);
+  }
+
+  async getRegime(id: number) {
+    return this.request<any>(`/regimes-tributarios/${id}`);
+  }
+
+  async createRegime(data: any) {
+    return this.request<any>('/regimes-tributarios', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateRegime(id: number, data: any) {
+    return this.request<any>(`/regimes-tributarios/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteRegime(id: number) {
+    return this.request<any>(`/regimes-tributarios/${id}`, { method: 'DELETE' });
   }
 
   // Faixas de Faturamento
@@ -383,6 +422,13 @@ class ApiService {
         regime_tributario_id: regimeTributarioId
       }),
     });
+  }
+
+  async getRegimesTributarios(tipoAtividadeId?: number) {
+    if (tipoAtividadeId) {
+      return this.request<any>(`/servicos/regimes-tributarios?tipo_atividade_id=${tipoAtividadeId}`);
+    }
+    return this.request<any>('/servicos/regimes-tributarios');
   }
 
   // Propostas

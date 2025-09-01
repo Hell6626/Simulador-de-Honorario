@@ -52,5 +52,14 @@ def build_search_filters(model, search_term: str, search_fields: List[str]):
     for field in search_fields:
         if hasattr(model, field):
             attr = getattr(model, field)
-            filters.append(attr.ilike(f'%{search_term}%'))
+            try:
+                # Tentar usar ilike para campos de texto
+                if hasattr(attr, 'ilike'):
+                    filters.append(attr.ilike(f'%{search_term}%'))
+                else:
+                    # Para outros tipos de campos, usar comparação direta
+                    filters.append(attr == search_term)
+            except Exception as e:
+                print(f"🔍 DEBUG: Erro ao aplicar filtro para campo {field}: {e}")
+                continue
     return filters

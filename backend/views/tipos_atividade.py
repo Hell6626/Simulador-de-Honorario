@@ -28,7 +28,7 @@ def get_tipos_atividade():
     if aplicavel_pj is not None:
         query = query.filter(TipoAtividade.aplicavel_pj == aplicavel_pj)
     if search:
-        search_filters = build_search_filters(TipoAtividade, search, ['nome', 'codigo', 'descricao'])
+        search_filters = build_search_filters(TipoAtividade, search, ['nome', 'codigo'])
         if search_filters:
             query = query.filter(or_(*search_filters))
 
@@ -52,7 +52,6 @@ def create_tipo_atividade():
     tipo = TipoAtividade(
         nome=data['nome'].strip(),
         codigo=data['codigo'].strip().upper(),
-        descricao=(data.get('descricao') or '').strip() or None,
         aplicavel_pf=data.get('aplicavel_pf', False),
         aplicavel_pj=data.get('aplicavel_pj', False),
         ativo=data.get('ativo', True)
@@ -68,15 +67,13 @@ def update_tipo_atividade(tipo_id: int):
     tipo = TipoAtividade.query.get_or_404(tipo_id)
     data = request.get_json() or {}
 
-    for field in ['nome', 'codigo', 'descricao', 'aplicavel_pf', 'aplicavel_pj', 'ativo']:
+    for field in ['nome', 'codigo', 'aplicavel_pf', 'aplicavel_pj', 'ativo']:
         if field in data:
             value = data[field]
             if field in ['nome', 'codigo'] and value:
                 value = value.strip()
                 if field == 'codigo':
                     value = value.upper()
-            elif field == 'descricao' and value:
-                value = value.strip() or None
             setattr(tipo, field, value)
 
     db.session.commit()

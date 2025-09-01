@@ -157,10 +157,26 @@ def create_servico():
         tipo_cobranca=data.get('tipo_cobranca', 'MENSAL'),
         valor_base=data['valor_base'],
         descricao=data.get('descricao'),
+        tipo_atividade_id=data.get('tipo_atividade_id'),
         ativo=True
     )
     
     db.session.add(servico)
+    db.session.flush()  # Para obter o ID do serviço
+    
+    # Vincular regimes tributários se fornecidos
+    if 'regimes_tributarios' in data and data['regimes_tributarios']:
+        for regime_id in data['regimes_tributarios']:
+            # Verificar se o regime existe
+            regime = RegimeTributario.query.get(regime_id)
+            if regime:
+                servico_regime = ServicoRegime(
+                    servico_id=servico.id,
+                    regime_tributario_id=regime_id,
+                    ativo=True
+                )
+                db.session.add(servico_regime)
+    
     db.session.commit()
     
     return jsonify(servico.to_json()), 201
@@ -185,12 +201,62 @@ def update_servico(servico_id: int):
         servico.valor_base = data['valor_base']
     if 'descricao' in data:
         servico.descricao = data['descricao']
+    if 'tipo_atividade_id' in data:
+        servico.tipo_atividade_id = data['tipo_atividade_id']
     if 'ativo' in data:
         servico.ativo = data['ativo']
+    
+    # Atualizar regimes tributários se fornecidos
+    if 'regimes_tributarios' in data:
+        # Remover vínculos existentes
+        ServicoRegime.query.filter_by(servico_id=servico_id).delete()
+        
+        # Adicionar novos vínculos
+        if data['regimes_tributarios']:
+            for regime_id in data['regimes_tributarios']:
+                # Verificar se o regime existe
+                regime = RegimeTributario.query.get(regime_id)
+                if regime:
+                    servico_regime = ServicoRegime(
+                        servico_id=servico_id,
+                        regime_tributario_id=regime_id,
+                        ativo=True
+                    )
+                    db.session.add(servico_regime)
     
     db.session.commit()
     
     return jsonify(servico.to_json())
+
+
+@servicos_bp.route('/regimes-tributarios', methods=['GET'])
+@jwt_required()
+@handle_api_errors
+def get_regimes_tributarios():
+    """Retorna regimes tributários filtrados por tipo de atividade"""
+    tipo_atividade_id = request.args.get('tipo_atividade_id', type=int)
+    
+    if not tipo_atividade_id:
+        return jsonify({'error': 'tipo_atividade_id é obrigatório'}), 400
+    
+    try:
+        # Buscar regimes tributários que são aplicáveis ao tipo de atividade
+        from models.tributario import AtividadeRegime
+        
+        regimes = db.session.query(RegimeTributario).join(
+            AtividadeRegime, 
+            AtividadeRegime.regime_tributario_id == RegimeTributario.id
+        ).filter(
+            AtividadeRegime.tipo_atividade_id == tipo_atividade_id,
+            RegimeTributario.ativo == True,
+            AtividadeRegime.ativo == True
+        ).order_by(RegimeTributario.nome).all()
+        
+        return jsonify([regime.to_json() for regime in regimes])
+        
+    except Exception as e:
+        current_app.logger.error(f"Erro ao buscar regimes por tipo de atividade: {e}")
+        return jsonify({'error': 'Erro interno do servidor'}), 500
 
 
 @servicos_bp.route('/<int:servico_id>/impacto-exclusao', methods=['GET'])

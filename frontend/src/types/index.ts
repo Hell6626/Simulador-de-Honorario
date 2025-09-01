@@ -91,7 +91,13 @@ export interface Servico {
   tipo_cobranca: string;
   valor_base: number;
   descricao?: string;
+  tipo_atividade_id?: number;
   ativo: boolean;
+  regimes_tributarios?: Array<{
+    id: number;
+    codigo: string;
+    nome: string;
+  }>;
   created_at: string;
   updated_at: string;
 }
@@ -252,4 +258,17 @@ export interface Notificacao {
   proposta?: Proposta;
   para_funcionario?: Funcionario;
   de_funcionario?: Funcionario;
+}
+
+// Interface para a página de Regimes Tributários
+export interface RegimeTributarioPage {
+  id: number;
+  nome: string;
+  codigo: string;
+  descricao?: string;
+  aplicavel_pf: boolean;
+  aplicavel_pj: boolean;
+  ativo: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
