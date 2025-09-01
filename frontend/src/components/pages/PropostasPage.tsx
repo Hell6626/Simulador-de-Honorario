@@ -181,6 +181,7 @@ interface TipoAtividade {
 
 interface PropostasPageProps {
   openModalOnLoad?: boolean;
+  propostaId?: number;
 }
 
 // Funções helper para mapear status das propostas
@@ -223,7 +224,7 @@ const getStatusLabel = (status: string): string => {
   }
 };
 
-export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = false }) => {
+export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = false, propostaId }) => {
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [filteredPropostas, setFilteredPropostas] = useState<Proposta[]>([]);
   const [loading, setLoading] = useState(true);
@@ -275,9 +276,22 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
   // Estado para todos os serviços
   const [todosServicos, setTodosServicos] = useState<any[]>([]);
 
+  // ⚠️ NOVO: useEffect para lidar com propostaId da notificação
+  useEffect(() => {
+    if (propostaId) {
+      // Buscar a proposta específica e abrir modal de edição
+      const proposta = propostas.find(p => p.id === propostaId);
+      if (proposta) {
+        setPropostaSelecionada(proposta);
+        setModalEdicaoCompletaOpen(true);
+      }
+    }
+  }, [propostaId, propostas]);
+
   const fetchTodosServicos = async () => {
     try {
-      const servicos = await apiService.getServicos();
+      const servicosResponse = await apiService.getServicos({ ativo: true, per_page: 1000 });
+      const servicos = servicosResponse?.items || [];
       setTodosServicos(servicos);
       console.log('✅ Todos os serviços carregados:', servicos.length);
     } catch (error) {

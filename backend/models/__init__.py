@@ -32,6 +32,7 @@ from .servicos import Servico
 # IMPORTS DOS MODELOS DE PROPOSTAS
 # =====================================================
 from .propostas import Proposta, ItemProposta, PropostaLog
+from .notificacoes import Notificacao
 
 # =====================================================
 # IMPORTS DOS SERVIÇOS

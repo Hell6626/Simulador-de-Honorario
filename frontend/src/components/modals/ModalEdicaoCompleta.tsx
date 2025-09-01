@@ -93,22 +93,24 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
     try {
       console.log('🔍 Carregando dados da proposta:', proposta!.id);
 
-      const [propostaCompleta, cliente, tipos, regimes, servicos] = await Promise.all([
+      const [propostaCompleta, cliente, tipos, regimes, servicosResponse] = await Promise.all([
         apiService.getProposta(proposta!.id),
         apiService.getCliente(proposta!.cliente_id),
         apiService.getTiposAtividade(),
         apiService.getRegimesTributarios(),
-        apiService.getServicos()
+        apiService.getServicos({ ativo: true, per_page: 1000 }) // Carregar todos os serviços ativos
       ]);
 
       console.log('📄 Proposta completa:', propostaCompleta);
       console.log('💰 Resumo financeiro:', propostaCompleta.resumo_financeiro);
       console.log('🏢 Taxa abertura:', propostaCompleta.taxa_abertura);
 
+      const servicos = servicosResponse?.items || [];
+
       setClienteCompleto(cliente);
       setTiposAtividade(tipos || []);
       setRegimesTributarios(regimes || []);
-      setTodosServicos(servicos || []);
+      setTodosServicos(servicos);
 
       // ⚠️ CONVERTER: Itens para servicosSelecionados
       const servicosSelecionados = (propostaCompleta.itens || []).map((item: any) => ({
@@ -119,7 +121,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
         extras: {
           descricao_personalizada: item.descricao_personalizada || ''
         },
-        servico: item.servico || servicos?.find((s: any) => s.id === item.servico_id) || {
+        servico: item.servico || servicos.find((s: any) => s.id === item.servico_id) || {
           nome: `Serviço ID: ${item.servico_id}`,
           categoria: 'DESCONHECIDO'
         }
@@ -132,7 +134,8 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
       const valorBase = resumo.valor_base || (valorServicos + taxaAbertura);
       const valorFinal = resumo.valor_final || propostaCompleta.valor_total;
       const descontoValor = resumo.desconto_valor || 0;
-      const descontoPercentual = Math.abs(resumo.desconto_percentual || 0);
+      // ⚠️ CORRIGIDO: Usar o percentual salvo no banco em vez do calculado
+      const descontoPercentual = resumo.percentual_desconto_banco || 0;
       const descontoTipo = resumo.desconto_tipo || 'sem_desconto';
 
       console.log('💰 Valores financeiros corretos:', {
@@ -211,47 +214,42 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
     // ⚠️ VALOR BASE: Serviços + Taxa
     const valorBaseAtual = valorServicosAtual + taxaAberturaAtual;
 
-    // ⚠️ DESCONTO REAL: Base - Final
-    const descontoRealValor = valorBaseAtual - dados.valor_total;
-    const descontoRealPercentual = valorBaseAtual > 0 ? (descontoRealValor / valorBaseAtual) * 100 : 0;
+    // ⚠️ APLICAR: Desconto ao valor base
+    const descontoValor = (valorBaseAtual * dados.percentual_desconto) / 100;
+    const valorTotalFinal = valorBaseAtual - descontoValor;
 
     // ⚠️ TIPO DE DESCONTO
     let tipoDesconto = 'sem_desconto';
-    if (descontoRealValor > 0) {
+    if (descontoValor > 0) {
       tipoDesconto = 'desconto';
-    } else if (descontoRealValor < 0) {
+    } else if (descontoValor < 0) {
       tipoDesconto = 'acrescimo';
     }
 
-    // ⚠️ ATUALIZAR: Estado apenas se valores mudaram
-    if (
-      valorServicosAtual !== dados.valor_servicos ||
-      taxaAberturaAtual !== dados.taxa_abertura ||
-      valorBaseAtual !== dados.valor_base ||
-      descontoRealValor !== dados.desconto_valor
-    ) {
-      setDados((prev: DadosProposta) => ({
-        ...prev,
-        valor_servicos: valorServicosAtual,
-        taxa_abertura: taxaAberturaAtual,
-        valor_base: valorBaseAtual,
-        desconto_valor: descontoRealValor,
-        desconto_percentual: Math.abs(descontoRealPercentual),
-        desconto_tipo: tipoDesconto
-      }));
+    // ⚠️ ATUALIZAR: Estado com valores recalculados
+    setDados((prev: DadosProposta) => ({
+      ...prev,
+      valor_servicos: valorServicosAtual,
+      taxa_abertura: taxaAberturaAtual,
+      valor_base: valorBaseAtual,
+      valor_total: valorTotalFinal, // ⚠️ VALOR TOTAL ATUALIZADO
+      desconto_valor: descontoValor,
+      desconto_percentual: dados.percentual_desconto, // ⚠️ USAR DESCONTO INFORMADO
+      desconto_tipo: tipoDesconto,
+      valor_desconto: Math.abs(descontoValor) // ⚠️ VALOR DO DESCONTO
+    }));
 
-      console.log('💰 Valores recalculados:', {
-        valorServicosAtual,
-        taxaAberturaAtual,
-        valorBaseAtual,
-        valorTotal: dados.valor_total,
-        descontoRealValor,
-        descontoRealPercentual,
-        tipoDesconto
-      });
-    }
+    console.log('💰 Valores recalculados:', {
+      valorServicosAtual,
+      taxaAberturaAtual,
+      valorBaseAtual,
+      percentualDesconto: dados.percentual_desconto,
+      descontoValor,
+      valorTotalFinal,
+      tipoDesconto
+    });
 
-  }, [dados.servicosSelecionados, dados.regime_tributario_id, dados.valor_total, clienteCompleto, regimesTributarios, dados.taxa_abertura_aplicavel]);
+  }, [dados.servicosSelecionados, dados.regime_tributario_id, dados.percentual_desconto, clienteCompleto, regimesTributarios, dados.taxa_abertura_aplicavel]);
 
   // Alterar regime tributário
   const handleRegimeChange = async (regimeId: number) => {
@@ -279,13 +277,23 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
   const handleSalvar = async () => {
     setSalvando(true);
     try {
+      // ⚠️ CALCULAR: Valor total baseado no desconto
+      const valorServicos = dados.servicosSelecionados.reduce((sum, item) => sum + item.subtotal, 0);
+      const taxaAbertura = dados.taxa_abertura || 0;
+      const valorBase = valorServicos + taxaAbertura;
+
+      // ⚠️ APLICAR: Desconto ao valor base
+      const descontoValor = (valorBase * dados.percentual_desconto) / 100;
+      const valorTotalFinal = valorBase - descontoValor;
+
       // Preparar dados para API
       const dadosUpdate = {
         tipo_atividade_id: dados.tipo_atividade_id,
         regime_tributario_id: dados.regime_tributario_id,
         faixa_faturamento_id: dados.faixa_faturamento_id,
         status: dados.status,
-        valor_total: dados.valor_total,
+        valor_total: valorTotalFinal, // ⚠️ VALOR RECALCULADO
+        percentual_desconto: dados.percentual_desconto, // ⚠️ DESCONTO INCLUÍDO
         data_validade: dados.data_validade,
         observacoes: montarObservacoesCompletas(),
         // Incluir itens atualizados

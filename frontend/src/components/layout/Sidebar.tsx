@@ -1,26 +1,27 @@
-import React from 'react';
-import { 
-  Home, 
-  Users, 
-  UserCheck, 
-  Building2, 
-  FileText, 
-  Calculator, 
+import React, { useState, useEffect } from 'react';
+import {
+  Home,
+  Users,
+  UserCheck,
+  Building2,
+  FileText,
+  Calculator,
   Settings,
   MessageCircle,
   BarChart3,
   Shield,
   LogOut,
-  Bell,
   User,
   Calendar,
   Briefcase
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { NotificacoesDropdown } from '../common/NotificacoesDropdown';
 
 interface SidebarProps {
   currentPage: string;
   setCurrentPage: (page: string) => void;
+  onNavigateToProposta?: (propostaId: number) => void;
 }
 
 interface MenuItem {
@@ -45,11 +46,17 @@ const menuItems: MenuItem[] = [
   { id: 'configuracoes', label: 'Configurações', icon: Settings, section: 'sistema' },
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({ 
-  currentPage, 
-  setCurrentPage
+export const Sidebar: React.FC<SidebarProps> = ({
+  currentPage,
+  setCurrentPage,
+  onNavigateToProposta
 }) => {
   const { logout } = useAuth();
+  const [notificationCount, setNotificationCount] = useState(0);
+
+  const handleNotificationCountChange = (count: number) => {
+    setNotificationCount(count);
+  };
 
   const getSectionTitle = (section: string) => {
     switch (section) {
@@ -78,11 +85,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.id}
                 onClick={() => setCurrentPage(item.id)}
-                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  currentPage === item.id
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === item.id
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
               >
                 <Icon className="w-4 h-4 mr-3 flex-shrink-0" />
                 <span>{item.label}</span>
@@ -118,13 +124,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="border-t border-gray-200 p-3">
         <div className="flex items-center justify-between mb-3">
           {/* Notifications */}
-          <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-100">
-            <Bell className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-              1
-            </span>
-          </button>
-          
+          <NotificacoesDropdown
+            onNotificationCountChange={handleNotificationCountChange}
+            onNavigateToProposta={onNavigateToProposta}
+          />
+
           {/* User Info */}
           <div className="flex items-center space-x-3">
             <div className="text-right">

@@ -174,7 +174,9 @@ def get_proposta(proposta_id: int):
         'desconto_tipo': (
             'desconto' if dados_completos['desconto_valor'] > 0 else
             'acrescimo' if dados_completos['desconto_valor'] < 0 else 'sem_desconto'
-        )
+        ),
+        # ⚠️ NOVO: Percentual de desconto salvo no banco
+        'percentual_desconto_banco': proposta.percentual_desconto
     }
     
     current_app.logger.info(
@@ -227,10 +229,22 @@ def create_proposta():
         regime_tributario_id=data['regime_tributario_id'],
         faixa_faturamento_id=data.get('faixa_faturamento_id'),
         valor_total=data.get('valor_total', 0),
+        percentual_desconto=data.get('percentual_desconto', 0),  # Percentual de desconto (0-100)
         data_validade=datetime.fromisoformat(data.get('data_validade')) if data.get('data_validade') else datetime.now() + timedelta(days=30),
         status=data.get('status', 'RASCUNHO'),
         observacoes=(data.get('observacoes') or '').strip() or None,
     )
+    
+    # ⚠️ VERIFICAR: Se requer aprovação gerencial
+    if proposta.calcular_requer_aprovacao():
+        proposta.requer_aprovacao = True
+        proposta.status = 'PENDENTE'
+        
+        # Criar notificação para gerentes
+        from models.notificacoes import Notificacao
+        Notificacao.criar_notificacao_aprovacao(proposta, funcionario_id)
+        
+        current_app.logger.info(f"Proposta {proposta.numero} requer aprovação gerencial - Desconto: {proposta.percentual_desconto}%")
     db.session.add(proposta)
     db.session.flush()  # Para obter o ID da proposta
 
@@ -318,6 +332,69 @@ def update_proposta(proposta_id: int):
         })
         proposta.valor_total = data['valor_total']
     
+    # Percentual de desconto
+    if 'percentual_desconto' in data and int(data['percentual_desconto']) != proposta.percentual_desconto:
+        # ⚠️ CAPTURAR: Desconto anterior para comparação
+        desconto_anterior = proposta.percentual_desconto or 0
+        desconto_novo = int(data['percentual_desconto'])
+        
+        alteracoes_realizadas.append({
+            'campo': 'percentual_desconto',
+            'valor_anterior': desconto_anterior,
+            'valor_novo': desconto_novo
+        })
+        proposta.percentual_desconto = desconto_novo
+        
+        # ⚠️ RECALCULAR: Valor total baseado no novo desconto
+        dados_completos = obter_dados_completos_proposta(proposta_id)
+        valor_base = dados_completos['valor_base']
+        desconto_valor = (valor_base * proposta.percentual_desconto) / 100
+        novo_valor_total = valor_base - desconto_valor
+        
+        alteracoes_realizadas.append({
+            'campo': 'valor_total',
+            'valor_anterior': float(proposta.valor_total),
+            'valor_novo': float(novo_valor_total)
+        })
+        proposta.valor_total = novo_valor_total
+        
+        # ⚠️ VERIFICAR: Se precisa de aprovação (NOVA LÓGICA)
+        if desconto_novo > 20.0:
+            # Se desconto passou de <= 20% para > 20%
+            if desconto_anterior <= 20.0:
+                proposta.status = 'PENDENTE'
+                proposta.requer_aprovacao = True
+                
+                # CRIAR NOTIFICAÇÃO PARA ATUALIZAÇÃO
+                from models.notificacoes import Notificacao
+                Notificacao.criar_notificacao_aprovacao(proposta, funcionario_id, is_update=True)
+                
+                alteracoes_realizadas.append({
+                    'campo': 'status',
+                    'valor_anterior': 'RASCUNHO',
+                    'valor_novo': 'PENDENTE'
+                })
+                
+                current_app.logger.info(f"Proposta {proposta.numero} agora requer aprovação gerencial - Desconto: {proposta.percentual_desconto}% (atualização)")
+            
+            # Se já tinha > 20% e ainda tem, manter status atual se era PENDENTE
+            elif proposta.status not in ['APROVADA', 'REJEITADA']:
+                proposta.status = 'PENDENTE'
+                proposta.requer_aprovacao = True
+        else:
+            # Se desconto foi reduzido para <= 20%
+            if desconto_anterior > 20.0:
+                proposta.status = 'RASCUNHO'
+                proposta.requer_aprovacao = False
+                
+                alteracoes_realizadas.append({
+                    'campo': 'status',
+                    'valor_anterior': 'PENDENTE',
+                    'valor_novo': 'RASCUNHO'
+                })
+                
+                current_app.logger.info(f"Proposta {proposta.numero} não requer mais aprovação - Desconto: {proposta.percentual_desconto}% (atualização)")
+    
     # Observações
     if 'observacoes' in data:
         obs_nova = (data['observacoes'] or '').strip() or None
@@ -393,7 +470,9 @@ def update_proposta(proposta_id: int):
         'desconto_tipo': (
             'desconto' if dados_atualizados['desconto_valor'] > 0 else
             'acrescimo' if dados_atualizados['desconto_valor'] < 0 else 'sem_desconto'
-        )
+        ),
+        # ⚠️ NOVO: Percentual de desconto salvo no banco
+        'percentual_desconto_banco': proposta.percentual_desconto
     }
     
     current_app.logger.info(
@@ -691,6 +770,82 @@ def finalizar_proposta(proposta_id: int):
         db.session.rollback()
         current_app.logger.error(f"Erro ao finalizar proposta {proposta_id}: {str(e)}")
         return jsonify({'error': f'Erro interno ao finalizar proposta: {str(e)}'}), 500
+
+@propostas_bp.route('/<int:proposta_id>/aprovar', methods=['POST'])
+@jwt_required()
+@handle_api_errors
+def aprovar_proposta(proposta_id: int):
+    """Aprova uma proposta que requer aprovação gerencial"""
+    proposta = Proposta.query.get_or_404(proposta_id)
+    funcionario_id = int(get_jwt_identity())
+
+    # Verificar se funcionário existe e está ativo
+    funcionario = Funcionario.query.get(funcionario_id)
+    if not funcionario or not funcionario.ativo:
+        raise ValueError('Funcionário não encontrado')
+    
+    # Verificar se funcionário é gerente
+    if not funcionario.gerente:
+        raise ValueError('Apenas gerentes podem aprovar propostas')
+
+    # Verificar se proposta requer aprovação
+    if not proposta.requer_aprovacao:
+        raise ValueError('Esta proposta não requer aprovação')
+
+    # Aprovar proposta
+    proposta.aprovar(funcionario_id)
+
+    current_app.logger.info(
+        f"Proposta aprovada: #{proposta.numero} "
+        f"(ID: {proposta.id}, Gerente: {funcionario.nome})"
+    )
+    
+    return jsonify({
+        'message': 'Proposta aprovada com sucesso',
+        'proposta': proposta.to_json()
+    })
+
+
+@propostas_bp.route('/<int:proposta_id>/rejeitar', methods=['POST'])
+@jwt_required()
+@handle_api_errors
+def rejeitar_proposta(proposta_id: int):
+    """Rejeita uma proposta que requer aprovação gerencial"""
+    proposta = Proposta.query.get_or_404(proposta_id)
+    funcionario_id = int(get_jwt_identity())
+    data = request.get_json() or {}
+
+    # Verificar se funcionário existe e está ativo
+    funcionario = Funcionario.query.get(funcionario_id)
+    if not funcionario or not funcionario.ativo:
+        raise ValueError('Funcionário não encontrado')
+    
+    # Verificar se funcionário é gerente
+    if not funcionario.gerente:
+        raise ValueError('Apenas gerentes podem rejeitar propostas')
+
+    # Verificar se proposta requer aprovação
+    if not proposta.requer_aprovacao:
+        raise ValueError('Esta proposta não requer aprovação')
+
+    # Obter motivo da rejeição
+    motivo = data.get('motivo', 'Rejeitada pelo gerente')
+    if not motivo:
+        raise ValueError('Motivo da rejeição é obrigatório')
+
+    # Rejeitar proposta
+    proposta.rejeitar(funcionario_id, motivo)
+
+    current_app.logger.info(
+        f"Proposta rejeitada: #{proposta.numero} "
+        f"(ID: {proposta.id}, Gerente: {funcionario.nome}, Motivo: {motivo})"
+    )
+    
+    return jsonify({
+        'message': 'Proposta rejeitada com sucesso',
+        'proposta': proposta.to_json()
+    })
+
 
 @propostas_bp.route('/<int:proposta_id>', methods=['DELETE'])
 @jwt_required()

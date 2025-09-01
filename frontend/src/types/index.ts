@@ -85,11 +85,15 @@ export interface FaixaFaturamento {
 
 export interface Servico {
   id: number;
+  codigo: string;
   nome: string;
   categoria: string;
-  descricao: string;
+  tipo_cobranca: string;
   valor_base: number;
+  descricao?: string;
   ativo: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Proposta {
@@ -101,6 +105,11 @@ export interface Proposta {
   regime_tributario_id: number;
   faixa_faturamento_id?: number;
   valor_total: number;
+  percentual_desconto: number;
+  requer_aprovacao: boolean;
+  aprovada_por?: number;
+  data_aprovacao?: string;
+  motivo_rejeicao?: string;
   data_validade?: string;
   status: string;
   observacoes?: string;
@@ -135,6 +144,7 @@ export interface PropostaParaCriacao {
   regime_tributario_id: number;
   faixa_faturamento_id?: number;
   valor_total: number;
+  percentual_desconto?: number;
   data_validade?: string;
   status?: 'RASCUNHO' | 'PENDENTE' | 'APROVADA' | 'REJEITADA' | 'ENVIADA';
   observacoes?: string;
@@ -224,4 +234,22 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
+}
+
+export interface Notificacao {
+  id: number;
+  tipo: string;
+  titulo: string;
+  mensagem: string;
+  proposta_id?: number;
+  para_funcionario_id: number;
+  de_funcionario_id?: number;
+  lida: boolean;
+  data_leitura?: string;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+  proposta?: Proposta;
+  para_funcionario?: Funcionario;
+  de_funcionario?: Funcionario;
 }

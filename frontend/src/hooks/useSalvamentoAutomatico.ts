@@ -42,7 +42,8 @@ const getTipoAbertura = (cliente: any, regimeTributario: any): string => {
 const garantirServicoTaxaAbertura = async (tipo: 'MEI' | 'EMPRESA'): Promise<number> => {
   try {
     // Buscar se já existe serviço de taxa de abertura
-    const servicos = await apiService.getServicos();
+    const servicosResponse = await apiService.getServicos({ ativo: true, per_page: 1000 });
+    const servicos = servicosResponse?.items || [];
     const servicoExistente = servicos.find((s: any) =>
       s.codigo === `TAXA_ABERTURA_${tipo}` ||
       s.nome.toLowerCase().includes(`taxa abertura ${tipo.toLowerCase()}`)

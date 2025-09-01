@@ -336,7 +336,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
         regimeTributario.id
       );
 
-      const servicos = response.servicos || [];
+      const servicos = response.items || response.servicos || [];
       setTodosServicos(servicos);
 
       // ⚠️ AGRUPAR: Serviços por categoria

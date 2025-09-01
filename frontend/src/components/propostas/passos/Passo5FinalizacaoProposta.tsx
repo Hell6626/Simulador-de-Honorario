@@ -152,7 +152,8 @@ export const Passo5FinalizacaoProposta: React.FC<Passo5Props> = ({
         const carregarServicos = async () => {
             try {
                 setLoading(true);
-                const servicos = await apiService.getServicos();
+                const servicosResponse = await apiService.getServicos({ ativo: true, per_page: 1000 });
+                const servicos = servicosResponse?.items || [];
                 setTodosServicos(servicos);
             } catch (error) {
                 console.error('Erro ao carregar serviços:', error);
@@ -176,12 +177,12 @@ export const Passo5FinalizacaoProposta: React.FC<Passo5Props> = ({
 
             // Chamada real para o backend gerar o PDF
             const response = await apiService.gerarPDFProposta(proposta.id);
-            
+
             console.log('✅ PDF gerado com sucesso:', response);
-            
+
             // Mostrar sucesso
             alert('PDF gerado com sucesso! O arquivo foi salvo no servidor.');
-            
+
             // Opcional: abrir PDF em nova aba
             // window.open(`/api/propostas/${proposta.id}/pdf`, '_blank');
 

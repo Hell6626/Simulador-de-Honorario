@@ -12,6 +12,7 @@ import { AgendaPage } from './components/pages/AgendaPage';
 // Placeholder components for other pages
 import { FuncionariosPage } from './components/pages/FuncionariosPage';
 import { CargosPage } from './components/pages/CargosPage';
+import { ServicosPage } from './components/pages/ServicosPage';
 
 const TiposAtividadePage = () => (
   <div className="space-y-6">
@@ -39,18 +40,7 @@ const RegimesTributariosPage = () => (
   </div>
 );
 
-const ServicosPage = () => (
-  <div className="space-y-6">
-    <div className="mb-6">
-      <h1 className="text-2xl font-bold text-gray-900">Serviços</h1>
-      <p className="text-sm text-gray-500">Configure os serviços contábeis oferecidos</p>
-    </div>
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-      <h2 className="text-xl font-bold mb-4">Serviços</h2>
-      <p>Página em desenvolvimento...</p>
-    </div>
-  </div>
-);
+
 
 const RelatoriosPage = () => (
   <div className="space-y-6">
@@ -81,7 +71,7 @@ const ConfiguracoesPage = () => (
 const AppContent: React.FC = () => {
   const { isAuthenticated, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
-  const [navigationOptions, setNavigationOptions] = useState<{ openModal?: boolean }>({});
+  const [navigationOptions, setNavigationOptions] = useState<{ openModal?: boolean; propostaId?: number }>({});
 
   if (loading) {
     return (
@@ -105,12 +95,17 @@ const AppContent: React.FC = () => {
     }, 100);
   };
 
+  const handleNavigateToProposta = (propostaId: number) => {
+    setCurrentPage('propostas');
+    setNavigationOptions({ propostaId });
+  };
+
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
         return <DashboardPage onNavigate={handleNavigate} />;
       case 'propostas':
-        return <PropostasPage openModalOnLoad={navigationOptions.openModal} />;
+        return <PropostasPage openModalOnLoad={navigationOptions.openModal} propostaId={navigationOptions.propostaId} />;
       case 'clientes':
         return <ClientesPage openModalOnLoad={navigationOptions.openModal} />;
       case 'funcionarios':
@@ -141,6 +136,7 @@ const AppContent: React.FC = () => {
       <Sidebar
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
+        onNavigateToProposta={handleNavigateToProposta}
       />
 
       <main className="flex-1 overflow-hidden">

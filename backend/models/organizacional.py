@@ -84,7 +84,7 @@ class Funcionario(db.Model, TimestampMixin, ActiveMixin):
     
     # Relacionamentos
     empresa = db.relationship('Empresa', backref='funcionarios', lazy=True)
-    propostas = db.relationship('Proposta', lazy=True)
+    # Remover relacionamento ambíguo - será definido no modelo Proposta
     logs_proposta = db.relationship('PropostaLog', backref='funcionario', lazy=True)
     
     def __repr__(self):

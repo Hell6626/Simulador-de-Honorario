@@ -47,9 +47,9 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify({ email, senha }),
     });
-    
+
     Cookies.set(TOKEN_KEY, response.token, { expires: 7 });
-    
+
     return response;
   }
 
@@ -130,7 +130,7 @@ class ApiService {
     if (params?.ativo !== undefined) query.append('ativo', params.ativo.toString());
     if (params?.search) query.append('search', params.search);
     if (params?.empresa_id) query.append('empresa_id', params.empresa_id.toString());
-    
+
     return this.request<any>(`/cargos?${query}`);
   }
 
@@ -168,7 +168,7 @@ class ApiService {
     if (params?.per_page) query.append('per_page', params.per_page.toString());
     if (params?.ativo !== undefined) query.append('ativo', params.ativo.toString());
     if (params?.search) query.append('search', params.search);
-    
+
     return this.request<any>(`/empresas?${query}`);
   }
 
@@ -323,9 +323,19 @@ class ApiService {
   }
 
   // Serviços
-  async getServicos(params?: { categoria?: string }) {
+  async getServicos(params?: {
+    categoria?: string;
+    page?: number;
+    per_page?: number;
+    search?: string;
+    ativo?: boolean;
+  }) {
     const query = new URLSearchParams();
     if (params?.categoria) query.append('categoria', params.categoria);
+    if (params?.page) query.append('page', params.page.toString());
+    if (params?.per_page) query.append('per_page', params.per_page.toString());
+    if (params?.search) query.append('search', params.search);
+    if (params?.ativo !== undefined) query.append('ativo', params.ativo.toString());
 
     return this.request<any>(`/servicos?${query}`);
   }
@@ -336,6 +346,28 @@ class ApiService {
 
   async getServico(id: number) {
     return this.request<any>(`/servicos/${id}`);
+  }
+
+  async createServico(data: any) {
+    return this.request<any>('/servicos', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateServico(id: number, data: any) {
+    return this.request<any>(`/servicos/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteServico(id: number) {
+    return this.request(`/servicos/${id}`, { method: 'DELETE' });
+  }
+
+  async verificarImpactoExclusaoServico(id: number) {
+    return this.request<any>(`/servicos/${id}/impacto-exclusao`);
   }
 
   // ⚠️ NOVO: Serviços filtrados por regime tributário
@@ -450,6 +482,64 @@ class ApiService {
     return this.request<any>(`/propostas/${propostaId}/logs`);
   }
 
+  async aprovarProposta(propostaId: number): Promise<{ message: string; proposta: Proposta }> {
+    const response = await this.request<any>(`/propostas/${propostaId}/aprovar`, {
+      method: 'POST',
+    });
+    return response;
+  }
+
+  async rejeitarProposta(propostaId: number, motivo: string): Promise<{ message: string; proposta: Proposta }> {
+    const response = await this.request<any>(`/propostas/${propostaId}/rejeitar`, {
+      method: 'POST',
+      body: JSON.stringify({ motivo }),
+    });
+    return response;
+  }
+
+  // Notificações
+  async getNotificacoes(params?: {
+    page?: number;
+    per_page?: number;
+    lida?: boolean;
+    tipo?: string;
+  }): Promise<PaginatedResponse<Notificacao>> {
+    const query = new URLSearchParams();
+    if (params?.page) query.append('page', params.page.toString());
+    if (params?.per_page) query.append('per_page', params.per_page.toString());
+    if (params?.lida !== undefined) query.append('lida', params.lida.toString());
+    if (params?.tipo) query.append('tipo', params.tipo);
+
+    const response = await this.request<any>(`/notificacoes?${query}`);
+    return response;
+  }
+
+  async marcarNotificacaoComoLida(notificacaoId: number): Promise<{ message: string; notificacao: Notificacao }> {
+    const response = await this.request<any>(`/notificacoes/${notificacaoId}/ler`, {
+      method: 'POST',
+    });
+    return response;
+  }
+
+  async marcarTodasNotificacoesComoLidas(): Promise<{ message: string }> {
+    const response = await this.request<any>('/notificacoes/ler-todas', {
+      method: 'POST',
+    });
+    return response;
+  }
+
+  async getContadorNotificacoes(): Promise<{ total_nao_lidas: number; aprovacao_nao_lidas: number }> {
+    const response = await this.request<any>('/notificacoes/contador');
+    return response;
+  }
+
+  async deleteNotificacao(notificacaoId: number): Promise<{ message: string }> {
+    const response = await this.request<any>(`/notificacoes/${notificacaoId}`, {
+      method: 'DELETE',
+    });
+    return response;
+  }
+
   // Chat
   async sendChatMessage(message: string, sessionId: string = 'default') {
     return this.request<any>('/chat/send-message', {
@@ -487,7 +577,7 @@ class ApiService {
   async visualizarPDFProposta(propostaId: number) {
     const token = this.getToken();
     const url = `${BASE_URL}/propostas/${propostaId}/pdf`;
-    
+
     const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${token}`,
