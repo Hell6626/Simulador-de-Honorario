@@ -93,11 +93,20 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
     try {
       console.log('🔍 Carregando dados da proposta:', proposta!.id);
 
+      // ✅ CORREÇÃO: Validar se a proposta tem tipo_atividade_id
+      if (!proposta!.tipo_atividade_id) {
+        throw new Error('Proposta não possui tipo de atividade definido. Não é possível carregar regimes tributários.');
+      }
+
       const [propostaCompleta, cliente, tipos, regimes, servicosResponse] = await Promise.all([
         apiService.getProposta(proposta!.id),
         apiService.getCliente(proposta!.cliente_id),
         apiService.getTiposAtividade(),
-        apiService.getRegimesTributarios(),
+        // ✅ CORREÇÃO: Passar parâmetros corretos para regimes tributários
+        apiService.getRegimesTributarios({
+          ativo: true,
+          tipo_atividade_id: proposta!.tipo_atividade_id
+        }),
         apiService.getServicos({ ativo: true, per_page: 1000 }) // Carregar todos os serviços ativos
       ]);
 
@@ -190,7 +199,21 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
 
     } catch (error) {
       console.error('❌ Erro ao carregar dados:', error);
-      alert('Erro ao carregar dados da proposta. Tente novamente.');
+
+      // ✅ CORREÇÃO: Tratamento de erro mais específico
+      let errorMessage = 'Erro ao carregar dados da proposta.';
+
+      if (error instanceof Error) {
+        if (error.message.includes('tipo_atividade_id é obrigatório')) {
+          errorMessage = 'Erro: Tipo de atividade é obrigatório para carregar regimes tributários.';
+        } else if (error.message.includes('regimes-tributarios')) {
+          errorMessage = 'Erro ao carregar regimes tributários. Verifique a conexão.';
+        } else {
+          errorMessage = `Erro: ${error.message}`;
+        }
+      }
+
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -360,8 +383,8 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header corrigido */}
+      <div className="rounded-xl shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header corrigido - CORREÇÃO: SEM rounded-t-lg */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div>
@@ -387,8 +410,8 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
           </div>
         ) : (
           <div className="flex flex-1 overflow-hidden">
-            {/* Navegação lateral corrigida */}
-            <div className="w-80 bg-gray-50 border-r flex-shrink-0 overflow-y-auto">
+            {/* Navegação lateral corrigida - CORREÇÃO: COM bg-white */}
+            <div className="w-80 bg-white border-r flex-shrink-0 overflow-y-auto">
               <div className="p-4">
                 <h4 className="font-medium text-gray-900 mb-4">Seções Editáveis</h4>
 
@@ -532,8 +555,8 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
               </div>
             </div>
 
-            {/* Conteúdo principal corrigido */}
-            <div className="flex-1 overflow-y-auto">
+            {/* Conteúdo principal corrigido - CORREÇÃO: COM bg-white */}
+            <div className="flex-1 overflow-y-auto bg-white">
               <div className="p-6">
                 {abaSelecionada === 'configuracoes' && (
                   <ConfiguracoesTributariasEdit
@@ -567,8 +590,8 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
           </div>
         )}
 
-        {/* Footer corrigido */}
-        <div className="bg-gray-50 px-6 py-4 border-t flex justify-between items-center flex-shrink-0">
+        {/* Footer corrigido - CORREÇÃO: COM bg-white */}
+        <div className="bg-white px-6 py-4 border-t flex justify-between items-center flex-shrink-0">
           <div className="text-sm text-gray-600">
             <span className="font-medium">Editando:</span> {
               abaSelecionada === 'configuracoes' ? 'Configurações Tributárias' :

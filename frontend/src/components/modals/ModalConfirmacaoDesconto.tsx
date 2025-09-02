@@ -32,9 +32,9 @@ export const ModalConfirmacaoDesconto: React.FC<ModalConfirmacaoDescontoProps> =
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-6 rounded-t-xl">
+      <div className="rounded-xl overflow-hidden shadow-xl max-w-md w-full mx-4">
+        {/* Header - CORREÇÃO: SEM rounded-t-xl */}
+        <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-6">
           <div className="flex items-center space-x-3">
             <AlertTriangle className="w-8 h-8" />
             <div>
@@ -43,9 +43,9 @@ export const ModalConfirmacaoDesconto: React.FC<ModalConfirmacaoDescontoProps> =
             </div>
           </div>
         </div>
-        
-        {/* Content */}
-        <div className="p-6">
+
+        {/* Content - CORREÇÃO: COM bg-white */}
+        <div className="bg-white p-6">
           <div className="space-y-4">
             {/* Resumo do desconto */}
             <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
@@ -67,7 +67,7 @@ export const ModalConfirmacaoDesconto: React.FC<ModalConfirmacaoDescontoProps> =
                 </div>
               </div>
             </div>
-            
+
             {/* Avisos importantes */}
             <div className="space-y-3">
               <div className="flex items-start space-x-3">
@@ -77,7 +77,7 @@ export const ModalConfirmacaoDesconto: React.FC<ModalConfirmacaoDescontoProps> =
                   <p>A proposta será enviada para análise antes de ser apresentada ao cliente.</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-3">
                 <Clock className="w-5 h-5 text-blue-500 mt-0.5" />
                 <div className="text-sm text-gray-700">
@@ -85,7 +85,7 @@ export const ModalConfirmacaoDesconto: React.FC<ModalConfirmacaoDescontoProps> =
                   <p>Estimativa: 1-2 dias úteis para análise administrativa.</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-3">
                 <Shield className="w-5 h-5 text-green-500 mt-0.5" />
                 <div className="text-sm text-gray-700">
@@ -94,7 +94,7 @@ export const ModalConfirmacaoDesconto: React.FC<ModalConfirmacaoDescontoProps> =
                 </div>
               </div>
             </div>
-            
+
             {/* Pergunta de confirmação */}
             <div className="bg-gray-50 rounded-lg p-4 border-l-4 border-blue-500">
               <p className="font-medium text-gray-800">
@@ -106,9 +106,9 @@ export const ModalConfirmacaoDesconto: React.FC<ModalConfirmacaoDescontoProps> =
             </div>
           </div>
         </div>
-        
-        {/* Actions */}
-        <div className="bg-gray-50 px-6 py-4 rounded-b-xl flex justify-end space-x-3">
+
+        {/* Actions - CORREÇÃO: COM bg-white */}
+        <div className="bg-white px-6 py-4 flex justify-end space-x-3">
           <button
             onClick={onCancelar}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"

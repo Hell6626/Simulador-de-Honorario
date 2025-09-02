@@ -227,8 +227,8 @@ export const ModalEdicaoProposta: React.FC<ModalEdicaoPropostaProps> = ({
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-                <div className="p-6">
+            <div className="rounded-lg overflow-hidden shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <div className="bg-white p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-xl font-bold text-gray-900">
                             Editar Proposta #{proposta.id}
@@ -264,8 +264,8 @@ export const ModalEdicaoProposta: React.FC<ModalEdicaoPropostaProps> = ({
                                 onClick={handleSalvar}
                                 disabled={!podeSalvar || loading}
                                 className={`px-6 py-2 rounded-lg font-medium transition-colors ${podeSalvar && !loading
-                                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                     }`}
                             >
                                 {loading ? 'Salvando...' : 'Salvar Alterações'}

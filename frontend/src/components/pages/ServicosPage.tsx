@@ -110,7 +110,10 @@ export const ServicosPage: React.FC = () => {
 
             console.log('🔍 DEBUG: Chamando apiService.getRegimesTributarios...');
 
-            const response = await apiService.getRegimesTributarios(tipoAtividadeId);
+            const response = await apiService.getRegimesTributarios({
+                ativo: true,
+                tipo_atividade_id: tipoAtividadeId
+            });
 
             console.log('🔍 DEBUG: Resposta da API:', response);
             console.log('🔍 DEBUG: Tipo da resposta:', typeof response);

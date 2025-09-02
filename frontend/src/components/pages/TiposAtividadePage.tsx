@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Trash2, Eye, Edit2, Shield, Building2, Users, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Trash2, Eye, Edit2, Shield, Building2, Users, AlertTriangle, Briefcase, X, Info, Hash, User, Calendar, Clock } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { Modal } from '../modals/Modal';
@@ -255,10 +255,10 @@ export const TiposAtividadePage: React.FC = () => {
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Código
+                                        Tipo
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Nome
+                                        Código
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Aplicabilidade
@@ -275,27 +275,37 @@ export const TiposAtividadePage: React.FC = () => {
                                 {tiposAtividade.map((tipo) => (
                                     <tr key={tipo.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center">
+                                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                                    <Briefcase className="w-5 h-5 text-blue-600" />
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <span className="text-sm font-medium text-gray-900">{tipo.nome}</span>
+                                                    </div>
+                                                    <div className="text-sm text-gray-500">ID: {tipo.id}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                                 {tipo.codigo}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {tipo.nome}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <div className="space-y-1">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex space-x-1">
                                                 {tipo.aplicavel_pf && (
-                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
+                                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
                                                         PF
                                                     </span>
                                                 )}
                                                 {tipo.aplicavel_pj && (
-                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                                    <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded">
                                                         PJ
                                                     </span>
                                                 )}
                                                 {!tipo.aplicavel_pf && !tipo.aplicavel_pj && (
-                                                    <span className="text-sm text-gray-500">Não especificado</span>
+                                                    <span className="text-gray-400 text-xs">Nenhuma</span>
                                                 )}
                                             </div>
                                         </td>
@@ -545,107 +555,149 @@ export const TiposAtividadePage: React.FC = () => {
             </Modal>
 
             {/* Modal de Visualização */}
-            <Modal
-                isOpen={isModalVisualizacaoOpen}
-                onClose={() => {
-                    setIsModalVisualizacaoOpen(false);
-                    setTipoParaEditar(null);
-                }}
-                title="Visualizar Tipo de Atividade"
-            >
-                {tipoParaEditar && (
-                    <div className="space-y-6">
-                        {/* Informações Básicas */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <h3 className="text-lg font-semibold text-blue-900 mb-3 flex items-center">
-                                <Building2 className="h-5 w-5 mr-2" />
-                                Informações do Tipo de Atividade
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Código</label>
-                                    <p className="text-sm text-gray-900 bg-white px-3 py-2 rounded border">
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                            {tipoParaEditar.codigo}
+            {isModalVisualizacaoOpen && tipoParaEditar && (
+                <div className="fixed inset-0 z-50 overflow-y-auto">
+                    <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                        <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+                            <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+                        </div>
+                        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                        <div className="inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
+                            {/* Header Azul - CORREÇÃO: SEM rounded-t-lg */}
+                            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center">
+                                        <Briefcase className="w-8 h-8 mr-3" />
+                                        <div>
+                                            <h2 className="text-xl font-semibold">Detalhes do Tipo de Atividade</h2>
+                                            <p className="text-blue-100">ID: {tipoParaEditar.id}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center space-x-3">
+                                        <span className={`${tipoParaEditar.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} px-3 py-1 rounded-full text-sm font-medium`}>
+                                            {tipoParaEditar.ativo ? 'Ativo' : 'Inativo'}
                                         </span>
-                                    </p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-                                    <p className="text-sm text-gray-900 bg-white px-3 py-2 rounded border">
-                                        {tipoParaEditar.nome}
-                                    </p>
+                                        <button onClick={() => {
+                                            setIsModalVisualizacaoOpen(false);
+                                            setTipoParaEditar(null);
+                                        }}>
+                                            <X className="w-6 h-6" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Aplicabilidade */}
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                            <h3 className="text-lg font-semibold text-purple-900 mb-3 flex items-center">
-                                <Users className="h-5 w-5 mr-2" />
-                                Aplicabilidade
-                            </h3>
-                            <div className="flex flex-wrap gap-2">
-                                {tipoParaEditar.aplicavel_pf && (
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                        Pessoa Física
-                                    </span>
-                                )}
-                                {tipoParaEditar.aplicavel_pj && (
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                        Pessoa Jurídica
-                                    </span>
-                                )}
-                                {!tipoParaEditar.aplicavel_pf && !tipoParaEditar.aplicavel_pj && (
-                                    <span className="text-sm text-gray-500">Não especificado</span>
-                                )}
+                            {/* Informações Principais - CORREÇÃO: COM bg-white */}
+                            <div className="bg-white p-6 border-b border-gray-100">
+                                <h3 className="flex items-center text-lg font-medium text-gray-900 mb-6">
+                                    <Info className="w-5 h-5 mr-2 text-blue-600" />
+                                    Informações Principais
+                                </h3>
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-500">Nome Completo</label>
+                                        <div className="flex items-center mt-1">
+                                            <Briefcase className="w-4 h-4 mr-2 text-blue-500" />
+                                            <span className="text-gray-900 font-medium">{tipoParaEditar.nome}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-500">Código</label>
+                                        <div className="flex items-center mt-1">
+                                            <Hash className="w-4 h-4 mr-2 text-blue-500" />
+                                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium">
+                                                {tipoParaEditar.codigo}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Status */}
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <h3 className="text-lg font-semibold text-green-900 mb-3 flex items-center">
-                                <Shield className="h-5 w-5 mr-2" />
-                                Status
-                            </h3>
-                            <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${tipoParaEditar.ativo
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
-                                }`}>
-                                {tipoParaEditar.ativo ? 'Ativo' : 'Inativo'}
-                            </span>
-                        </div>
+                            {/* Aplicabilidade - CORREÇÃO: COM bg-white */}
+                            <div className="bg-white p-6 border-b border-gray-100">
+                                <h3 className="flex items-center text-lg font-medium text-gray-900 mb-6">
+                                    <Users className="w-5 h-5 mr-2 text-blue-600" />
+                                    Aplicabilidade
+                                </h3>
+                                <div className="flex space-x-6">
+                                    <div className={`px-4 py-3 rounded-lg border-2 ${tipoParaEditar.aplicavel_pf ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                                        }`}>
+                                        <div className="flex items-center">
+                                            <User className={`w-5 h-5 mr-2 ${tipoParaEditar.aplicavel_pf ? 'text-blue-600' : 'text-gray-400'}`} />
+                                            <span className={`font-medium ${tipoParaEditar.aplicavel_pf ? 'text-blue-900' : 'text-gray-500'}`}>
+                                                Pessoa Física
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className={`px-4 py-3 rounded-lg border-2 ${tipoParaEditar.aplicavel_pj ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                                        }`}>
+                                        <div className="flex items-center">
+                                            <Building2 className={`w-5 h-5 mr-2 ${tipoParaEditar.aplicavel_pj ? 'text-blue-600' : 'text-gray-400'}`} />
+                                            <span className={`font-medium ${tipoParaEditar.aplicavel_pj ? 'text-blue-900' : 'text-gray-500'}`}>
+                                                Pessoa Jurídica
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-                        {/* Datas */}
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-3">Informações do Sistema</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Data de Criação</label>
-                                    <p className="text-sm text-gray-900 bg-white px-3 py-2 rounded border">
-                                        {tipoParaEditar.created_at ? new Date(tipoParaEditar.created_at).toLocaleDateString('pt-BR') : '-'}
-                                    </p>
+                            {/* Status - CORREÇÃO: COM bg-white */}
+                            <div className="bg-white p-6 border-b border-gray-100">
+                                <h3 className="flex items-center text-lg font-medium text-gray-900 mb-6">
+                                    <Shield className="w-5 h-5 mr-2 text-blue-600" />
+                                    Status
+                                </h3>
+                                <div className={`inline-flex items-center px-4 py-3 rounded-lg shadow-sm ${tipoParaEditar.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                    }`}>
+                                    <div className={`w-3 h-3 rounded-full mr-2 ${tipoParaEditar.ativo ? 'bg-green-600' : 'bg-red-600'}`}></div>
+                                    <span className="font-medium">{tipoParaEditar.ativo ? 'Ativo' : 'Inativo'}</span>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Última Atualização</label>
-                                    <p className="text-sm text-gray-900 bg-white px-3 py-2 rounded border">
-                                        {tipoParaEditar.updated_at ? new Date(tipoParaEditar.updated_at).toLocaleDateString('pt-BR') : '-'}
-                                    </p>
+                            </div>
+
+                            {/* Informações do Sistema - CORREÇÃO: COM bg-white */}
+                            <div className="bg-white p-6">
+                                <h3 className="flex items-center text-lg font-medium text-gray-900 mb-6">
+                                    <Calendar className="w-5 h-5 mr-2 text-blue-600" />
+                                    Informações do Sistema
+                                </h3>
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-500">Data de Criação</label>
+                                        <div className="flex items-center mt-1">
+                                            <Clock className="w-5 h-5 mr-2 text-blue-500" />
+                                            <span className="text-gray-900">
+                                                {tipoParaEditar.created_at ? new Date(tipoParaEditar.created_at).toLocaleString('pt-BR') : '-'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-500">Última Atualização</label>
+                                        <div className="flex items-center mt-1">
+                                            <Clock className="w-5 h-5 mr-2 text-blue-500" />
+                                            <span className="text-gray-900">
+                                                {tipoParaEditar.updated_at ? new Date(tipoParaEditar.updated_at).toLocaleString('pt-BR') : '-'}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
+                            </div>
+
+                            {/* Footer - CORREÇÃO: COM bg-white */}
+                            <div className="bg-white p-6 border-t border-gray-100 flex justify-end">
+                                <button
+                                    onClick={() => {
+                                        setIsModalVisualizacaoOpen(false);
+                                        setTipoParaEditar(null);
+                                    }}
+                                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                >
+                                    Fechar
+                                </button>
                             </div>
                         </div>
                     </div>
-                )}
-
-                <div className="flex justify-end mt-6">
-                    <button
-                        onClick={() => setIsModalVisualizacaoOpen(false)}
-                        className="px-4 py-2 bg-gray-600 text-white rounded-md text-sm font-medium hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                    >
-                        Fechar
-                    </button>
                 </div>
-            </Modal>
+            )}
 
             {/* Modal de Confirmação de Exclusão */}
             <Modal

@@ -85,9 +85,9 @@ export const ModalCadastroRegimeTributario: React.FC<ModalCadastroRegimeTributar
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+      <div className="rounded-lg overflow-hidden shadow-xl w-full max-w-md mx-4">
+        {/* Header - CORREÇÃO: SEM rounded-t-lg */}
+        <div className="bg-white flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">
             {isEditing ? 'Editar Regime' : 'Novo Regime'}
           </h2>
@@ -99,8 +99,8 @@ export const ModalCadastroRegimeTributario: React.FC<ModalCadastroRegimeTributar
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        {/* Form - CORREÇÃO: COM bg-white */}
+        <form onSubmit={handleSubmit} className="bg-white p-6 space-y-4">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
               {error}
@@ -154,7 +154,7 @@ export const ModalCadastroRegimeTributario: React.FC<ModalCadastroRegimeTributar
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Aplicabilidade
             </label>
-            
+
             <div className="flex items-center">
               <input
                 type="checkbox"
@@ -167,7 +167,7 @@ export const ModalCadastroRegimeTributario: React.FC<ModalCadastroRegimeTributar
                 Aplicável para Pessoa Física
               </label>
             </div>
-            
+
             <div className="flex items-center">
               <input
                 type="checkbox"

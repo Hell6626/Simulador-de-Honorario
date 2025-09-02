@@ -1,6 +1,7 @@
 """
 Serviço para geração de PDFs das propostas.
-Baseado no template da Christino Consultoria Contábil LTDA.
+Baseado no design HTML moderno fornecido.
+Layout atualizado com header estilizado, cores suaves e tipografia moderna.
 """
 
 import os
@@ -13,6 +14,8 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.units import inch, mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus.flowables import Flowable
+
 # Importações condicionais para evitar erros
 try:
     from config import db
@@ -26,8 +29,79 @@ except ImportError:
     print("⚠️ Modelos não disponíveis - usando dados mock")
 
 
+class HeaderBox(Flowable):
+    """Box customizado para o cabeçalho com fundo colorido e bordas arredondadas"""
+    
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        
+    def draw(self):
+        # Fundo cinza claro (#f0eeea)
+        self.canv.setFillColor(colors.Color(0.94, 0.93, 0.92))
+        self.canv.roundRect(0, 0, self.width, self.height, 6, fill=1, stroke=0)
+
+
+class CircleLogo(Flowable):
+    """Logo quadrado com imagem real"""
+    
+    def __init__(self, size=80):
+        self.size = size
+        self.width = size
+        self.height = size
+        
+    def draw(self):
+        # Tentar carregar a imagem real da logo
+        logo_path = self._find_logo_path()
+        if logo_path and os.path.exists(logo_path):
+            try:
+                # Carregar e redimensionar a imagem
+                from reportlab.platypus import Image
+                img = Image(logo_path, width=self.size, height=self.size)
+                img.drawOn(self.canv, 0, 0)
+                return
+            except Exception as e:
+                print(f"Erro ao carregar logo: {e}")
+        
+        # Fallback: criar um quadrado laranja com letra C
+        # Quadrado laranja (#f47a1c)
+        self.canv.setFillColor(colors.Color(0.96, 0.48, 0.11))
+        self.canv.rect(0, 0, self.size, self.size, fill=1, stroke=0)
+        
+        # Letra C branca no centro
+        self.canv.setFillColor(colors.white)
+        self.canv.setFont('Helvetica-Bold', self.size//3)
+        self.canv.drawCentredText(self.size/2, self.size/2-8, 'C')
+    
+    def _find_logo_path(self):
+        """Encontra o caminho da logo"""
+        possible_paths = [
+            'assets/images/Logo_Contabilidade.png',
+            'backend/assets/images/Logo_Contabilidade.png',
+            '../assets/images/Logo_Contabilidade.png',
+            os.path.join(os.path.dirname(__file__), '..', 'assets', 'images', 'Logo_Contabilidade.png')
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+        return None
+
+
+class DescriptionBox(Flowable):
+    """Box de descrição com fundo colorido"""
+    
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        
+    def draw(self):
+        # Fundo cinza claro (#f0eeea)
+        self.canv.setFillColor(colors.Color(0.94, 0.93, 0.92))
+        self.canv.roundRect(0, 0, self.width, self.height, 4, fill=1, stroke=0)
+
+
 class PropostaPDFGenerator:
-    """Gerador de PDF para propostas"""
+    """Gerador de PDF para propostas baseado no design HTML moderno"""
     
     def __init__(self):
         self.upload_dir = os.path.join(os.getcwd(), 'uploads', 'pdfs')
@@ -36,29 +110,31 @@ class PropostaPDFGenerator:
         # Configurações da empresa
         self.empresa = {
             'nome': 'Christino Consultoria Contábil LTDA',
-            'cnpj': '00.000.000/0001-00',
-            'endereco': 'Rua das Flores, 123 - Centro',
-            'cidade': 'São Paulo - SP',
-            'cep': '01234-567',
-            'telefone': '(11) 99999-9999',
-            'email': 'contato@christino.com.br',
+            'cnpj': '49.666.494/0001-37',
+            'endereco': 'Rua Dr. Ataliba Leonel, 847 - Centro',
+            'cidade': 'Taquarituba - SP',
+            'cep': '18740-019',
+            'telefone': '(14) 3762-1991',
+            'email': 'contato@christinoconsultoria.com.br',
             'site': 'www.christino.com.br'
         }
         
-        # Cores - apenas preto, branco e laranja para logo
+        # Cores baseadas no design HTML
         self.cores = {
-            'preto': colors.black,
-            'branco': colors.white,
-            'laranja': colors.Color(1.0, 0.4, 0.0)  # Para logo apenas
+            'preto': colors.Color(0.13, 0.13, 0.13),  # #222
+            'cinza_escuro': colors.Color(0.2, 0.2, 0.2),  # #333
+            'cinza_medio': colors.Color(0.67, 0.67, 0.67),  # #aaa
+            'fundo_header': colors.Color(0.94, 0.93, 0.92),  # #f0eeea
+            'fundo_tabela': colors.Color(0.98, 0.98, 0.98),  # #fbfbfa
+            'fundo_total': colors.Color(0.94, 0.94, 0.94),  # #efefef
+            'laranja': colors.Color(0.96, 0.48, 0.11),  # #f47a1c
+            'branco': colors.white
         }
     
     def gerar_pdf_proposta(self, proposta_id: int) -> str:
-        """
-        Gera PDF da proposta e retorna o caminho do arquivo
-        """
+        """Gera PDF da proposta e retorna o caminho do arquivo"""
         try:
             if not MODELS_AVAILABLE:
-                # Se modelos não estão disponíveis, usar dados mock
                 return self.gerar_pdf_proposta_temp()
             
             # Buscar proposta com todos os relacionamentos
@@ -79,8 +155,8 @@ class PropostaPDFGenerator:
                     pagesize=A4,
                     rightMargin=25*mm,
                     leftMargin=25*mm,
-                    topMargin=25*mm,
-                    bottomMargin=25*mm
+                    topMargin=20*mm,
+                    bottomMargin=20*mm
                 )
                 
                 # Estilos
@@ -90,34 +166,23 @@ class PropostaPDFGenerator:
                 # Conteúdo do PDF
                 story = []
                 
-                # PÁGINA 1
-                # Cabeçalho com data e logo
-                story.extend(self._criar_cabecalho(proposta, styles))
+                # Cabeçalho moderno
+                story.extend(self._criar_header_moderno(proposta, styles))
                 
-                # Box "Preparado para" com borda preta
-                story.extend(self._criar_box_cliente(proposta.cliente, styles))
-                
-                # Texto introdutório (3 parágrafos específicos)
-                story.extend(self._criar_introducao(styles))
+                # Box de descrição
+                story.extend(self._criar_desc_box(styles))
                 
                 # Seção "Sobre Nós"
                 story.extend(self._criar_sobre_nos(styles))
                 
-                # Seção "Serviços" com lista numerada
+                # Seção "Serviços"
                 story.extend(self._criar_servicos(proposta.itens, styles))
                 
-                # Quebra de página
-                story.append(PageBreak())
-                
-                # PÁGINA 2
-                # Seção "Orçamento" com tabela de 4 colunas
+                # Seção "Orçamento"
                 story.extend(self._criar_orcamento(proposta, styles))
                 
-                # Detalhes adicionais com sub-seções
+                # Detalhes Adicionais
                 story.extend(self._criar_detalhes_adicionais(proposta, styles))
-                
-                # Rodapé simples
-                story.extend(self._criar_rodape(styles))
                 
                 # Gerar PDF
                 doc.build(story)
@@ -128,14 +193,10 @@ class PropostaPDFGenerator:
             print(f"Erro ao gerar PDF com dados reais: {e}")
             import traceback
             traceback.print_exc()
-            # Fallback para PDF temporário
             return self.gerar_pdf_proposta_temp()
 
     def gerar_pdf_proposta_temp(self) -> str:
-        """
-        Gera PDF temporário para proposta nova (ainda não salva no banco)
-        """
-        # Gerar nome do arquivo temporário
+        """Gera PDF temporário para proposta nova"""
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         nome_arquivo = f"proposta_temp_{timestamp}.pdf"
         caminho_arquivo = os.path.join(self.upload_dir, nome_arquivo)
@@ -146,8 +207,8 @@ class PropostaPDFGenerator:
             pagesize=A4,
             rightMargin=25*mm,
             leftMargin=25*mm,
-            topMargin=25*mm,
-            bottomMargin=25*mm
+            topMargin=20*mm,
+            bottomMargin=20*mm
         )
         
         # Estilos
@@ -157,34 +218,12 @@ class PropostaPDFGenerator:
         # Conteúdo do PDF temporário
         story = []
         
-        # PÁGINA 1
-        # Cabeçalho com data e logo
-        story.extend(self._criar_cabecalho_temp(styles))
-        
-        # Box "Preparado para" com borda preta (dados mock)
-        story.extend(self._criar_box_cliente_temp(styles))
-        
-        # Texto introdutório (3 parágrafos específicos)
-        story.extend(self._criar_introducao(styles))
-        
-        # Seção "Sobre Nós"
+        story.extend(self._criar_header_moderno_temp(styles))
+        story.extend(self._criar_desc_box(styles))
         story.extend(self._criar_sobre_nos(styles))
-        
-        # Seção "Serviços" com lista numerada (dados mock)
         story.extend(self._criar_servicos_temp(styles))
-        
-        # Quebra de página
-        story.append(PageBreak())
-        
-        # PÁGINA 2
-        # Seção "Orçamento" com tabela de 4 colunas (dados mock)
         story.extend(self._criar_orcamento_temp(styles))
-        
-        # Detalhes adicionais com sub-seções (dados mock)
         story.extend(self._criar_detalhes_adicionais_temp(styles))
-        
-        # Rodapé simples
-        story.extend(self._criar_rodape(styles))
         
         # Gerar PDF
         doc.build(story)
@@ -192,295 +231,329 @@ class PropostaPDFGenerator:
         return caminho_arquivo
     
     def _configurar_estilos(self, styles):
-        """Configura estilos personalizados - layout moderno baseado no modelo"""
-        # Título principal - mais moderno
+        """Configura estilos baseados no design HTML moderno"""
+        
+        # Data no header
+        styles.add(ParagraphStyle(
+            name='HeaderData',
+            parent=styles['Normal'],
+            fontSize=11,
+            textColor=self.cores['preto'],
+            fontName='Helvetica',
+            spaceAfter=8
+        ))
+        
+        # Título principal grande (baseado em 2.6rem)
         styles.add(ParagraphStyle(
             name='TituloPrincipal',
             parent=styles['Heading1'],
-            fontSize=32,
-            spaceAfter=25,
-            spaceBefore=15,
+            fontSize=36,
+            spaceAfter=12,
+            spaceBefore=8,
             textColor=self.cores['preto'],
-            alignment=1,  # Centralizado
-            fontName='Helvetica-Bold'
+            alignment=0,
+            fontName='Helvetica-Bold',
+            leading=38
         ))
         
-        # Subtítulo principal
+        # Box "Preparado para"
         styles.add(ParagraphStyle(
-            name='SubtituloPrincipal',
-            parent=styles['Heading2'],
-            fontSize=18,
-            spaceAfter=30,
-            textColor=colors.Color(0.3, 0.3, 0.3),  # Cinza escuro
-            alignment=1,  # Centralizado
-            fontName='Helvetica'
+            name='PreparedFor',
+            parent=styles['Normal'],
+            fontSize=11,
+            textColor=self.cores['preto'],
+            fontName='Helvetica',
+            alignment=0
         ))
         
-        # Título de seção - mais proeminente
+        # Título de seção (baseado em 2.1rem)
         styles.add(ParagraphStyle(
             name='TituloSecao',
             parent=styles['Heading2'],
-            fontSize=18,
-            spaceAfter=12,
-            spaceBefore=25,
+            fontSize=24,
+            spaceAfter=16,
+            spaceBefore=28,
             textColor=self.cores['preto'],
-            alignment=0,  # Esquerda
-            fontName='Helvetica-Bold'
+            alignment=0,
+            fontName='Helvetica-Bold',
+            leading=26
         ))
         
-        # Texto normal - melhor legibilidade
+        # Texto normal da descrição
+        styles.add(ParagraphStyle(
+            name='TextoDescricao',
+            parent=styles['Normal'],
+            fontSize=12,
+            spaceAfter=8,
+            leading=18,
+            textColor=self.cores['cinza_escuro'],
+            fontName='Helvetica',
+            alignment=4  # Justificado
+        ))
+        
+        # Texto normal
         styles.add(ParagraphStyle(
             name='TextoNormal',
             parent=styles['Normal'],
             fontSize=12,
-            spaceAfter=10,
-            leading=18,  # Espaçamento entre linhas
+            spaceAfter=8,
+            leading=18,
             textColor=self.cores['preto'],
             fontName='Helvetica',
             alignment=4  # Justificado
         ))
         
-        # Texto pequeno
+        # Lista numerada
         styles.add(ParagraphStyle(
-            name='TextoPequeno',
-            parent=styles['Normal'],
-            fontSize=10,
-            spaceAfter=6,
-            textColor=colors.Color(0.4, 0.4, 0.4),  # Cinza médio
-            fontName='Helvetica'
-        ))
-        
-        # Data - mais elegante
-        styles.add(ParagraphStyle(
-            name='Data',
+            name='ListaNumero',
             parent=styles['Normal'],
             fontSize=11,
-            spaceAfter=15,
-            textColor=colors.Color(0.3, 0.3, 0.3),
-            fontName='Helvetica',
-            alignment=2  # Direita
-        ))
-        
-        # Estilo para box/destaque
-        styles.add(ParagraphStyle(
-            name='BoxDestaque',
-            parent=styles['Normal'],
-            fontSize=12,
             spaceAfter=10,
+            spaceBefore=6,
+            leftIndent=0,
             textColor=self.cores['preto'],
-            fontName='Helvetica-Bold',
-            alignment=1,  # Centralizado
-            backColor=colors.Color(0.95, 0.95, 0.95)  # Fundo cinza claro
+            fontName='Helvetica',
+            alignment=0,
+            leading=16
         ))
         
-        # Lista de serviços
+        # Sub-item de lista
         styles.add(ParagraphStyle(
-            name='ListaServicos',
+            name='SubItem',
             parent=styles['Normal'],
             fontSize=11,
-            spaceAfter=8,
+            spaceAfter=4,
+            spaceBefore=2,
             leftIndent=20,
             textColor=self.cores['preto'],
-            fontName='Helvetica'
+            fontName='Helvetica',
+            alignment=0,
+            leading=16
+        ))
+        
+        # Título do orçamento
+        styles.add(ParagraphStyle(
+            name='TituloOrcamento',
+            parent=styles['Heading2'],
+            fontSize=22,
+            spaceAfter=20,
+            spaceBefore=24,
+            textColor=self.cores['preto'],
+            alignment=0,
+            fontName='Helvetica-Bold',
+            leading=24
+        ))
+        
+        # Título detalhes adicionais
+        styles.add(ParagraphStyle(
+            name='TituloDetalhes',
+            parent=styles['Heading2'],
+            fontSize=22,
+            spaceAfter=16,
+            spaceBefore=30,
+            textColor=self.cores['preto'],
+            alignment=0,
+            fontName='Helvetica-Bold',
+            leading=24
+        ))
+        
+        # Subtítulo em detalhes
+        styles.add(ParagraphStyle(
+            name='SubtituloDetalhes',
+            parent=styles['Normal'],
+            fontSize=11,
+            spaceAfter=6,
+            spaceBefore=12,
+            textColor=self.cores['preto'],
+            fontName='Helvetica-Bold',
+            alignment=0
         ))
     
-    def _criar_cabecalho(self, proposta, styles):
-        """Cria o cabeçalho moderno baseado no modelo"""
+    def _criar_header_moderno(self, proposta, styles):
+        """Cria o cabeçalho moderno para propostas com dados reais"""
         story = []
-        
-        # Header superior com logo e data
-        if self._logo_exists():
-            logo_img = self._get_logo_image()
-            if logo_img:
-                header_data = [
-                    [
-                        logo_img,
-                        Paragraph(datetime.now().strftime('%d de %B de %Y'), styles['Data'])
-                    ]
-                ]
-                
-                header_table = Table(header_data, colWidths=[80*mm, 90*mm])
-                header_table.setStyle(TableStyle([
-                    ('ALIGN', (0, 0), (0, 0), 'LEFT'),   # Logo à esquerda
-                    ('ALIGN', (1, 0), (1, 0), 'RIGHT'),  # Data à direita
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ]))
-                
-                story.append(header_table)
-            else:
-                # Fallback: apenas data
-                data_atual = datetime.now().strftime('%d de %B de %Y')
-                story.append(Paragraph(data_atual, styles['Data']))
-        else:
-            # Fallback: apenas data
-            data_atual = datetime.now().strftime('%d de %B de %Y')
-            story.append(Paragraph(data_atual, styles['Data']))
-        
-        story.append(Spacer(1, 30))
-        
-        # Título principal moderno
-        story.append(Paragraph("PROPOSTA COMERCIAL", styles['TituloPrincipal']))
-        
-        # Subtítulo
-        story.append(Paragraph("Serviços Contábeis e Consultoria", styles['SubtituloPrincipal']))
-        
-        # Linha separadora visual
-        story.append(Spacer(1, 20))
-        linha_separadora = Table([['']], colWidths=[170*mm])
-        linha_separadora.setStyle(TableStyle([
-            ('LINEBELOW', (0, 0), (-1, -1), 2, colors.Color(0.8, 0.8, 0.8)),
-        ]))
-        story.append(linha_separadora)
-        story.append(Spacer(1, 30))
-        
-        return story
 
-    def _criar_cabecalho_temp(self, styles):
-        """Cria o cabeçalho temporário com data e logo circular"""
-        return self._criar_cabecalho(None, styles)
-    
-    def _criar_box_cliente(self, cliente, styles):
-        """Cria seção moderna de informações do cliente"""
-        story = []
-        
-        # Título da seção
-        story.append(Paragraph("DESTINATÁRIO", styles['TituloSecao']))
-        story.append(Spacer(1, 15))
-        
-        # Informações do cliente em formato estruturado
-        cliente_data = [
-            ['<b>Nome/Razão Social:</b>', cliente.nome],
-            ['<b>CPF/CNPJ:</b>', cliente.cpf],
-            ['<b>Email:</b>', cliente.email],
-        ]
-        
-        # Tabela com informações do cliente
-        cliente_table = Table(cliente_data, colWidths=[50*mm, 120*mm])
-        cliente_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.98, 0.98, 0.98)),
-            ('BOX', (0, 0), (-1, -1), 1, colors.Color(0.8, 0.8, 0.8)),
-            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.Color(0.9, 0.9, 0.9)),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 11),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        # Data atual
+        data_atual = datetime.now().strftime('%d/%m/%Y')
+
+        # Bloco da esquerda (textos)
+        left_elements = []
+
+        # Data – topo
+        left_elements.append(Paragraph(data_atual, styles['HeaderData']))
+        # Título grande
+        left_elements.append(Paragraph("Proposta de<br/>Orçamento", styles['TituloPrincipal']))
+        # Box "Preparado para"
+        box_data = [[Paragraph(f'Preparado para: <b>{proposta.cliente.nome}</b>', styles['PreparedFor'])]]
+        box_table = Table(box_data, colWidths=[110*mm])
+        box_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+            ('BOX', (0, 0), (-1, -1), 1, colors.Color(0.73, 0.78, 0.89)),  # azul claro
+            ('INNERGRID', (0, 0), (-1, -1), 0, colors.white),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
             ('LEFTPADDING', (0, 0), (-1, -1), 15),
             ('RIGHTPADDING', (0, 0), (-1, -1), 15),
-            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (1, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ROUNDRECT', (0, 0), (0, 0), 10, colors.white)  # cantos arredondados
         ]))
-        
-        story.append(cliente_table)
-        story.append(Spacer(1, 30))
+        left_elements.append(box_table)
+        left_table = Table([[le] for le in left_elements], colWidths=[110*mm])
+        left_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ]))
+
+        # Bloco da direita (logo sobre fundo laranja)
+        logo_box = Table(
+            [[CircleLogo(80)]], colWidths=[80], rowHeights=[80]
+        )
+        logo_box.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.96, 0.48, 0.11)),  # laranja #f47a1c
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0)
+        ]))
+
+        # Cabeçalho principal dividido em duas colunas
+        header_main = Table(
+            [[left_table, logo_box]],
+            colWidths=[120*mm, 60*mm],  # ajuste largura conforme visual desejado
+            rowHeights=[90*mm]
+        )
+        header_main.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, 0), colors.Color(0.96, 0.96, 0.96)),  # cinza claro #f5f5f5
+            ('BACKGROUND', (1, 0), (1, 0), colors.Color(0.96, 0.48, 0.11)),  # laranja
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 24),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 18),
+            ('TOPPADDING', (0, 0), (-1, -1), 20),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 20),
+        ]))
+
+        story.append(header_main)
+        story.append(Spacer(1, 24))
+
         return story
 
-    def _criar_box_cliente_temp(self, styles):
-        """Cria seção moderna de informações do cliente (temporário)"""
+    def _criar_header_moderno_temp(self, styles):
+        """Cria o cabeçalho moderno temporário"""
         story = []
         
-        # Título da seção
-        story.append(Paragraph("DESTINATÁRIO", styles['TituloSecao']))
-        story.append(Spacer(1, 15))
+        data_atual = datetime.now().strftime('%d/%m/%Y')
         
-        # Dados mock do cliente
-        cliente_data = [
-            ['<b>Nome/Razão Social:</b>', 'Cliente Exemplo Ltda'],
-            ['<b>CPF/CNPJ:</b>', '12.345.678/0001-90'],
-            ['<b>Email:</b>', 'cliente@exemplo.com'],
+        # Informações do lado esquerdo
+        left_content = [
+            [Paragraph(data_atual, styles['HeaderData'])],
+            [Paragraph("Proposta de<br/>Orçamento", styles['TituloPrincipal'])],
+            [self._criar_prepared_box("Associação Desportiva Futsal Itai", styles)]
         ]
         
-        # Tabela com informações do cliente
-        cliente_table = Table(cliente_data, colWidths=[50*mm, 120*mm])
-        cliente_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.98, 0.98, 0.98)),
-            ('BOX', (0, 0), (-1, -1), 1, colors.Color(0.8, 0.8, 0.8)),
-            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.Color(0.9, 0.9, 0.9)),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 11),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ('LEFTPADDING', (0, 0), (-1, -1), 15),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 15),
-            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (1, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        left_table = Table(left_content, colWidths=[120*mm])
+        left_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
         
-        story.append(cliente_table)
-        story.append(Spacer(1, 30))
+        # Logo circular à direita
+        logo_circle = CircleLogo(80)
+        
+        # Header principal com fundo
+        header_data = [[left_table, logo_circle]]
+        header_table = Table(header_data, colWidths=[120*mm, 40*mm])
+        header_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('TOPPADDING', (0, 0), (-1, -1), 20),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 20),
+            ('LEFTPADDING', (0, 0), (-1, -1), 25),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 25),
+            ('BACKGROUND', (0, 0), (-1, -1), self.cores['fundo_header']),
+        ]))
+        
+        story.append(header_table)
+        story.append(Spacer(1, 25))
+        
         return story
     
-    def _criar_introducao(self, styles):
-        """Cria o texto introdutório moderno e profissional"""
+    def _criar_prepared_box(self, cliente_nome, styles):
+        """Cria o box 'Preparado para' com fundo branco e bordas arredondadas"""
+        texto = f"Preparado para: <b>{cliente_nome}</b>"
+        
+        # Criar tabela para simular o box com fundo branco
+        box_data = [[Paragraph(texto, styles['PreparedFor'])]]
+        box_table = Table(box_data, colWidths=[100*mm])
+        box_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+            ('BOX', (0, 0), (-1, -1), 1, colors.Color(0.9, 0.9, 0.9)),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+        ]))
+        
+        return box_table
+    
+    def _criar_desc_box(self, styles):
+        """Cria o box de descrição com fundo colorido"""
         story = []
         
-        # Título da apresentação
-        story.append(Paragraph("APRESENTAÇÃO", styles['TituloSecao']))
-        story.append(Spacer(1, 15))
+        desc_texto = """Agradecemos o seu interesse em nossos serviços. <b>É um prazer apresentar esta proposta de orçamento</b>, onde reunimos informações sobre nossa empresa, os serviços oferecidos e as formas de colaboração possíveis.<br/><br/>
+
+Nosso objetivo é <b>construir uma parceria sólida e estratégica</b>, entregando soluções que atendam plenamente às suas necessidades. Estamos à disposição para esclarecer quaisquer dúvidas e esperamos colaborar em breve!"""
         
-        introducao_texto = """
-        Prezado(a) Cliente,<br/><br/>
+        # Criar tabela para o box de descrição
+        desc_data = [[Paragraph(desc_texto, styles['TextoDescricao'])]]
+        desc_table = Table(desc_data, colWidths=[160*mm])
+        desc_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), self.cores['fundo_header']),
+            ('TOPPADDING', (0, 0), (-1, -1), 20),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 20),
+            ('LEFTPADDING', (0, 0), (-1, -1), 25),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 25),
+        ]))
         
-        É com grande satisfação que apresentamos esta <b>proposta comercial</b> para prestação de serviços contábeis especializados. Nossa empresa tem o compromisso de oferecer soluções personalizadas que atendam às suas necessidades específicas com <b>excelência e confiabilidade</b>.<br/><br/>
-        
-        Esta proposta foi elaborada considerando as características do seu negócio e as melhores práticas do mercado contábil. Nosso objetivo é estabelecer uma <b>parceria estratégica duradoura</b>, proporcionando tranquilidade e segurança na gestão dos aspectos contábeis e fiscais da sua empresa.<br/><br/>
-        
-        Estamos à disposição para esclarecimentos adicionais e esperamos ter a oportunidade de demonstrar a qualidade dos nossos serviços.
-        """
-        
-        story.append(Paragraph(introducao_texto, styles['TextoNormal']))
-        story.append(Spacer(1, 30))
+        story.append(desc_table)
+        story.append(Spacer(1, 24))
         
         return story
     
     def _criar_sobre_nos(self, styles):
-        """Cria a seção 'Sobre Nós' moderna e profissional"""
+        """Cria a seção 'Sobre Nós'"""
         story = []
         
-        # Título da seção
-        story.append(Paragraph("NOSSA EMPRESA", styles['TituloSecao']))
-        story.append(Spacer(1, 15))
+        story.append(Paragraph("Sobre Nós", styles['TituloSecao']))
         
-        sobre_texto = """
-        A <b>Christino Consultoria Contábil LTDA</b> é uma empresa especializada em serviços contábeis e consultoria empresarial, com sólida experiência no mercado desde 1995. Nossa missão é oferecer soluções contábeis completas e personalizadas para empresas de todos os portes.<br/><br/>
-        
-        <b>Nossos Diferenciais:</b><br/>
-        • Equipe técnica altamente qualificada e em constante atualização<br/>
-        • Atendimento personalizado e dedicado a cada cliente<br/>
-        • Tecnologia de ponta para maior agilidade e segurança<br/>
-        • Suporte completo em todas as obrigações fiscais e contábeis<br/>
-        • Relacionamento próximo e consultivo com nossos clientes<br/><br/>
-        
-        Trabalhamos com <b>ética, transparência e excelência</b>, estabelecendo parcerias duradouras baseadas na confiança mútua e no comprometimento com o sucesso dos nossos clientes.
-        """
+        sobre_texto = """A <b>Christino Consultoria Contábil LTDA</b>, fundada em 1995, é especializada no atendimento a pequenos e médios empresários.<br/><br/>
+
+Atuamos com ética, qualidade e inovação, oferecendo serviços contábeis e consultoria empresarial que agregam valor, promovem segurança e fortalecem os negócios de nossos clientes."""
         
         story.append(Paragraph(sobre_texto, styles['TextoNormal']))
-        story.append(Spacer(1, 30))
+        story.append(Spacer(1, 20))
         
         return story
     
     def _criar_servicos(self, itens, styles):
-        """Cria a seção de serviços moderna e detalhada"""
+        """Cria a seção de serviços com lista numerada"""
         story = []
         
-        # Título da seção
-        story.append(Paragraph("SERVIÇOS PROPOSTOS", styles['TituloSecao']))
-        story.append(Spacer(1, 15))
+        story.append(Paragraph("Serviços", styles['TituloSecao']))
         
-        # Texto introdutório
-        intro_servicos = """
-        Os serviços descritos abaixo foram selecionados especificamente para atender às necessidades da sua empresa, garantindo total conformidade legal e otimização dos processos contábeis e fiscais.
-        """
-        story.append(Paragraph(intro_servicos, styles['TextoNormal']))
-        story.append(Spacer(1, 20))
-        
-        # Criar tabela de serviços mais organizada
-        servicos_data = [['Item', 'Serviço', 'Descrição', 'Qtd', 'Valor Unit.']]
-        
-        for i, item in enumerate(itens, 1):
+        contador = 1
+        for item in itens:
             if not item.ativo:
                 continue
                 
@@ -488,64 +561,55 @@ class PropostaPDFGenerator:
             if not servico:
                 continue
             
-            # Limitar descrição para não quebrar o layout
-            descricao = servico.descricao[:100] + "..." if len(servico.descricao) > 100 else servico.descricao
+            # Título do serviço
+            titulo_servico = f"{contador}. <b>{servico.nome}</b>"
+            story.append(Paragraph(titulo_servico, styles['ListaNumero']))
             
-            servicos_data.append([
-                str(i),
-                servico.nome,
-                descricao,
-                str(int(item.quantidade)),
-                f"R$ {float(item.valor_unitario):,.2f}"
-            ])
+            # Descrição do serviço
+            descricao_texto = servico.descricao.replace('\n', '<br/>')
+            story.append(Paragraph(descricao_texto, styles['SubItem']))
+            
+            contador += 1
         
-        # Criar tabela
-        servicos_table = Table(servicos_data, colWidths=[15*mm, 60*mm, 60*mm, 20*mm, 25*mm])
-        servicos_table.setStyle(TableStyle([
-            # Cabeçalho
-            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.9, 0.9, 0.9)),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            
-            # Dados
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # Item
-            ('ALIGN', (1, 1), (2, -1), 'LEFT'),    # Serviço e Descrição
-            ('ALIGN', (3, 1), (-1, -1), 'CENTER'), # Quantidade e Valor
-            
-            # Bordas e padding
-            ('GRID', (0, 0), (-1, -1), 1, colors.Color(0.8, 0.8, 0.8)),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ]))
+        return story
+
+    def _criar_servicos_temp(self, styles):
+        """Cria a seção de serviços temporária"""
+        story = []
         
-        story.append(servicos_table)
-        story.append(Spacer(1, 25))
+        story.append(Paragraph("Serviços", styles['TituloSecao']))
+        
+        # Serviço 1
+        story.append(Paragraph("1. <b>Pré-requisito, Certificado Digital</b>", styles['ListaNumero']))
+        story.append(Paragraph("• Emissão do certificado digital (e-CNPJ A1 da empresa): conferência de documentos, agendamento/validação e emissão.", styles['SubItem']))
+        story.append(Paragraph("• Utilização do certificado para assinar e transmitir DCTF e EFD-Contribuições e para outorgar procuração eletrônica no e-CAC.", styles['SubItem']))
+        
+        story.append(Spacer(1, 8))
+        
+        # Serviço 2
+        story.append(Paragraph("2. <b>Regularização de CNPJ, o serviço compreende:</b>", styles['ListaNumero']))
+        story.append(Paragraph("1. <b>Entrega das Obrigações Acessórias</b>", styles['SubItem']))
+        story.append(Paragraph("• Elaboração e transmissão da DCTF (Declaração de Débitos e Créditos Tributários Federais) dos exercícios de 2020 a 2024.", styles['SubItem']))
+        story.append(Paragraph("• Elaboração e transmissão da EFD-Contribuições (PIS/COFINS e CPRB) dos exercícios de 2020 a 2025.", styles['SubItem']))
+        
+        story.append(Paragraph("2. <b>Reativação do CNPJ</b>", styles['SubItem']))
+        story.append(Paragraph("• Atendimento às exigências da Receita Federal.", styles['SubItem']))
+        story.append(Paragraph("• Adoção das medidas necessárias para voltar o CNPJ à condição de ativo, permitindo o pleno funcionamento da empresa.", styles['SubItem']))
+        
+        story.append(Paragraph("3. <b>Conformidade Fiscal e Tributária</b>", styles['SubItem']))
+        story.append(Paragraph("• Garantia de que a empresa esteja em situação regular, sem pendências impeditivas.", styles['SubItem']))
+        story.append(Paragraph("• Prevenção de multas e restrições futuras.", styles['SubItem']))
         
         return story
     
     def _criar_orcamento(self, proposta, styles):
-        """Cria a seção de orçamento moderna e detalhada"""
+        """Cria a seção de orçamento com tabela estilizada"""
         story = []
         
-        # Título da seção
-        story.append(Paragraph("RESUMO FINANCEIRO", styles['TituloSecao']))
-        story.append(Spacer(1, 15))
-        
-        # Texto introdutório
-        intro_orcamento = """
-        Abaixo apresentamos o detalhamento financeiro completo dos serviços propostos, incluindo valores individuais e totais consolidados.
-        """
-        story.append(Paragraph(intro_orcamento, styles['TextoNormal']))
-        story.append(Spacer(1, 20))
+        story.append(Paragraph("Orçamento", styles['TituloOrcamento']))
         
         # Dados da tabela
-        table_data = [['Descrição do Serviço', 'Qtd', 'Valor Unitário', 'Valor Total']]
+        table_data = [['Serviço ou Produto', 'Quantidade', 'Preço Unitário', 'Total']]
         
         subtotal = 0
         for item in proposta.itens:
@@ -566,46 +630,46 @@ class PropostaPDFGenerator:
                 f"R$ {valor_total_item:,.2f}"
             ])
         
-        # Linha de separação
-        table_data.append(['', '', '', ''])
+        # Linhas de totais
+        table_data.append(['Subtotal', '', '', f'R$ {subtotal:,.2f}'])
+        table_data.append(['Impostos', '', '', 'R$ 0'])
+        table_data.append(['Total', '', '', f'R$ {float(proposta.valor_total):,.2f}'])
         
-        # Totalizadores
-        table_data.append(['<b>SUBTOTAL</b>', '', '', f"<b>R$ {subtotal:,.2f}</b>"])
-        
-        # Verificar se há desconto
-        valor_proposta = float(proposta.valor_total)
-        if valor_proposta < subtotal:
-            desconto = subtotal - valor_proposta
-            table_data.append(['<b>Desconto Aplicado</b>', '', '', f"<b>- R$ {desconto:,.2f}</b>"])
-        
-        table_data.append(['<b>VALOR TOTAL</b>', '', '', f"<b>R$ {valor_proposta:,.2f}</b>"])
-        
-        # Criar tabela moderna
-        table = Table(table_data, colWidths=[90*mm, 25*mm, 30*mm, 35*mm])
+        # Criar tabela
+        table = Table(table_data, colWidths=[70*mm, 25*mm, 35*mm, 30*mm])
         table.setStyle(TableStyle([
             # Cabeçalho
-            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.2, 0.2, 0.2)),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('BACKGROUND', (0, 0), (-1, 0), self.cores['fundo_tabela']),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('TEXTCOLOR', (0, 0), (-1, 0), self.cores['preto']),
+            ('LINEBELOW', (0, 0), (-1, 0), 2, self.cores['preto']),
             
-            # Dados
+            # Dados normais
             ('FONTNAME', (0, 1), (-1, -4), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -4), 10),
-            ('ALIGN', (0, 1), (0, -4), 'LEFT'),     # Descrição
-            ('ALIGN', (1, 1), (-1, -4), 'RIGHT'),   # Números
+            ('FONTSIZE', (0, 1), (-1, -4), 12),
+            ('LINEBELOW', (0, 1), (-1, -4), 1, self.cores['cinza_medio']),
             
-            # Totais
-            ('BACKGROUND', (0, -3), (-1, -1), colors.Color(0.95, 0.95, 0.95)),
-            ('FONTNAME', (0, -3), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, -3), (-1, -1), 11),
-            ('ALIGN', (0, -3), (0, -1), 'LEFT'),
-            ('ALIGN', (1, -3), (-1, -1), 'RIGHT'),
+            # Subtotal
+            ('FONTNAME', (0, -3), (-1, -3), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, -3), (-1, -3), 12),
+            ('LINEBELOW', (0, -3), (-1, -3), 1, self.cores['cinza_medio']),
             
-            # Bordas e espaçamento
-            ('GRID', (0, 0), (-1, -4), 1, colors.Color(0.8, 0.8, 0.8)),
-            ('GRID', (0, -3), (-1, -1), 1, colors.Color(0.6, 0.6, 0.6)),
+            # Impostos
+            ('FONTNAME', (0, -2), (-1, -2), 'Helvetica'),
+            ('FONTSIZE', (0, -2), (-1, -2), 12),
+            ('LINEBELOW', (0, -2), (-1, -2), 1, self.cores['cinza_medio']),
+            
+            # Total
+            ('BACKGROUND', (0, -1), (-1, -1), self.cores['fundo_total']),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, -1), (-1, -1), 12),
+            
+            # Alinhamentos
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            
+            # Padding
             ('TOPPADDING', (0, 0), (-1, -1), 10),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
             ('LEFTPADDING', (0, 0), (-1, -1), 12),
@@ -613,248 +677,61 @@ class PropostaPDFGenerator:
         ]))
         
         story.append(table)
-        story.append(Spacer(1, 30))
-        
-        return story
-    
-    def _criar_detalhes_adicionais(self, proposta, styles):
-        """Cria a seção de detalhes adicionais moderna e completa"""
-        story = []
-        
-        # Título da seção
-        story.append(Paragraph("CONDIÇÕES COMERCIAIS", styles['TituloSecao']))
-        story.append(Spacer(1, 15))
-        
-        # Condições de Prestação dos Serviços
-        story.append(Paragraph("<b>CONDIÇÕES DE PRESTAÇÃO DOS SERVIÇOS</b>", styles['TextoNormal']))
-        condicoes_texto = """
-        • <b>Início dos Serviços:</b> Após assinatura do contrato e fornecimento da documentação completa<br/>
-        • <b>Prazo de Entrega:</b> Conforme cronograma estabelecido para cada tipo de serviço<br/>
-        • <b>Documentação Necessária:</b> O cliente deverá fornecer toda documentação solicitada em até 5 dias úteis<br/>
-        • <b>Certificado Digital:</b> Obrigatório para serviços fiscais e deve estar sempre atualizado<br/>
-        • <b>Responsabilidades:</b> O cliente é responsável pela veracidade das informações fornecidas
-        """
-        story.append(Paragraph(condicoes_texto, styles['TextoNormal']))
-        story.append(Spacer(1, 20))
-        
-        # Condições de Pagamento
-        story.append(Paragraph("<b>CONDIÇÕES DE PAGAMENTO</b>", styles['TextoNormal']))
-        
-        valor_total = float(proposta.valor_total)
-        valor_vista = valor_total * 0.95  # 5% desconto
-        
-        pagamento_texto = f"""
-        <b>Opção 1 - À Vista (5% de desconto):</b><br/>
-        • Valor: R$ {valor_vista:,.2f}<br/>
-        • Formas: PIX, transferência bancária ou boleto<br/>
-        • Vencimento: Na assinatura do contrato<br/><br/>
-        
-        <b>Opção 2 - Parcelado:</b><br/>
-        • Valor: R$ {valor_total:,.2f}<br/>
-        • Parcelas: Até 3x sem juros no cartão de crédito<br/>
-        • Vencimento: Conforme acordo estabelecido
-        """
-        story.append(Paragraph(pagamento_texto, styles['TextoNormal']))
-        story.append(Spacer(1, 20))
-        
-        # Validade da Proposta
-        story.append(Paragraph("<b>VALIDADE DA PROPOSTA</b>", styles['TextoNormal']))
-        validade_texto = """
-        Esta proposta tem validade de <b>30 (trinta) dias</b> a partir da data de emissão. Após este período, os valores e condições poderão ser reavaliados conforme alterações de custos e legislação.
-        """
-        story.append(Paragraph(validade_texto, styles['TextoNormal']))
-        story.append(Spacer(1, 25))
-        
-        return story
-
-    def _get_logo_image(self):
-        """Retorna a imagem da logo"""
-        logo_path = self._find_logo_path()
-        if logo_path:
-            try:
-                # Carregar imagem com dimensões específicas
-                img = Image(logo_path, width=60, height=60)
-                img.hAlign = 'RIGHT'  # Alinhar à direita
-                return img
-            except Exception as e:
-                print(f"Erro ao carregar logo: {e}")
-                return ""
-        return ""
-
-    def _find_logo_path(self):
-        """Encontra o caminho da logo"""
-        possible_paths = [
-            'assets/images/Logo_Contabilidade.png',
-            '../frontend/src/assets/images/Logo_Contabilidade.png',
-            'frontend/src/assets/images/Logo_Contabilidade.png'
-        ]
-        for path in possible_paths:
-            if os.path.exists(path):
-                return path
-        return None
-
-    def _logo_exists(self):
-        """Verifica se a logo existe"""
-        return self._find_logo_path() is not None
-
-    def _criar_rodape(self, styles):
-        """Cria rodapé moderno e profissional"""
-        story = []
-        story.append(Spacer(1, 40))
-        
-        # Linha separadora
-        linha_separadora = Table([['']], colWidths=[170*mm])
-        linha_separadora.setStyle(TableStyle([
-            ('LINEABOVE', (0, 0), (-1, -1), 2, colors.Color(0.8, 0.8, 0.8)),
-        ]))
-        story.append(linha_separadora)
-        story.append(Spacer(1, 20))
-        
-        # Seção de contato
-        story.append(Paragraph("CONTATO E INFORMAÇÕES", styles['TituloSecao']))
-        story.append(Spacer(1, 15))
-        
-        # Informações da empresa em tabela organizada
-        empresa_data = [
-            ['<b>Empresa:</b>', 'Christino Consultoria Contábil LTDA'],
-            ['<b>CNPJ:</b>', '00.000.000/0001-00'],
-            ['<b>Endereço:</b>', 'Rua das Flores, 123 - Centro'],
-            ['<b>Cidade:</b>', 'São Paulo - SP - CEP: 01234-567'],
-            ['<b>Telefone:</b>', '(11) 99999-9999'],
-            ['<b>Email:</b>', 'contato@christino.com.br'],
-            ['<b>Website:</b>', 'www.christino.com.br'],
-        ]
-        
-        empresa_table = Table(empresa_data, colWidths=[40*mm, 130*mm])
-        empresa_table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (1, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ]))
-        
-        story.append(empresa_table)
-        story.append(Spacer(1, 20))
-        
-        # Agradecimento final
-        agradecimento = """
-        <b>Agradecemos a oportunidade de apresentar esta proposta e estamos à disposição para quaisquer esclarecimentos adicionais. Esperamos iniciar uma parceria de sucesso em breve!</b>
-        """
-        story.append(Paragraph(agradecimento, styles['TextoNormal']))
-        
-        return story
-
-    def _criar_servicos_temp(self, styles):
-        """Cria a seção de serviços temporária moderna com dados mock"""
-        story = []
-        
-        # Título da seção
-        story.append(Paragraph("SERVIÇOS PROPOSTOS", styles['TituloSecao']))
-        story.append(Spacer(1, 15))
-        
-        # Texto introdutório
-        intro_servicos = """
-        Os serviços descritos abaixo foram selecionados especificamente para atender às necessidades da sua empresa, garantindo total conformidade legal e otimização dos processos contábeis e fiscais.
-        """
-        story.append(Paragraph(intro_servicos, styles['TextoNormal']))
-        story.append(Spacer(1, 20))
-        
-        # Dados mock de serviços em tabela
-        servicos_data = [['Item', 'Serviço', 'Descrição', 'Qtd', 'Valor Unit.']]
-        servicos_data.append(['1', 'Serviço Contábil Básico', 'Escrituração contábil mensal completa', '1', 'R$ 450,00'])
-        servicos_data.append(['2', 'Declaração de Impostos', 'Elaboração e entrega de declarações fiscais', '1', 'R$ 180,00'])
-        servicos_data.append(['3', 'Folha de Pagamento', 'Processamento completo da folha de pagamento', '1', 'R$ 280,00'])
-        
-        # Criar tabela
-        servicos_table = Table(servicos_data, colWidths=[15*mm, 60*mm, 60*mm, 20*mm, 25*mm])
-        servicos_table.setStyle(TableStyle([
-            # Cabeçalho
-            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.9, 0.9, 0.9)),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            
-            # Dados
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # Item
-            ('ALIGN', (1, 1), (2, -1), 'LEFT'),    # Serviço e Descrição
-            ('ALIGN', (3, 1), (-1, -1), 'CENTER'), # Quantidade e Valor
-            
-            # Bordas e padding
-            ('GRID', (0, 0), (-1, -1), 1, colors.Color(0.8, 0.8, 0.8)),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ]))
-        
-        story.append(servicos_table)
         story.append(Spacer(1, 25))
         
         return story
 
     def _criar_orcamento_temp(self, styles):
-        """Cria a seção de orçamento temporária moderna com dados mock"""
+        """Cria a seção de orçamento temporária"""
         story = []
         
-        # Título da seção
-        story.append(Paragraph("RESUMO FINANCEIRO", styles['TituloSecao']))
-        story.append(Spacer(1, 15))
+        story.append(Paragraph("Orçamento", styles['TituloOrcamento']))
         
-        # Texto introdutório
-        intro_orcamento = """
-        Abaixo apresentamos o detalhamento financeiro completo dos serviços propostos, incluindo valores individuais e totais consolidados.
-        """
-        story.append(Paragraph(intro_orcamento, styles['TextoNormal']))
-        story.append(Spacer(1, 20))
+        # Dados da tabela
+        table_data = [
+            ['Serviço ou Produto', 'Quantidade', 'Preço Unitário', 'Total'],
+            ['Regularização de CNPJ', '1', 'R$ 1.000,00', 'R$ 1.000,00'],
+            ['Certificado Digital', '1', 'R$ 230,00', 'R$ 230,00'],
+            ['Subtotal', '', '', 'R$ 1.230,00'],
+            ['Impostos', '', '', 'R$ 0'],
+            ['Total', '', '', 'R$ 1.230,00']
+        ]
         
-        # Dados mock da tabela
-        table_data = [['Descrição do Serviço', 'Qtd', 'Valor Unitário', 'Valor Total']]
-        table_data.append(['Serviço Contábil Básico', '1', 'R$ 450,00', 'R$ 450,00'])
-        table_data.append(['Declaração de Impostos', '1', 'R$ 180,00', 'R$ 180,00'])
-        table_data.append(['Folha de Pagamento', '1', 'R$ 280,00', 'R$ 280,00'])
-        
-        # Linha de separação
-        table_data.append(['', '', '', ''])
-        
-        # Totalizadores
-        table_data.append(['<b>SUBTOTAL</b>', '', '', '<b>R$ 910,00</b>'])
-        table_data.append(['<b>VALOR TOTAL</b>', '', '', '<b>R$ 910,00</b>'])
-        
-        # Criar tabela moderna
-        table = Table(table_data, colWidths=[90*mm, 25*mm, 30*mm, 35*mm])
+        # Criar tabela
+        table = Table(table_data, colWidths=[70*mm, 25*mm, 35*mm, 30*mm])
         table.setStyle(TableStyle([
             # Cabeçalho
-            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.2, 0.2, 0.2)),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('BACKGROUND', (0, 0), (-1, 0), self.cores['fundo_tabela']),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('TEXTCOLOR', (0, 0), (-1, 0), self.cores['preto']),
+            ('LINEBELOW', (0, 0), (-1, 0), 2, self.cores['preto']),
             
-            # Dados
-            ('FONTNAME', (0, 1), (-1, -3), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -3), 10),
-            ('ALIGN', (0, 1), (0, -3), 'LEFT'),     # Descrição
-            ('ALIGN', (1, 1), (-1, -3), 'RIGHT'),   # Números
+            # Dados normais
+            ('FONTNAME', (0, 1), (-1, 2), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, 2), 12),
+            ('LINEBELOW', (0, 1), (-1, 2), 1, self.cores['cinza_medio']),
             
-            # Totais
-            ('BACKGROUND', (0, -2), (-1, -1), colors.Color(0.95, 0.95, 0.95)),
-            ('FONTNAME', (0, -2), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, -2), (-1, -1), 11),
-            ('ALIGN', (0, -2), (0, -1), 'LEFT'),
-            ('ALIGN', (1, -2), (-1, -1), 'RIGHT'),
+            # Subtotal
+            ('FONTNAME', (0, 3), (-1, 3), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 3), (-1, 3), 12),
+            ('LINEBELOW', (0, 3), (-1, 3), 1, self.cores['cinza_medio']),
             
-            # Bordas e espaçamento
-            ('GRID', (0, 0), (-1, -3), 1, colors.Color(0.8, 0.8, 0.8)),
-            ('GRID', (0, -2), (-1, -1), 1, colors.Color(0.6, 0.6, 0.6)),
+            # Impostos
+            ('FONTNAME', (0, 4), (-1, 4), 'Helvetica'),
+            ('FONTSIZE', (0, 4), (-1, 4), 12),
+            ('LINEBELOW', (0, 4), (-1, 4), 1, self.cores['cinza_medio']),
+            
+            # Total
+            ('BACKGROUND', (0, 5), (-1, 5), self.cores['fundo_total']),
+            ('FONTNAME', (0, 5), (-1, 5), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 5), (-1, 5), 12),
+            
+            # Alinhamentos
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            
+            # Padding
             ('TOPPADDING', (0, 0), (-1, -1), 10),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
             ('LEFTPADDING', (0, 0), (-1, -1), 12),
@@ -862,58 +739,56 @@ class PropostaPDFGenerator:
         ]))
         
         story.append(table)
-        story.append(Spacer(1, 30))
+        story.append(Spacer(1, 25))
+        
+        return story
+    
+    def _criar_detalhes_adicionais(self, proposta, styles):
+        """Cria a seção de detalhes adicionais"""
+        story = []
+        
+        story.append(Paragraph("Detalhes Adicionais", styles['TituloDetalhes']))
+        
+        # Previsão de Entrega
+        story.append(Paragraph("<b>Previsão de Entrega</b>", styles['SubtituloDetalhes']))
+        entrega_texto = "O serviço será concluído em até <b>10 dias úteis</b>, contados a partir da disponibilização completa da documentação e do certificado digital necessários."
+        story.append(Paragraph(entrega_texto, styles['TextoNormal']))
+        
+        story.append(Spacer(1, 15))
+        
+        # Opções de Pagamento
+        story.append(Paragraph("<b>Opções de Pagamento</b>", styles['SubtituloDetalhes']))
+        
+        valor_total = float(proposta.valor_total)
+        valor_vista = valor_total * 0.9  # 10% desconto
+        
+        pagamento_texto = f"""• <b>À vista:</b> R$ {valor_vista:,.2f} (pagamento via PIX, transferência ou boleto).<br/>
+• <b>Parcelado:</b> R$ {valor_total:,.2f} em até <b>3x no cartão de crédito</b>."""
+        
+        story.append(Paragraph(pagamento_texto, styles['TextoNormal']))
         
         return story
 
     def _criar_detalhes_adicionais_temp(self, styles):
-        """Cria a seção de detalhes adicionais temporária moderna e completa"""
+        """Cria a seção de detalhes adicionais temporária"""
         story = []
         
-        # Título da seção
-        story.append(Paragraph("CONDIÇÕES COMERCIAIS", styles['TituloSecao']))
+        story.append(Paragraph("Detalhes Adicionais", styles['TituloDetalhes']))
+        
+        # Previsão de Entrega
+        story.append(Paragraph("<b>Previsão de Entrega</b>", styles['SubtituloDetalhes']))
+        entrega_texto = "O serviço será concluído em até <b>10 dias úteis</b>, contados a partir da disponibilização completa da documentação e do certificado digital necessários."
+        story.append(Paragraph(entrega_texto, styles['TextoNormal']))
+        
         story.append(Spacer(1, 15))
         
-        # Condições de Prestação dos Serviços
-        story.append(Paragraph("<b>CONDIÇÕES DE PRESTAÇÃO DOS SERVIÇOS</b>", styles['TextoNormal']))
-        condicoes_texto = """
-        • <b>Início dos Serviços:</b> Após assinatura do contrato e fornecimento da documentação completa<br/>
-        • <b>Prazo de Entrega:</b> Conforme cronograma estabelecido para cada tipo de serviço<br/>
-        • <b>Documentação Necessária:</b> O cliente deverá fornecer toda documentação solicitada em até 5 dias úteis<br/>
-        • <b>Certificado Digital:</b> Obrigatório para serviços fiscais e deve estar sempre atualizado<br/>
-        • <b>Responsabilidades:</b> O cliente é responsável pela veracidade das informações fornecidas
-        """
-        story.append(Paragraph(condicoes_texto, styles['TextoNormal']))
-        story.append(Spacer(1, 20))
+        # Opções de Pagamento
+        story.append(Paragraph("<b>Opções de Pagamento</b>", styles['SubtituloDetalhes']))
         
-        # Condições de Pagamento
-        story.append(Paragraph("<b>CONDIÇÕES DE PAGAMENTO</b>", styles['TextoNormal']))
+        pagamento_texto = """• <b>À vista:</b> R$ 1.100,00 (pagamento via PIX, transferência ou boleto).<br/>
+• <b>Parcelado:</b> R$ 1.230,00 em até <b>3x no cartão de crédito</b>."""
         
-        # Valores mock
-        valor_total = 910.00
-        valor_vista = valor_total * 0.95  # 5% desconto
-        
-        pagamento_texto = f"""
-        <b>Opção 1 - À Vista (5% de desconto):</b><br/>
-        • Valor: R$ {valor_vista:,.2f}<br/>
-        • Formas: PIX, transferência bancária ou boleto<br/>
-        • Vencimento: Na assinatura do contrato<br/><br/>
-        
-        <b>Opção 2 - Parcelado:</b><br/>
-        • Valor: R$ {valor_total:,.2f}<br/>
-        • Parcelas: Até 3x sem juros no cartão de crédito<br/>
-        • Vencimento: Conforme acordo estabelecido
-        """
         story.append(Paragraph(pagamento_texto, styles['TextoNormal']))
-        story.append(Spacer(1, 20))
-        
-        # Validade da Proposta
-        story.append(Paragraph("<b>VALIDADE DA PROPOSTA</b>", styles['TextoNormal']))
-        validade_texto = """
-        Esta proposta tem validade de <b>30 (trinta) dias</b> a partir da data de emissão. Após este período, os valores e condições poderão ser reavaliados conforme alterações de custos e legislação.
-        """
-        story.append(Paragraph(validade_texto, styles['TextoNormal']))
-        story.append(Spacer(1, 25))
         
         return story
 

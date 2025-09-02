@@ -127,34 +127,20 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
   );
 
   const renderCliente = () => (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-gray-50 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 rounded-t-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        {/* Header sem nenhum container pai */}
+        <div className="bg-blue-600 text-white p-6 rounded-t-lg">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-white bg-opacity-20 rounded-xl">
-                <User className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-white">Detalhes do Cliente</h2>
-                <p className="text-blue-100">ID: {data.id}</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <StatusBadge active={data.ativo} label={data.ativo ? 'Ativo' : 'Inativo'} />
-              <button
-                onClick={onClose}
-                className="p-2 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors duration-200"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
+            <h2 className="text-2xl font-bold">Detalhes do Cliente</h2>
+            <button onClick={onClose} className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2">
+              <X className="w-6 h-6" />
+            </button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-8 space-y-6">
+        {/* Content - CORREÇÃO: COM bg-white */}
+        <div className="bg-white p-8 space-y-6">
           {/* Informações Pessoais */}
           <InfoCard icon={User} title="Informações Pessoais" color="blue">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -252,8 +238,8 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="px-8 py-6 bg-gray-100 rounded-b-2xl">
+        {/* Footer - CORREÇÃO: COM bg-white */}
+        <div className="bg-white px-8 py-6">
           <div className="flex justify-end">
             <button
               onClick={onClose}
@@ -268,10 +254,10 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
   );
 
   const renderFuncionario = () => (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-gray-50 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-8 py-6 rounded-t-2xl">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center">
+      <div className="rounded-2xl overflow-hidden shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
+        {/* Header - CORREÇÃO: SEM rounded-t-2xl */}
+        <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-white bg-opacity-20 rounded-xl">
@@ -294,8 +280,8 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-8 space-y-6">
+        {/* Content - CORREÇÃO: COM bg-white */}
+        <div className="bg-white p-8 space-y-6">
           {/* Informações Profissionais */}
           <InfoCard icon={UserCheck} title="Informações Profissionais" color="emerald">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -349,8 +335,8 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
           </InfoCard>
         </div>
 
-        {/* Footer */}
-        <div className="px-8 py-6 bg-gray-100 rounded-b-2xl">
+        {/* Footer - CORREÇÃO: COM bg-white */}
+        <div className="bg-white px-8 py-6">
           <div className="flex justify-end">
             <button
               onClick={onClose}
@@ -365,10 +351,10 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
   );
 
   const renderCargo = () => (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-gray-50 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-violet-600 to-violet-700 px-8 py-6 rounded-t-2xl">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center">
+      <div className="rounded-2xl overflow-hidden shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
+        {/* Header - CORREÇÃO: SEM rounded-t-2xl */}
+        <div className="bg-gradient-to-r from-violet-600 to-violet-700 px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-white bg-opacity-20 rounded-xl">
@@ -391,8 +377,8 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-8 space-y-6">
+        {/* Content - CORREÇÃO: COM bg-white */}
+        <div className="bg-white p-8 space-y-6">
           {/* Identificação */}
           <InfoCard icon={Briefcase} title="Identificação" color="violet">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -434,8 +420,8 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
           </InfoCard>
         </div>
 
-        {/* Footer */}
-        <div className="px-8 py-6 bg-gray-100 rounded-b-2xl">
+        {/* Footer - CORREÇÃO: COM bg-white */}
+        <div className="bg-white px-8 py-6">
           <div className="flex justify-end">
             <button
               onClick={onClose}
@@ -458,10 +444,10 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
   };
 
   const renderServico = () => (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-gray-50 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-orange-600 to-orange-700 px-8 py-6 rounded-t-2xl">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center">
+      <div className="rounded-2xl overflow-hidden shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
+        {/* Header - CORREÇÃO: SEM rounded-t-2xl */}
+        <div className="bg-gradient-to-r from-orange-600 to-orange-700 px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-white bg-opacity-20 rounded-xl">
@@ -484,8 +470,8 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-8 space-y-6">
+        {/* Content - CORREÇÃO: COM bg-white */}
+        <div className="bg-white p-8 space-y-6">
           {/* Informações Básicas */}
           <InfoCard icon={Package} title="Informações do Serviço" color="orange">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -540,8 +526,8 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
           </InfoCard>
         </div>
 
-        {/* Footer */}
-        <div className="px-8 py-6 bg-gray-100 rounded-b-2xl">
+        {/* Footer - CORREÇÃO: COM bg-white */}
+        <div className="bg-white px-8 py-6">
           <div className="flex justify-end">
             <button
               onClick={onClose}
@@ -557,9 +543,9 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
 
   // Função para renderizar regime tributário
   const renderRegime = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="rounded-2xl overflow-hidden shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden mx-4 my-8">
+        {/* Header - CORREÇÃO: SEM rounded-t-2xl */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -583,8 +569,8 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-8 space-y-6">
+        {/* Content - CORREÇÃO: COM bg-white */}
+        <div className="bg-white p-8 space-y-6">
           {/* Informações Básicas */}
           <InfoCard icon={Shield} title="Informações do Regime" color="blue">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -644,8 +630,8 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
           </InfoCard>
         </div>
 
-        {/* Footer */}
-        <div className="px-8 py-6 bg-gray-100 rounded-b-2xl">
+        {/* Footer - CORREÇÃO: COM bg-white */}
+        <div className="bg-white px-8 py-6">
           <div className="flex justify-end">
             <button
               onClick={onClose}

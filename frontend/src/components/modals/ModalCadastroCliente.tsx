@@ -448,9 +448,9 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
           onClick={onClose}
         />
 
-        <div className="inline-block w-full max-w-2xl p-0 my-8 text-left align-middle transition-all transform bg-white shadow-xl rounded-lg max-h-[90vh] overflow-y-auto">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="inline-block w-full max-w-2xl p-0 my-8 text-left align-middle transition-all transform shadow-xl rounded-lg max-h-[90vh] overflow-y-auto overflow-hidden">
+          {/* Header - CORREÇÃO: SEM rounded-t-lg */}
+          <div className="bg-white flex items-center justify-between p-6 border-b border-gray-200">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
                 {clienteParaEditar ? 'Editar Cliente' : 'Cadastrar Novo Cliente'}
@@ -505,7 +505,7 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
           </div>
 
           {/* Conteúdo das Abas */}
-          <div className="p-6">
+          <div className="bg-white p-6">
             {/* Aba Dados do Cliente */}
             {abaAtiva === 0 && (
               <div className="space-y-4">
@@ -825,8 +825,8 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
             )}
           </div>
 
-          {/* Botões */}
-          <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+          {/* Botões - CORREÇÃO: COM bg-white */}
+          <div className="bg-white flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
             <button
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"

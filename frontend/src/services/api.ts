@@ -291,7 +291,7 @@ class ApiService {
     const url = `/regimes-tributarios?${query}`;
     console.log('🔍 DEBUG API: URL final:', url);
     console.log('🔍 DEBUG API: Query string:', query.toString());
-    
+
     return this.request<any>(url);
   }
 
@@ -424,11 +424,35 @@ class ApiService {
     });
   }
 
-  async getRegimesTributarios(tipoAtividadeId?: number) {
-    if (tipoAtividadeId) {
-      return this.request<any>(`/servicos/regimes-tributarios?tipo_atividade_id=${tipoAtividadeId}`);
+  // ✅ CORREÇÃO: Função unificada para regimes tributários
+  async getRegimesTributarios(params?: {
+    ativo?: boolean;
+    aplicavel_pf?: boolean;
+    aplicavel_pj?: boolean;
+    atividades_ids?: number[];
+    search?: string;
+    tipo_atividade_id?: number; // ✅ Adicionado para compatibilidade
+  }) {
+    const query = new URLSearchParams();
+    if (params?.ativo !== undefined) query.append('ativo', params.ativo.toString());
+    if (params?.aplicavel_pf !== undefined) query.append('aplicavel_pf', params.aplicavel_pf.toString());
+    if (params?.aplicavel_pj !== undefined) query.append('aplicavel_pj', params.aplicavel_pj.toString());
+
+    // ✅ CORREÇÃO: Suporte para ambos os parâmetros
+    if (params?.atividades_ids?.length) {
+      params.atividades_ids.forEach(id => query.append('atividades_ids', id.toString()));
     }
-    return this.request<any>('/servicos/regimes-tributarios');
+    if (params?.tipo_atividade_id) {
+      query.append('atividades_ids', params.tipo_atividade_id.toString());
+    }
+
+    if (params?.search) query.append('search', params.search);
+
+    const url = `/regimes-tributarios?${query}`;
+    console.log('🔍 DEBUG API: URL final:', url);
+    console.log('🔍 DEBUG API: Query string:', query.toString());
+
+    return this.request<any>(url);
   }
 
   // Propostas

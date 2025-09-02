@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Proposta de Orçamento</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Montserrat', Arial, sans-serif;
+            background: #faf9f6;
+            color: #222;
+            margin: 0;
+        }
+
+        .wrapper {
+            max-width: 850px;
+            margin: 40px auto;
+            background: #fff;
+            padding: 44px 32px 32px 32px;
+            border-radius: 16px;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.13);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            background: #f0eeea;
+            padding: 24px 28px;
+            border-radius: 8px;
+            margin-bottom: 34px;
+        }
+
+        .header-info {
+            flex: 1;
+        }
+
+        .header-title {
+            font-size: 2.6rem;
+            font-weight: 700;
+            margin: 18px 0;
+            letter-spacing: -2px;
+        }
+
+        .header-date {
+            color: #222;
+            font-size: 1.07rem;
+            font-weight: 500;
+            margin-bottom: 14px;
+        }
+
+        .header-box {
+            font-size: 1rem;
+            background: #fff;
+            border-radius: 20px;
+            border: 1px solid #eee;
+            padding: 8px 14px;
+            display: inline-block;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+            margin-bottom: 4px;
+        }
+
+        .header-image {
+            margin-left: 36px;
+            width: 110px;
+            height: 110px;
+            background: #f47a1c;
+            border-radius: 50%;
+            display: flex;
+            box-shadow: 0px 4px 16px rgba(244, 122, 28, 0.17);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-image img {
+            width: 80px;
+            filter: drop-shadow(0 0 8px #ffb974);
+        }
+
+        .desc-box {
+            background: #f0eeea;
+            border-radius: 6px;
+            padding: 25px 28px;
+            margin-bottom: 32px;
+            font-size: 1.09rem;
+            color: #333;
+        }
+
+        .desc-box b {
+            font-weight: 700;
+        }
+
+        .desc-box strong {
+            font-weight: 700;
+            color: #222;
+        }
+
+        .section-title {
+            font-size: 2.1rem;
+            font-weight: 700;
+            margin-top: 38px;
+            margin-bottom: 22px;
+            letter-spacing: -1px;
+            color: #222;
+        }
+
+        .bold {
+            font-weight: 700;
+        }
+
+        .services-list li {
+            margin-bottom: 12px;
+            line-height: 1.7;
+        }
+
+        .services-list ul,
+        .services-list ol {
+            margin-top: 6px;
+            margin-bottom: 4px;
+            margin-left: 18px;
+        }
+
+        .services-list {
+            margin-bottom: 12px;
+        }
+
+        .budget-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 34px 0 28px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+        }
+
+        th,
+        td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #aaa;
+            font-size: 1.07rem;
+            text-align: left;
+        }
+
+        th {
+            background: #fbfbfa;
+            font-weight: 700;
+            color: #222;
+            border-bottom: 2px solid #222;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .table-subtotal {
+            font-weight: 700;
+        }
+
+        .table-total {
+            background: #efefef;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .table-bold {
+            font-weight: 700;
+        }
+
+        .details-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-top: 40px;
+            margin-bottom: 22px;
+            letter-spacing: -1px;
+        }
+
+        .details-section {
+            margin-bottom: 26px;
+        }
+
+        .details-section b,
+        .details-section strong {
+            font-weight: 700;
+        }
+
+        .payment-list {
+            margin-top: 8px;
+            margin-left: 18px;
+        }
+
+        .payment-list li {
+            margin-bottom: 7px;
+        }
+
+        @media (max-width: 600px) {
+
+            .wrapper,
+            .desc-box,
+            .header {
+                padding: 16px !important;
+            }
+
+            .section-title,
+            .details-title,
+            .budget-title {
+                font-size: 1.4rem !important;
+            }
+
+            .header-title {
+                font-size: 1.5rem !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="header">
+            <div class="header-info">
+                <div class="header-date">28/08/2025</div>
+                <div class="header-title">Proposta de<br>Orçamento</div>
+                <div class="header-box">
+                    Preparado para: <span class="bold">Associação Desportiva Futsal Itai</span>
+                </div>
+            </div>
+            <div class="header-image">
+                <!-- Representação gráfica, substitua <img> por seu logotipo -->
+                <img src="https://imgur.com/ep0M8Q7.png" alt="Logo" />
+            </div>
+        </div>
+
+        <div class="desc-box">
+            Agradecemos o seu interesse em nossos serviços.
+            <b>É um prazer apresentar esta proposta de orçamento</b>, onde reunimos informações sobre nossa empresa, os
+            serviços oferecidos e as formas de colaboração possíveis.<br><br>
+            Nosso objetivo é <strong>construir uma parceria sólida e estratégica</strong>, entregando soluções que
+            atendam plenamente às suas necessidades. Estamos à disposição para esclarecer quaisquer dúvidas e esperamos
+            colaborar em breve!
+        </div>
+
+        <div class="section-title">Sobre Nós</div>
+        <div style="font-size:1.13rem; margin-bottom:32px;">
+            A <b>Christino Consultoria Contábil LTDA</b>, fundada em 1995, é especializada no atendimento a pequenos e
+            médios empresários.<br><br>
+            Atuamos com ética, qualidade e inovação, oferecendo serviços contábeis e consultoria empresarial que agregam
+            valor, promovem segurança e fortalecem os negócios de nossos clientes.
+        </div>
+
+        <div class="section-title">Serviços</div>
+        <ol class="services-list">
+            <li>
+                <b>Pré-requisito, Certificado Digital</b>
+                <ul>
+                    <li>Emissão do certificado digital (e-CNPJ A1 da empresa): conferência de documentos,
+                        agendamento/validação e emissão.</li>
+                    <li>Utilização do certificado para assinar e transmitir DCTF e EFD-Contribuições e para outorgar
+                        procuração eletrônica no e-CAC.</li>
+                </ul>
+            </li>
+            <li>
+                <b>Regularização de CNPJ, o serviço compreende:</b>
+                <ol type="1">
+                    <li><b>Entrega das Obrigações Acessórias</b>
+                        <ul>
+                            <li>Elaboração e transmissão da DCTF (Declaração de Débitos e Créditos Tributários Federais)
+                                dos exercícios de 2020 a 2024.</li>
+                            <li>Elaboração e transmissão da EFD-Contribuições (PIS/COFINS e CPRB) dos exercícios de 2020
+                                a 2025.</li>
+                        </ul>
+                    </li>
+                    <li><b>Reativação do CNPJ</b>
+                        <ul>
+                            <li>Atendimento às exigências da Receita Federal.</li>
+                            <li>Adoção das medidas necessárias para voltar o CNPJ à condição de ativo, permitindo o
+                                pleno funcionamento da empresa.</li>
+                        </ul>
+                    </li>
+                    <li><b>Conformidade Fiscal e Tributária</b>
+                        <ul>
+                            <li>Garantia de que a empresa esteja em situação regular, sem pendências impeditivas.</li>
+                            <li>Prevenção de multas e restrições futuras.</li>
+                        </ul>
+                    </li>
+                </ol>
+            </li>
+        </ol>
+
+        <div class="budget-title">Orçamento</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Serviço ou Produto</th>
+                    <th>Quantidade</th>
+                    <th>Preço Unitário</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Regularização de CNPJ</td>
+                    <td>1</td>
+                    <td>R$ 1.000,00</td>
+                    <td>R$ 1.000,00</td>
+                </tr>
+                <tr>
+                    <td>Certificado Digital</td>
+                    <td>1</td>
+                    <td>R$ 230,00</td>
+                    <td>R$ 230,00</td>
+                </tr>
+                <tr class="table-subtotal">
+                    <td colspan="3" class="table-bold">Subtotal</td>
+                    <td>R$ 1.230,00</td>
+                </tr>
+                <tr>
+                    <td colspan="3">Impostos</td>
+                    <td>R$ 0</td>
+                </tr>
+                <tr class="table-total">
+                    <td colspan="3" class="table-bold">Total</td>
+                    <td class="table-bold">R$ 1.230,00</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="details-title">Detalhes Adicionais</div>
+        <div class="details-section">
+            <b>Previsão de Entrega</b><br>
+            O serviço será concluído em até <b>10 dias úteis</b>, contados a partir da disponibilização completa da
+            documentação e do certificado digital necessários.
+        </div>
+        <div class="details-section">
+            <b>Opções de Pagamento</b>
+            <ul class="payment-list">
+                <li><b>À vista:</b> R$ 1.100,00 (pagamento via PIX, transferência ou boleto).</li>
+                <li><b>Parcelado:</b> R$ 1.230,00 em até <b>3x no cartão de crédito</b>.</li>
+            </ul>
+        </div>
+
+    </div>
+</body>
+
+</html>

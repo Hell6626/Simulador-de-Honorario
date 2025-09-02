@@ -69,20 +69,20 @@ export const Modal: React.FC<ModalProps> = ({
         className="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
         onClick={handleOverlayClick}
       />
-      
-      {/* Modal */}
+
+      {/* Modal - CORREÇÃO: SEM bg-white, COM overflow-hidden */}
       <div
         ref={modalRef}
         className={cn(
-          'relative bg-white rounded-lg shadow-xl w-full mx-4',
+          'relative rounded-lg overflow-hidden shadow-xl w-full mx-4',
           sizeClasses[size],
           'animate-in fade-in-0 zoom-in-95 duration-200',
           className
         )}
       >
-        {/* Header */}
+        {/* Header - CORREÇÃO: SEM rounded-t-lg, COM bg-white */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="bg-white flex items-center justify-between p-6 border-b border-gray-200">
             {title && (
               <h2 className="text-lg font-semibold text-gray-900">
                 {title}
@@ -101,8 +101,8 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
         )}
 
-        {/* Content */}
-        <div className="p-6">
+        {/* Content - CORREÇÃO: COM bg-white */}
+        <div className="bg-white p-6">
           {children}
         </div>
       </div>

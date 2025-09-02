@@ -210,9 +210,9 @@ export const ModalCadastroFuncionario: React.FC<ModalCadastroFuncionarioProps> =
           onClick={onClose}
         />
 
-        <div className="inline-block w-full max-w-2xl p-0 my-8 text-left align-middle transition-all transform bg-white shadow-xl rounded-lg max-h-[90vh] overflow-y-auto">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="inline-block w-full max-w-2xl p-0 my-8 text-left align-middle transition-all transform shadow-xl rounded-lg max-h-[90vh] overflow-y-auto overflow-hidden">
+          {/* Header - CORREÇÃO: SEM rounded-t-lg */}
+          <div className="bg-white flex items-center justify-between p-6 border-b border-gray-200">
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
                 {funcionarioParaEditar ? 'Editar Funcionário' : 'Cadastrar Novo Funcionário'}
@@ -229,8 +229,8 @@ export const ModalCadastroFuncionario: React.FC<ModalCadastroFuncionarioProps> =
             </button>
           </div>
 
-          {/* Tabs */}
-          <div className="border-b border-gray-200">
+          {/* Tabs - CORREÇÃO: COM bg-white */}
+          <div className="bg-white border-b border-gray-200">
             <nav className="flex space-x-8 px-6">
               <button
                 onClick={() => setActiveTab('dados')}
@@ -255,8 +255,8 @@ export const ModalCadastroFuncionario: React.FC<ModalCadastroFuncionarioProps> =
             </nav>
           </div>
 
-          {/* Content */}
-          <div className="p-6">
+          {/* Content - CORREÇÃO: COM bg-white */}
+          <div className="bg-white p-6">
             {loadingData ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -435,8 +435,8 @@ export const ModalCadastroFuncionario: React.FC<ModalCadastroFuncionarioProps> =
             )}
           </div>
 
-          {/* Footer */}
-          <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+          {/* Footer - CORREÇÃO: COM bg-white */}
+          <div className="bg-white flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
             <button
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
