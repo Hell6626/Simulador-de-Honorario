@@ -83,21 +83,13 @@ def init_database(app):
             Proposta, ItemProposta, PropostaLog,
             inicializar_dados_basicos
         )
-
-        print("🔄 Criando tabelas do banco de dados...")
         db.create_all()
-        print("✅ Tabelas criadas com sucesso!")
 
         if not TipoAtividade.query.first():
-            print("🔄 Inicializando dados básicos...")
             inicializar_dados_basicos()
-            print("✅ Dados básicos inicializados!")
-        else:
-            print("ℹ️  Dados básicos já existem no banco.")
 
 
 if __name__ == '__main__':
     app = create_app()
     init_database(app)
-    print("🚀 Iniciando servidor Flask...")
     app.run(debug=True, host='0.0.0.0', port=5000)
