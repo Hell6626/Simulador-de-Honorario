@@ -84,7 +84,7 @@ export const ModalCadastroRegimeTributario: React.FC<ModalCadastroRegimeTributar
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
       <div className="rounded-lg overflow-hidden shadow-xl w-full max-w-md mx-4">
         {/* Header - CORREÇÃO: SEM rounded-t-lg */}
         <div className="bg-white flex items-center justify-between p-6 border-b border-gray-200">

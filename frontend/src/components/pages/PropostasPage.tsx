@@ -361,6 +361,8 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
           regime_tributario_id: 1,
           faixa_faturamento_id: 1,
           valor_total: 2500.00,
+          percentual_desconto: 0,
+          requer_aprovacao: false,
           data_validade: '2025-02-08T00:00:00',
           status: 'ENVIADA',
           observacoes: 'Proposta para serviços contábeis',
@@ -388,6 +390,8 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
           regime_tributario_id: 1,
           faixa_faturamento_id: 1,
           valor_total: 1800.00,
+          percentual_desconto: 0,
+          requer_aprovacao: false,
           data_validade: '2025-02-07T00:00:00',
           status: 'RASCUNHO',
           observacoes: 'Proposta em elaboração',
@@ -691,8 +695,11 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
   };
 
   const handleVoltarPasso4 = () => {
-    setCurrentStep(3);
-    setDadosPropostaCompleta(null);
+    console.log('🔄 handleVoltarPasso4 chamado - voltando para Passo 3');
+    setCurrentStep(3); // ✅ DEVE voltar para Passo 3 (seleção de serviços)
+
+    // ✅ NÃO limpar dados para manter a navegação suave
+    // setDadosPropostaCompleta(null); // ❌ NÃO fazer isso
   };
 
   const handleProximoPasso4 = async (dadosComDesconto: PropostaComDesconto) => {
@@ -857,16 +864,14 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
 
   if (currentStep === 4 && dadosPropostaCompleta) {
     return (
-      <PropostaProvider>
-        <Passo4RevisaoProposta
-          dadosProposta={dadosPropostaCompleta}
-          propostaId={dadosProposta.propostaId} // ⚠️ NOVO: Passar o ID da proposta criada no Passo 3
-          propostaNumero={dadosProposta.propostaNumero} // ⚠️ NOVO: Passar o número da proposta
-          onVoltar={handleVoltarPasso4}
-          onProximo={handleProximoPasso4}
-          todosServicos={todosServicos}
-        />
-      </PropostaProvider>
+      <Passo4RevisaoProposta
+        dadosProposta={dadosPropostaCompleta as any}
+        propostaId={dadosProposta.propostaId} // ⚠️ NOVO: Passar o ID da proposta criada no Passo 3
+        propostaNumero={dadosProposta.propostaNumero} // ⚠️ NOVO: Passar o número da proposta
+        onVoltar={handleVoltarPasso4}
+        onProximo={handleProximoPasso4 as any}
+        todosServicos={todosServicos}
+      />
     );
   }
 
@@ -876,7 +881,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
       cliente: dadosProposta.cliente,
       tipoAtividade: dadosProposta.tipoAtividade,
       regimeTributario: dadosProposta.regimeTributario!,
-      faixaFaturamento: dadosProposta.faixaFaturamento,
+      faixaFaturamento: dadosProposta.faixaFaturamento || undefined,
       servicosSelecionados: dadosProposta.servicosSelecionados,
       percentualDesconto: dadosProposta.percentualDesconto || 0,
       valorDesconto: dadosProposta.valorDesconto || 0,

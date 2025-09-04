@@ -303,47 +303,149 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
 
   const carregarRegimesCompativeis = async (tipoAtividadeId: number) => {
     setLoadingRegimes(true);
+    setRegimesCompativeis([]); // Limpar regimes antes de carregar novos
 
     try {
-      // Buscar regimes compatíveis com o tipo de atividade
-      const response = await apiService.getRegimesTributarios({
-        ativo: true,
-        atividades_ids: [tipoAtividadeId]
-      });
-      setRegimesCompativeis(response.items || response || []);
-    } catch (err: unknown) {
-      console.error('Erro ao carregar regimes:', err);
+      // 1. Primeiro, buscar o tipo de atividade selecionado para saber se é PF ou PJ
+      const tipoAtividade = tiposAtividade.find(t => t.id === tipoAtividadeId);
 
-      // Dados mockados para demonstração
-      const regimesMockados: RegimeTributario[] = [
-        {
-          id: 1,
-          codigo: 'SIMPLES',
-          nome: 'Simples Nacional',
-          descricao: 'Regime simplificado para pequenas empresas',
-          aplicavel_pf: false,
-          aplicavel_pj: true,
-          ativo: true
-        },
-        {
-          id: 2,
-          codigo: 'LUCRO-PRESUMIDO',
-          nome: 'Lucro Presumido',
-          descricao: 'Regime baseado em presunção de lucro',
-          aplicavel_pf: true,
-          aplicavel_pj: true,
-          ativo: true
-        },
-        {
-          id: 3,
-          codigo: 'LUCRO-REAL',
-          nome: 'Lucro Real',
-          descricao: 'Regime baseado no lucro real da empresa',
-          aplicavel_pf: false,
-          aplicavel_pj: true,
-          ativo: true
-        }
-      ];
+      if (!tipoAtividade) {
+        console.error('Tipo de atividade não encontrado');
+        setLoadingRegimes(false);
+        return;
+      }
+
+      console.log('🔍 Tipo de atividade selecionado:', tipoAtividade);
+
+      // 2. Definir parâmetros de filtro baseado no tipo
+      const filtroParams: any = {
+        ativo: true
+      };
+
+      // ✅ CORREÇÃO CRÍTICA: Filtrar regimes baseado no tipo de atividade
+      if (tipoAtividade.aplicavel_pf && !tipoAtividade.aplicavel_pj) {
+        // Se é APENAS para PF, buscar regimes aplicáveis a PF
+        filtroParams.aplicavel_pf = true;
+        filtroParams.aplicavel_pj = false; // ✅ EXPLICITAMENTE false para PJ
+        console.log('🔍 Filtrando regimes para PESSOA FÍSICA');
+      } else if (tipoAtividade.aplicavel_pj && !tipoAtividade.aplicavel_pf) {
+        // Se é APENAS para PJ, buscar regimes aplicáveis a PJ
+        filtroParams.aplicavel_pf = false; // ✅ EXPLICITAMENTE false para PF
+        filtroParams.aplicavel_pj = true;
+        console.log('🔍 Filtrando regimes para PESSOA JURÍDICA');
+      } else if (tipoAtividade.aplicavel_pf && tipoAtividade.aplicavel_pj) {
+        // Se aplicável a ambos, mostrar todos os regimes ativos
+        console.log('🔍 Tipo aplicável a PF e PJ, mostrando todos os regimes');
+      }
+
+      // 3. Buscar regimes tributários com filtro correto
+      console.log('🔍 Parâmetros de filtro:', filtroParams);
+
+      const response = await apiService.getRegimesTributarios(filtroParams);
+      const regimes = response.items || response || [];
+
+      console.log('🔍 Regimes retornados:', regimes);
+      console.log('🔍 Quantidade de regimes:', regimes.length);
+
+      // ✅ VALIDAÇÃO: Log detalhado dos regimes
+      regimes.forEach((regime: RegimeTributario) => {
+        console.log(`📋 Regime: ${regime.codigo} - PF: ${regime.aplicavel_pf}, PJ: ${regime.aplicavel_pj}`);
+      });
+
+      setRegimesCompativeis(regimes);
+
+    } catch (err: unknown) {
+      console.error('❌ Erro ao carregar regimes tributários:', err);
+
+      // Dados mockados para demonstração com filtro correto
+      const tipoAtividade = tiposAtividade.find(t => t.id === tipoAtividadeId);
+      let regimesMockados: RegimeTributario[] = [];
+
+      if (tipoAtividade?.aplicavel_pf && !tipoAtividade?.aplicavel_pj) {
+        // Apenas PF
+        regimesMockados = [
+          {
+            id: 1,
+            codigo: 'AUT',
+            nome: 'Autônomo',
+            descricao: 'Regime tributário para pessoas físicas autônomas',
+            aplicavel_pf: true,
+            aplicavel_pj: false,
+            ativo: true
+          },
+          {
+            id: 2,
+            codigo: 'IRPF',
+            nome: 'Imposto de Renda Pessoa Física',
+            descricao: 'Tributação padrão para pessoa física',
+            aplicavel_pf: true,
+            aplicavel_pj: false,
+            ativo: true
+          }
+        ];
+      } else if (tipoAtividade?.aplicavel_pj && !tipoAtividade?.aplicavel_pf) {
+        // Apenas PJ
+        regimesMockados = [
+          {
+            id: 3,
+            codigo: 'SN',
+            nome: 'Simples Nacional',
+            descricao: 'Regime simplificado para pequenas empresas',
+            aplicavel_pf: false,
+            aplicavel_pj: true,
+            ativo: true
+          },
+          {
+            id: 4,
+            codigo: 'LP',
+            nome: 'Lucro Presumido',
+            descricao: 'Regime baseado em presunção de lucro',
+            aplicavel_pf: false,
+            aplicavel_pj: true,
+            ativo: true
+          },
+          {
+            id: 5,
+            codigo: 'LR',
+            nome: 'Lucro Real',
+            descricao: 'Regime baseado no lucro real da empresa',
+            aplicavel_pf: false,
+            aplicavel_pj: true,
+            ativo: true
+          }
+        ];
+      } else {
+        // Ambos PF e PJ
+        regimesMockados = [
+          {
+            id: 1,
+            codigo: 'AUT',
+            nome: 'Autônomo',
+            descricao: 'Regime tributário para pessoas físicas autônomas',
+            aplicavel_pf: true,
+            aplicavel_pj: false,
+            ativo: true
+          },
+          {
+            id: 3,
+            codigo: 'SN',
+            nome: 'Simples Nacional',
+            descricao: 'Regime simplificado para pequenas empresas',
+            aplicavel_pf: false,
+            aplicavel_pj: true,
+            ativo: true
+          },
+          {
+            id: 4,
+            codigo: 'LP',
+            nome: 'Lucro Presumido',
+            descricao: 'Regime baseado em presunção de lucro',
+            aplicavel_pf: false,
+            aplicavel_pj: true,
+            ativo: true
+          }
+        ];
+      }
 
       setRegimesCompativeis(regimesMockados);
     } finally {
@@ -409,10 +511,28 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
     }
   };
 
-  const handleTipoAtividadeChange = (tipoAtividadeId: number) => {
+  const handleTipoAtividadeChange = async (tipoAtividadeId: number) => {
     setSelectedTipoAtividade(tipoAtividadeId);
     setSelectedRegimeTributario(null);
     setSelectedFaixaFaturamento(null);
+    setFaixasFaturamento([]);
+
+    // ✅ IMPLEMENTAR: Filtro automático de regimes baseado no tipo de atividade
+    try {
+      setLoadingRegimes(true);
+      const regimes = await apiService.getRegimesTributarios({
+        ativo: true,
+        tipo_atividade_id: tipoAtividadeId
+      });
+      setRegimesCompativeis(regimes);
+      console.log('✅ Regimes filtrados carregados:', regimes.length);
+    } catch (error) {
+      console.error('❌ Erro ao carregar regimes filtrados:', error);
+      setRegimesCompativeis([]);
+      setError('Erro ao carregar regimes tributários compatíveis');
+    } finally {
+      setLoadingRegimes(false);
+    }
 
     // Navegar automaticamente para a próxima aba
     setAbaAtiva(1);
@@ -573,8 +693,8 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
         <button
           onClick={() => setAbaAtiva(0)}
           className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${abaAtiva === 0
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
+            ? 'text-blue-600 border-b-2 border-blue-600'
+            : 'text-gray-500 hover:text-gray-700'
             }`}
         >
           <Building className="w-4 h-4" />
@@ -584,10 +704,10 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
           onClick={() => setAbaAtiva(1)}
           disabled={!getTabState(1).enabled}
           className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${abaAtiva === 1
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : getTabState(1).enabled
-                ? 'text-gray-500 hover:text-gray-700'
-                : 'text-gray-300 cursor-not-allowed'
+            ? 'text-blue-600 border-b-2 border-blue-600'
+            : getTabState(1).enabled
+              ? 'text-gray-500 hover:text-gray-700'
+              : 'text-gray-300 cursor-not-allowed'
             }`}
           title={getTabState(1).tooltip}
         >
@@ -598,10 +718,10 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
           onClick={() => setAbaAtiva(2)}
           disabled={!getTabState(2).enabled}
           className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${abaAtiva === 2
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : getTabState(2).enabled
-                ? 'text-gray-500 hover:text-gray-700'
-                : 'text-gray-300 cursor-not-allowed'
+            ? 'text-blue-600 border-b-2 border-blue-600'
+            : getTabState(2).enabled
+              ? 'text-gray-500 hover:text-gray-700'
+              : 'text-gray-300 cursor-not-allowed'
             }`}
           title={getTabState(2).tooltip}
         >

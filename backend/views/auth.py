@@ -29,12 +29,31 @@ def login():
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
 def get_user_info():
-    """Retorna informações do usuário logado"""
+    """Retorna informações completas do usuário logado"""
     funcionario_id = int(get_jwt_identity())
     funcionario = Funcionario.query.get(funcionario_id)
     
     if not funcionario:
         return jsonify({"error": "Usuário não encontrado"}), 404
+    
+    # Buscar informações do cargo
+    cargo_info = None
+    if funcionario.cargo:
+        cargo_info = {
+            "id": funcionario.cargo.id,
+            "nome": funcionario.cargo.nome,
+            "codigo": funcionario.cargo.codigo,
+            "nivel": funcionario.cargo.nivel
+        }
+    
+    # Buscar informações da empresa
+    empresa_info = None
+    if funcionario.empresa:
+        empresa_info = {
+            "id": funcionario.empresa.id,
+            "nome": funcionario.empresa.nome,
+            "cnpj": funcionario.empresa.cnpj
+        }
     
     return jsonify({
         "id": funcionario.id,
@@ -43,7 +62,11 @@ def get_user_info():
         "gerente": funcionario.gerente,
         "ativo": funcionario.ativo,
         "empresa_id": funcionario.empresa_id,
-        "cargo_id": funcionario.cargo_id
+        "cargo_id": funcionario.cargo_id,
+        "cargo": cargo_info,
+        "empresa": empresa_info,
+        "created_at": funcionario.created_at.isoformat() if funcionario.created_at else None,
+        "updated_at": funcionario.updated_at.isoformat() if funcionario.updated_at else None
     })
 
 @auth_bp.route('/test', methods=['GET'])

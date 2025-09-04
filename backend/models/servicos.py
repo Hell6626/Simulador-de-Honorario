@@ -21,12 +21,14 @@ class Servico(db.Model, TimestampMixin, ActiveMixin):
     tipo_cobranca = db.Column(db.String(50), nullable=False, index=True)
     valor_base = db.Column(db.Numeric(precision=15, scale=2), nullable=False)
     descricao = db.Column(db.Text, nullable=True)
-    tipo_atividade_id = db.Column(db.Integer, db.ForeignKey('tipo_atividade.id'), nullable=True, index=True)
+    
+    # ✅ NOVO: Campos para versionamento
+    versao_anterior_id = db.Column(db.Integer, db.ForeignKey('servico.id'), nullable=True, index=True)
+    data_desativacao = db.Column(db.DateTime, nullable=True)
     
     # Relacionamentos
     itens_proposta = db.relationship('ItemProposta', backref='servico', lazy=True)
     servico_regime = db.relationship('ServicoRegime', backref='servico', lazy=True, cascade="all, delete-orphan")
-    tipo_atividade = db.relationship('TipoAtividade', backref='servicos', lazy=True)
     
     def __repr__(self):
         return f'<Servico {self.nome}>'
@@ -50,9 +52,10 @@ class Servico(db.Model, TimestampMixin, ActiveMixin):
             "tipo_cobranca": self.tipo_cobranca,
             "valor_base": float(self.valor_base),
             "descricao": self.descricao,
-            "tipo_atividade_id": self.tipo_atividade_id,
             "ativo": self.ativo,
             "regimes_tributarios": regimes_vinculados,
+            "versao_anterior_id": self.versao_anterior_id,
+            "data_desativacao": self.data_desativacao.isoformat() if self.data_desativacao else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }

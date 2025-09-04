@@ -203,261 +203,254 @@ export const ModalCadastroFuncionario: React.FC<ModalCadastroFuncionarioProps> =
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div
-          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-          onClick={onClose}
-        />
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+      <div className="overflow-hidden shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto bg-white">
+        {/* Header - CORREÇÃO: SEM rounded-t-lg */}
+        <div className="bg-white flex items-center justify-between p-6 border-b border-gray-200">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              {funcionarioParaEditar ? 'Editar Funcionário' : 'Cadastrar Novo Funcionário'}
+            </h3>
+            <p className="text-sm text-gray-500">
+              {funcionarioParaEditar ? 'Atualize os dados do funcionário' : 'Preencha os dados do novo funcionário'}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
 
-        <div className="inline-block w-full max-w-2xl p-0 my-8 text-left align-middle transition-all transform shadow-xl rounded-lg max-h-[90vh] overflow-y-auto overflow-hidden">
-          {/* Header - CORREÇÃO: SEM rounded-t-lg */}
-          <div className="bg-white flex items-center justify-between p-6 border-b border-gray-200">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                {funcionarioParaEditar ? 'Editar Funcionário' : 'Cadastrar Novo Funcionário'}
-              </h3>
-              <p className="text-sm text-gray-500">
-                {funcionarioParaEditar ? 'Atualize os dados do funcionário' : 'Preencha os dados do novo funcionário'}
-              </p>
-            </div>
+        {/* Tabs - CORREÇÃO: COM bg-white */}
+        <div className="bg-white border-b border-gray-200">
+          <nav className="flex space-x-8 px-6">
             <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              onClick={() => setActiveTab('dados')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'dados'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
             >
-              <X className="w-6 h-6" />
+              <User className="w-4 h-4 inline mr-2" />
+              Dados do Funcionário
             </button>
-          </div>
+            <button
+              onClick={() => setActiveTab('cargo')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'cargo'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              <Building className="w-4 h-4 inline mr-2" />
+              Cargo e Empresa
+            </button>
+          </nav>
+        </div>
 
-          {/* Tabs - CORREÇÃO: COM bg-white */}
-          <div className="bg-white border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
-              <button
-                onClick={() => setActiveTab('dados')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'dados'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-              >
-                <User className="w-4 h-4 inline mr-2" />
-                Dados do Funcionário
-              </button>
-              <button
-                onClick={() => setActiveTab('cargo')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'cargo'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-              >
-                <Building className="w-4 h-4 inline mr-2" />
-                Cargo e Empresa
-              </button>
-            </nav>
-          </div>
-
-          {/* Content - CORREÇÃO: COM bg-white */}
-          <div className="bg-white p-6">
-            {loadingData ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span className="ml-3 text-gray-600">Carregando dados...</span>
-              </div>
-            ) : (
-              <>
-                {/* Error/Success Messages */}
-                {error && (
-                  <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex">
-                      <AlertCircle className="w-5 h-5 text-red-400 mr-2" />
-                      <p className="text-red-700">{error}</p>
-                    </div>
+        {/* Content - CORREÇÃO: COM bg-white */}
+        <div className="bg-white p-6">
+          {loadingData ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span className="ml-3 text-gray-600">Carregando dados...</span>
+            </div>
+          ) : (
+            <>
+              {/* Error/Success Messages */}
+              {error && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex">
+                    <AlertCircle className="w-5 h-5 text-red-400 mr-2" />
+                    <p className="text-red-700">{error}</p>
                   </div>
-                )}
+                </div>
+              )}
 
-                {success && (
-                  <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex">
-                      <Check className="w-5 h-5 text-green-400 mr-2" />
-                      <p className="text-green-700">{success}</p>
-                    </div>
+              {success && (
+                <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex">
+                    <Check className="w-5 h-5 text-green-400 mr-2" />
+                    <p className="text-green-700">{success}</p>
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Tab Content */}
-                {activeTab === 'dados' && (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Nome */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Nome Completo *
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.nome}
-                          onChange={(e) => handleInputChange('nome', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Digite o nome completo"
-                        />
-                      </div>
+              {/* Tab Content */}
+              {activeTab === 'dados' && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Nome */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nome Completo *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.nome}
+                        onChange={(e) => handleInputChange('nome', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Digite o nome completo"
+                      />
+                    </div>
 
-                      {/* Email */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          E-mail *
-                        </label>
-                        <input
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => handleInputChange('email', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Digite o e-mail"
-                        />
-                      </div>
+                    {/* Email */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        E-mail *
+                      </label>
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Digite o e-mail"
+                      />
+                    </div>
 
-                      {/* Senha */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Senha {!funcionarioParaEditar && '*'}
-                        </label>
-                        <input
-                          type="password"
-                          value={formData.senha || ''}
-                          onChange={(e) => handleInputChange('senha', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder={funcionarioParaEditar ? "Deixe em branco para manter a atual" : "Digite a senha"}
-                        />
-                        {funcionarioParaEditar && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Deixe em branco para manter a senha atual
-                          </p>
-                        )}
-                      </div>
+                    {/* Senha */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Senha {!funcionarioParaEditar && '*'}
+                      </label>
+                      <input
+                        type="password"
+                        value={formData.senha || ''}
+                        onChange={(e) => handleInputChange('senha', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder={funcionarioParaEditar ? "Deixe em branco para manter a atual" : "Digite a senha"}
+                      />
+                      {funcionarioParaEditar && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Deixe em branco para manter a senha atual
+                        </p>
+                      )}
+                    </div>
 
-                      {/* Gerente */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Tipo de Acesso
+                    {/* Gerente */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tipo de Acesso
+                      </label>
+                      <div className="flex items-center space-x-4">
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            checked={!formData.gerente}
+                            onChange={() => handleInputChange('gerente', false)}
+                            className="mr-2"
+                          />
+                          <span className="text-sm text-gray-700">Funcionário</span>
                         </label>
-                        <div className="flex items-center space-x-4">
-                          <label className="flex items-center">
-                            <input
-                              type="radio"
-                              checked={!formData.gerente}
-                              onChange={() => handleInputChange('gerente', false)}
-                              className="mr-2"
-                            />
-                            <span className="text-sm text-gray-700">Funcionário</span>
-                          </label>
-                          <label className="flex items-center">
-                            <input
-                              type="radio"
-                              checked={formData.gerente}
-                              onChange={() => handleInputChange('gerente', true)}
-                              className="mr-2"
-                            />
-                            <span className="text-sm text-gray-700">Gerente</span>
-                          </label>
-                        </div>
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            checked={formData.gerente}
+                            onChange={() => handleInputChange('gerente', true)}
+                            className="mr-2"
+                          />
+                          <span className="text-sm text-gray-700">Gerente</span>
+                        </label>
                       </div>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                {activeTab === 'cargo' && (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Empresa */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Empresa *
-                        </label>
-                        <select
-                          value={formData.empresa_id}
-                          onChange={(e) => handleInputChange('empresa_id', parseInt(e.target.value))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value={0}>Selecione uma empresa</option>
-                          {empresas.map((empresa) => (
-                            <option key={empresa.id} value={empresa.id}>
-                              {empresa.nome} - {empresa.cnpj}
+              {activeTab === 'cargo' && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Empresa */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Empresa *
+                      </label>
+                      <select
+                        value={formData.empresa_id}
+                        onChange={(e) => handleInputChange('empresa_id', parseInt(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value={0}>Selecione uma empresa</option>
+                        {empresas.map((empresa) => (
+                          <option key={empresa.id} value={empresa.id}>
+                            {empresa.nome} - {empresa.cnpj}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Cargo */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Cargo *
+                      </label>
+                      <select
+                        value={formData.cargo_id}
+                        onChange={(e) => handleInputChange('cargo_id', parseInt(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value={0}>Selecione um cargo</option>
+                        {cargos
+                          .filter(cargo => !formData.empresa_id || cargo.empresa_id === formData.empresa_id)
+                          .map((cargo) => (
+                            <option key={cargo.id} value={cargo.id}>
+                              {cargo.nome} ({cargo.codigo})
                             </option>
                           ))}
-                        </select>
-                      </div>
-
-                      {/* Cargo */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Cargo *
-                        </label>
-                        <select
-                          value={formData.cargo_id}
-                          onChange={(e) => handleInputChange('cargo_id', parseInt(e.target.value))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value={0}>Selecione um cargo</option>
-                          {cargos
-                            .filter(cargo => !formData.empresa_id || cargo.empresa_id === formData.empresa_id)
-                            .map((cargo) => (
-                              <option key={cargo.id} value={cargo.id}>
-                                {cargo.nome} ({cargo.codigo})
-                              </option>
-                            ))}
-                        </select>
-                      </div>
+                      </select>
                     </div>
-
-                    {/* Informações do Cargo Selecionado */}
-                    {formData.cargo_id > 0 && (
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <h4 className="text-sm font-medium text-gray-900 mb-2">Informações do Cargo</h4>
-                        {(() => {
-                          const cargoSelecionado = cargos.find(c => c.id === formData.cargo_id);
-                          return cargoSelecionado ? (
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <span className="text-gray-600">Código:</span>
-                                <span className="ml-2 font-medium">{cargoSelecionado.codigo}</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-600">Nível:</span>
-                                <span className="ml-2 font-medium">{cargoSelecionado.nivel || 'Não informado'}</span>
-                              </div>
-                            </div>
-                          ) : null;
-                        })()}
-                      </div>
-                    )}
                   </div>
-                )}
-              </>
-            )}
-          </div>
 
-          {/* Footer - CORREÇÃO: COM bg-white */}
-          <div className="bg-white flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleSalvar}
-              disabled={!podeSalvar() || loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Salvando...
+                  {/* Informações do Cargo Selecionado */}
+                  {formData.cargo_id > 0 && (
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="text-sm font-medium text-gray-900 mb-2">Informações do Cargo</h4>
+                      {(() => {
+                        const cargoSelecionado = cargos.find(c => c.id === formData.cargo_id);
+                        return cargoSelecionado ? (
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600">Código:</span>
+                              <span className="ml-2 font-medium">{cargoSelecionado.codigo}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Nível:</span>
+                              <span className="ml-2 font-medium">{cargoSelecionado.nivel || 'Não informado'}</span>
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
                 </div>
-              ) : (
-                funcionarioParaEditar ? 'Atualizar' : 'Cadastrar'
               )}
-            </button>
-          </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer - CORREÇÃO: COM bg-white */}
+        <div className="bg-white flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSalvar}
+            disabled={!podeSalvar() || loading}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Salvando...
+              </div>
+            ) : (
+              funcionarioParaEditar ? 'Atualizar' : 'Cadastrar'
+            )}
+          </button>
         </div>
       </div>
     </div>

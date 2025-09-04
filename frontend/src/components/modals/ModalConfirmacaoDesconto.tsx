@@ -31,8 +31,8 @@ export const ModalConfirmacaoDesconto: React.FC<ModalConfirmacaoDescontoProps> =
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="rounded-xl overflow-hidden shadow-xl max-w-md w-full mx-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+      <div className="overflow-hidden shadow-xl max-w-md w-full mx-4">
         {/* Header - CORREÇÃO: SEM rounded-t-xl */}
         <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-6">
           <div className="flex items-center space-x-3">

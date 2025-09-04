@@ -117,7 +117,7 @@ const AppContent: React.FC = () => {
       />
 
       <main className="flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto p-6">
+        <div className="h-full overflow-y-auto p-6 relative">
           {renderPage()}
         </div>
       </main>

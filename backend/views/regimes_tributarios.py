@@ -48,14 +48,58 @@ def get_regimes_tributarios():
     try:
         print("🔍 DEBUG BACKEND: Função get_regimes_tributarios chamada")
         
-        # Query simples - buscar todos os regimes ativos
-        regimes = RegimeTributario.query.filter_by(ativo=True).all()
-        print(f"🔍 DEBUG BACKEND: Total de regimes encontrados: {len(regimes)}")
+        # ✅ VERIFICAR: Processar parâmetros de filtro
+        atividades_ids = request.args.getlist('atividades_ids')
+        ativo = request.args.get('ativo')
+        aplicavel_pf = request.args.get('aplicavel_pf')
+        aplicavel_pj = request.args.get('aplicavel_pj')
+        search = request.args.get('search')
+        
+        print(f"🔍 DEBUG BACKEND: Parâmetros recebidos:")
+        print(f"  - atividades_ids: {atividades_ids}")
+        print(f"  - ativo: {ativo}")
+        print(f"  - aplicavel_pf: {aplicavel_pf}")
+        print(f"  - aplicavel_pj: {aplicavel_pj}")
+        print(f"  - search: {search}")
+        
+        # Query base
+        query = RegimeTributario.query
+        
+        # ✅ CORREÇÃO CRÍTICA: Aplicar filtros corretamente
+        if ativo is not None:
+            query = query.filter(RegimeTributario.ativo == (ativo.lower() == 'true'))
+        
+        # ✅ CORREÇÃO CRÍTICA: Filtrar por atividades se especificado
+        if atividades_ids:
+            print(f"🔍 DEBUG BACKEND: Filtrando por atividades: {atividades_ids}")
+            # Buscar regimes que estão relacionados às atividades especificadas
+            query = query.join(AtividadeRegime).filter(
+                AtividadeRegime.tipo_atividade_id.in_(atividades_ids),
+                AtividadeRegime.ativo == True
+            )
+        
+        # ✅ CORREÇÃO CRÍTICA: Aplicar filtros de PF/PJ corretamente
+        if aplicavel_pf is not None:
+            query = query.filter(RegimeTributario.aplicavel_pf == (aplicavel_pf.lower() == 'true'))
+        
+        if aplicavel_pj is not None:
+            query = query.filter(RegimeTributario.aplicavel_pj == (aplicavel_pj.lower() == 'true'))
+        
+        if search:
+            query = query.filter(
+                or_(
+                    RegimeTributario.nome.ilike(f'%{search}%'),
+                    RegimeTributario.codigo.ilike(f'%{search}%')
+                )
+            )
+        
+        regimes = query.distinct().all()
+        print(f"🔍 DEBUG BACKEND: Total de regimes encontrados após filtros: {len(regimes)}")
         
         if regimes:
             print(f"🔍 DEBUG BACKEND: Regimes: {[r.nome for r in regimes]}")
         
-        # Retornar lista simples
+        # Retornar lista filtrada
         return jsonify([r.to_json() for r in regimes])
 
     except Exception as e:

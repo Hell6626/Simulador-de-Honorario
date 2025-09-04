@@ -51,7 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setCurrentPage,
   onNavigateToProposta
 }) => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [notificationCount, setNotificationCount] = useState(0);
 
   const handleNotificationCountChange = (count: number) => {
@@ -123,22 +123,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* User Section */}
       <div className="border-t border-gray-200 p-3">
         <div className="flex items-center justify-between mb-3">
+          {/* User Info */}
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <span className="text-white font-bold text-sm">
+                {user?.nome ? user.nome.charAt(0).toUpperCase() : 'U'}
+              </span>
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-medium text-gray-900">
+                {user?.nome || 'Usuário'}
+              </p>
+              <p className="text-xs text-gray-500">
+                {user?.cargo?.nome || 'Funcionário'}
+                {user?.gerente && ' • Gerente'}
+              </p>
+            </div>
+          </div>
+
           {/* Notifications */}
           <NotificacoesDropdown
             onNotificationCountChange={handleNotificationCountChange}
             onNavigateToProposta={onNavigateToProposta}
           />
-
-          {/* User Info */}
-          <div className="flex items-center space-x-3">
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">Usuário</p>
-              <p className="text-xs text-gray-500">Administrador</p>
-            </div>
-            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-              <User className="w-4 h-4 text-gray-600" />
-            </div>
-          </div>
         </div>
       </div>
 

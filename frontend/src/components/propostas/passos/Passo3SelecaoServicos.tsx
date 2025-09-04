@@ -99,12 +99,16 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
   const [ultimoSalvamento, setUltimoSalvamento] = useState<Date | null>(null);
   const [erroSalvamento, setErroSalvamento] = useState<string | null>(null);
 
-  // ⚠️ NOVO: Estado para informações de filtro
+  // ✅ NOVO: Estado para informações de filtro por regime tributário
   const [infoFiltros, setInfoFiltros] = useState<{
     regime: string;
     totalDisponiveis: number;
     totalFiltrados: number;
   }>({ regime: '', totalDisponiveis: 0, totalFiltrados: 0 });
+
+  // ✅ NOVO: Estado para serviços filtrados por regime
+  const [servicosDisponiveis, setServicosDisponiveis] = useState<Servico[]>([]);
+  const [loadingServicos, setLoadingServicos] = useState(false);
 
   // Verificar se é atividade de serviços (para filtro especial na aba FISCAL)
   const isAtividadeServicos = useMemo(() => {
@@ -285,6 +289,56 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
     return Array.from(totaisPorCategoria.values()).reduce((sum, total) => sum + total, 0);
   }, [totaisPorCategoria]);
 
+  // ✅ IMPLEMENTAR: Carregar serviços filtrados pelo regime tributário específico
+  const fetchServicosDisponiveis = async () => {
+    try {
+      setLoadingServicos(true);
+      console.log('🔍 Carregando serviços para regime:', regimeTributario);
+
+      // ✅ NOVA LÓGICA: Filtrar serviços pelo regime tributário específico
+      const servicosFiltrados = await apiService.getServicosPorRegime(regimeTributario.id);
+
+      console.log('🔍 Serviços encontrados para regime', regimeTributario.codigo + ':', servicosFiltrados.length);
+
+      // ✅ ADICIONAL: Log detalhado dos serviços
+      servicosFiltrados.forEach((servico: Servico) => {
+        console.log(`📋 Serviço disponível: ${servico.nome} - Categoria: ${servico.categoria}`);
+      });
+
+      setServicosDisponiveis(servicosFiltrados);
+
+      // ✅ FEEDBACK: Informar se não há serviços disponíveis
+      if (servicosFiltrados.length === 0) {
+        console.warn(`⚠️ Nenhum serviço encontrado para o regime ${regimeTributario.nome}`);
+      }
+
+      // ✅ ATUALIZAR: Informações de filtro
+      setInfoFiltros({
+        regime: regimeTributario.nome,
+        totalDisponiveis: servicosFiltrados.length,
+        totalFiltrados: servicosFiltrados.length
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao carregar serviços por regime:', error);
+      setServicosDisponiveis([]);
+      setInfoFiltros({
+        regime: regimeTributario.nome,
+        totalDisponiveis: 0,
+        totalFiltrados: 0
+      });
+    } finally {
+      setLoadingServicos(false);
+    }
+  };
+
+  // ✅ IMPLEMENTAR: Carregar serviços quando o regime mudar
+  useEffect(() => {
+    if (regimeTributario?.id) {
+      fetchServicosDisponiveis();
+    }
+  }, [regimeTributario?.id]);
+
   // ⚠️ FILTRO ESPECIAL: Apenas para Aba FISCAL + Atividade Serviços
   const aplicarFiltroEspecial = (servicos: Servico[], categoria: string): Servico[] => {
     // ⚠️ REGRA ESPECIAL: Só filtrar na categoria FISCAL + atividade de serviços
@@ -314,7 +368,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
     }));
   }, []);
 
-  // ⚠️ CORREÇÃO: Função de carregamento com filtros - MEMOIZADA
+  // ✅ CORREÇÃO: Função de carregamento com filtros por regime tributário
   const carregarServicosFiltrados = useCallback(async () => {
     if (!tipoAtividade?.id || !regimeTributario?.id) {
       console.warn('Dados obrigatórios não disponíveis para carregar serviços');
@@ -325,25 +379,20 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
     setError('');
 
     try {
-      console.log('🔍 Carregando serviços filtrados:', {
+      console.log('🔍 Carregando serviços filtrados por regime:', {
         tipoAtividade: tipoAtividade?.nome,
         regime: regimeTributario?.nome
       });
 
-      // ⚠️ CHAMAR: API específica para proposta
-      const response = await apiService.getServicosParaProposta(
-        tipoAtividade.id,
-        regimeTributario.id
-      );
-
-      const servicos = response.items || response.servicos || [];
+      // ✅ NOVA LÓGICA: Usar serviços já filtrados por regime
+      const servicos = servicosDisponiveis.length > 0 ? servicosDisponiveis : [];
       setTodosServicos(servicos);
 
-      // ⚠️ AGRUPAR: Serviços por categoria
+      // ✅ AGRUPAR: Serviços por categoria
       const grupos = agruparServicosPorCategoria(servicos);
       setServicosPorCategoria(grupos);
 
-      // ⚠️ DEFINIR: Informações de filtro
+      // ✅ DEFINIR: Informações de filtro
       setInfoFiltros({
         regime: regimeTributario?.nome || '',
         totalDisponiveis: servicos.length,
@@ -371,7 +420,14 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
     } finally {
       setLoading(false);
     }
-  }, [tipoAtividade?.id, regimeTributario?.id, tipoAtividade?.nome, regimeTributario?.nome, regimeTributario?.codigo]);
+  }, [tipoAtividade?.id, regimeTributario?.id, tipoAtividade?.nome, regimeTributario?.nome, regimeTributario?.codigo, servicosDisponiveis]);
+
+  // ✅ NOVO: useEffect para recarregar quando serviços filtrados mudarem
+  useEffect(() => {
+    if (servicosDisponiveis.length > 0) {
+      carregarServicosFiltrados();
+    }
+  }, [servicosDisponiveis, carregarServicosFiltrados]);
 
   // ⚠️ CORREÇÃO: Função de fallback com dados mockados - MEMOIZADA
   const obterServicosMockadosPorRegime = useCallback((codigoRegime: string): Servico[] => {

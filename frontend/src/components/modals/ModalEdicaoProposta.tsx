@@ -226,8 +226,8 @@ export const ModalEdicaoProposta: React.FC<ModalEdicaoPropostaProps> = ({
     const podeSalvar = Object.keys(dadosEditados).length > 0;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="rounded-lg overflow-hidden shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+            <div className="overflow-hidden shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto bg-white">
                 <div className="bg-white p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-xl font-bold text-gray-900">

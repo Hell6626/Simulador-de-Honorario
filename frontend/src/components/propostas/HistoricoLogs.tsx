@@ -87,8 +87,8 @@ export const HistoricoLogs: React.FC<HistoricoLogsProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+            <div className="bg-white shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col mx-4">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-gray-700 to-gray-800 text-white p-6 flex-shrink-0">
                     <div className="flex items-center justify-between">

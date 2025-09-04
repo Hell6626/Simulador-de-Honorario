@@ -127,10 +127,10 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
   );
 
   const renderCliente = () => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50">
+      <div className="w-full max-w-4xl max-h-[90vh] bg-white rounded-lg overflow-hidden mx-4">
         {/* Header sem nenhum container pai */}
-        <div className="bg-blue-600 text-white p-6 rounded-t-lg">
+        <div className="bg-blue-600 text-white p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Detalhes do Cliente</h2>
             <button onClick={onClose} className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2">
@@ -140,7 +140,7 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
         </div>
 
         {/* Content - CORREÇÃO: COM bg-white */}
-        <div className="bg-white p-8 space-y-6">
+        <div className="bg-white p-8 space-y-6 overflow-y-auto max-h-[calc(90vh-200px)]">
           {/* Informações Pessoais */}
           <InfoCard icon={User} title="Informações Pessoais" color="blue">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -239,7 +239,7 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
         </div>
 
         {/* Footer - CORREÇÃO: COM bg-white */}
-        <div className="bg-white px-8 py-6">
+        <div className="bg-white px-8 py-6 border-t border-gray-200">
           <div className="flex justify-end">
             <button
               onClick={onClose}
@@ -254,8 +254,8 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
   );
 
   const renderFuncionario = () => (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="rounded-2xl overflow-hidden shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
+    <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center">
+      <div className="overflow-hidden shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide mx-4">
         {/* Header - CORREÇÃO: SEM rounded-t-2xl */}
         <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-8 py-6">
           <div className="flex items-center justify-between">
@@ -351,8 +351,8 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
   );
 
   const renderCargo = () => (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="rounded-2xl overflow-hidden shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
+    <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center">
+      <div className="overflow-hidden shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide mx-4">
         {/* Header - CORREÇÃO: SEM rounded-t-2xl */}
         <div className="bg-gradient-to-r from-violet-600 to-violet-700 px-8 py-6">
           <div className="flex items-center justify-between">
@@ -444,8 +444,8 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
   };
 
   const renderServico = () => (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="rounded-2xl overflow-hidden shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
+    <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center">
+      <div className="overflow-hidden shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide mx-4">
         {/* Header - CORREÇÃO: SEM rounded-t-2xl */}
         <div className="bg-gradient-to-r from-orange-600 to-orange-700 px-8 py-6">
           <div className="flex items-center justify-between">
@@ -543,8 +543,8 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
 
   // Função para renderizar regime tributário
   const renderRegime = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="rounded-2xl overflow-hidden shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden mx-4 my-8">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+      <div className="overflow-hidden shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden mx-4">
         {/* Header - CORREÇÃO: SEM rounded-t-2xl */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
           <div className="flex items-center justify-between">

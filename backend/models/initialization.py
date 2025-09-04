@@ -40,47 +40,58 @@ def inicializar_dados_basicos():
         }
     ]
     
-    # Regimes Tributários
+    # ✅ CORREÇÃO: Regimes Tributários com filtros corretos PF/PJ
     regimes_tributarios = [
         {
             'codigo': 'SN',
             'nome': 'Simples Nacional',
             'descricao': 'Regime tributário simplificado para pequenas empresas',
-            'aplicavel_pf': False,
+            'aplicavel_pf': False,  # ✅ SN não é para PF
             'aplicavel_pj': True
         },
         {
             'codigo': 'LP',
             'nome': 'Lucro Presumido',
             'descricao': 'Regime tributário baseado em presunção de lucro',
-            'aplicavel_pf': False,
+            'aplicavel_pf': False,  # ✅ LP não é para PF
             'aplicavel_pj': True
         },
         {
             'codigo': 'LR',
             'nome': 'Lucro Real',
             'descricao': 'Regime tributário baseado no lucro real',
-            'aplicavel_pf': False,
+            'aplicavel_pf': False,  # ✅ LR não é para PF
             'aplicavel_pj': True
         },
         {
             'codigo': 'MEI',
             'nome': 'Microempreendedor Individual',
             'descricao': 'Regime para microempreendedores individuais',
-            'aplicavel_pf': False,
+            'aplicavel_pf': False,  # ✅ MEI tecnicamente é PJ, mas pessoa física por trás
             'aplicavel_pj': True
+        },
+        {
+            # ✅ ADICIONAR: Regime específico para Pessoa Física
+            'codigo': 'AUT',
+            'nome': 'Autônomo',
+            'descricao': 'Regime tributário para pessoas físicas autônomas',
+            'aplicavel_pf': True,   # ✅ APENAS para PF
+            'aplicavel_pj': False,
+            'requer_definicoes_fiscais': False
+        },
+        {
+            # ✅ ADICIONAR: Outro regime para PF se necessário
+            'codigo': 'IRPF',
+            'nome': 'Imposto de Renda Pessoa Física',
+            'descricao': 'Tributação padrão para pessoa física',
+            'aplicavel_pf': True,   # ✅ APENAS para PF
+            'aplicavel_pj': False,
+            'requer_definicoes_fiscais': False
         },
         {
             'codigo': 'PR',
             'nome': 'Produtor Rural',
             'descricao': 'Regime para produtores rurais',
-            'aplicavel_pf': True,
-            'aplicavel_pj': False
-        },
-        {
-            'codigo': 'Aut',
-            'nome': 'Autônomo',
-            'descricao': 'Regime para autônomos',
             'aplicavel_pf': True,
             'aplicavel_pj': False
         },

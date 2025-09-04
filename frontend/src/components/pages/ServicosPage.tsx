@@ -33,13 +33,18 @@ export const ServicosPage: React.FC = () => {
     const [verificandoImpacto, setVerificandoImpacto] = useState(false);
 
     // Estados do formulário
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        nome: string;
+        categoria: string;
+        valor_base: string;
+        descricao: string;
+        regimes_tributarios: number[];
+    }>({
         nome: '',
         categoria: '',
         valor_base: '',
         descricao: '',
-        tipo_atividade_id: null as number | null,
-        regimes_tributarios: [] as number[]
+        regimes_tributarios: []
     });
 
     // Estados para nova categoria
@@ -49,7 +54,7 @@ export const ServicosPage: React.FC = () => {
 
     // Estados para regimes tributários
     const [regimesTributarios, setRegimesTributarios] = useState<Array<{ id: number, codigo: string, nome: string }>>([]);
-    const [tiposAtividade, setTiposAtividade] = useState<Array<{ id: number, codigo: string, nome: string }>>([]);
+    const [loadingRegimes, setLoadingRegimes] = useState(false);
 
     // Verificar se o usuário é admin
     const [isAdmin, setIsAdmin] = useState(false);
@@ -66,88 +71,14 @@ export const ServicosPage: React.FC = () => {
         if (isAdminUser) {
             console.log('🔍 DEBUG: Usuário é admin, carregando dados...');
             fetchServicos();
-            fetchTiposAtividade();
-            // Removido fetchRegimesTributarios() para evitar carregar todos os regimes no início
-            console.log('🔍 DEBUG: fetchServicos e fetchTiposAtividade chamados');
+            fetchRegimesTributarios();
+            console.log('🔍 DEBUG: fetchServicos chamado');
         }
     }, [user]);
 
-    // useEffect para pré-carregar dados quando o modal de edição abrir
-    useEffect(() => {
-        if (servicoParaEditar && isModalEdicaoOpen) {
-            console.log('🔍 DEBUG: Modal de edição aberto, pré-carregando dados para:', servicoParaEditar.nome);
 
-            // Garantir que os dados do formulário estejam corretos
-            if (servicoParaEditar.tipo_atividade_id && regimesTributarios.length === 0) {
-                console.log('🔍 DEBUG: Modal aberto mas regimes não carregados, carregando agora...');
-                fetchRegimesTributarios(servicoParaEditar.tipo_atividade_id);
-            }
-        }
-    }, [servicoParaEditar, isModalEdicaoOpen, regimesTributarios.length]);
 
-    const fetchTiposAtividade = async () => {
-        try {
-            console.log('🔍 DEBUG: fetchTiposAtividade iniciado');
-            const response = await apiService.getTiposAtividade();
-            console.log('🔍 DEBUG: Tipos de atividade recebidos:', response);
-            setTiposAtividade(response);
-            console.log('🔍 DEBUG: tiposAtividade atualizado com', response.length, 'tipos');
-        } catch (err: any) {
-            console.error('❌ Erro ao carregar tipos de atividade:', err);
-        }
-    };
 
-    const fetchRegimesTributarios = async (tipoAtividadeId?: number) => {
-        try {
-            console.log('🔍 DEBUG: fetchRegimesTributarios iniciado com tipoAtividadeId:', tipoAtividadeId);
-
-            // Se não houver tipoAtividadeId, não buscar regimes
-            if (!tipoAtividadeId) {
-                console.log('🔍 DEBUG: Sem tipoAtividadeId, limpando regimes');
-                setRegimesTributarios([]);
-                return;
-            }
-
-            console.log('🔍 DEBUG: Chamando apiService.getRegimesTributarios...');
-
-            const response = await apiService.getRegimesTributarios({
-                ativo: true,
-                tipo_atividade_id: tipoAtividadeId
-            });
-
-            console.log('🔍 DEBUG: Resposta da API:', response);
-            console.log('🔍 DEBUG: Tipo da resposta:', typeof response);
-            console.log('🔍 DEBUG: É array?', Array.isArray(response));
-            console.log('🔍 DEBUG: Quantidade de regimes recebidos:', response.length);
-
-            if (Array.isArray(response)) {
-                setRegimesTributarios(response);
-                console.log('🔍 DEBUG: regimesTributarios atualizado com', response.length, 'regimes');
-                console.log('🔍 DEBUG: Regimes recebidos:', response.map(r => r.codigo));
-
-                // Se estivermos editando um serviço, verificar se o regime atual ainda está disponível
-                if (servicoParaEditar && servicoParaEditar.regimes_tributarios && servicoParaEditar.regimes_tributarios.length > 0) {
-                    const regimeAtual = servicoParaEditar.regimes_tributarios[0];
-                    const regimeAindaDisponivel = response.find(r => r.id === regimeAtual.id);
-
-                    if (!regimeAindaDisponivel) {
-                        console.log('🔍 DEBUG: Regime atual não está mais disponível, limpando seleção');
-                        setFormData(prev => ({
-                            ...prev,
-                            regimes_tributarios: []
-                        }));
-                    }
-                }
-            } else {
-                console.error('❌ Resposta não é um array:', response);
-                setRegimesTributarios([]);
-            }
-        } catch (err: any) {
-            console.error('❌ Erro ao carregar regimes tributários:', err);
-            console.error('❌ Detalhes do erro:', err.message);
-            setRegimesTributarios([]);
-        }
-    };
 
     const fetchServicos = async (page = 1, search = '', categoria = '') => {
         try {
@@ -185,35 +116,29 @@ export const ServicosPage: React.FC = () => {
         }));
     };
 
-    const handleTipoAtividadeChange = async (tipoAtividadeId: number | null) => {
-        console.log('🔍 DEBUG: handleTipoAtividadeChange chamado com:', tipoAtividadeId);
-
-        // Primeiro, limpar os regimes para evitar mostrar dados antigos
-        setRegimesTributarios([]);
-        console.log('🔍 DEBUG: regimesTributarios limpo');
-
-        setFormData(prev => ({
-            ...prev,
-            tipo_atividade_id: tipoAtividadeId,
-            regimes_tributarios: [] // Limpar regimes quando mudar o tipo de atividade
-        }));
-        console.log('🔍 DEBUG: formData atualizado');
-
-        // Buscar regimes tributários filtrados pelo tipo de atividade
-        if (tipoAtividadeId) {
-            console.log('🔍 DEBUG: Chamando fetchRegimesTributarios com tipoAtividadeId:', tipoAtividadeId);
-            try {
-                await fetchRegimesTributarios(tipoAtividadeId);
-                console.log('🔍 DEBUG: Regimes carregados com sucesso');
-            } catch (error) {
-                console.error('❌ Erro ao carregar regimes:', error);
-                setRegimesTributarios([]);
-            }
-        } else {
-            console.log('🔍 DEBUG: Sem tipoAtividadeId, regimes permanecerão vazios');
-            // Não chamar fetchRegimesTributarios() - deixar regimes vazios
+    const fetchRegimesTributarios = async () => {
+        try {
+            setLoadingRegimes(true);
+            const regimes = await apiService.getRegimesTributarios({ ativo: true });
+            setRegimesTributarios(regimes);
+        } catch (error) {
+            console.error('Erro ao carregar regimes tributários:', error);
+            setRegimesTributarios([]);
+        } finally {
+            setLoadingRegimes(false);
         }
     };
+
+    const handleRegimeChange = (regimeId: number, checked: boolean) => {
+        setFormData(prev => ({
+            ...prev,
+            regimes_tributarios: checked
+                ? [...prev.regimes_tributarios, regimeId]
+                : prev.regimes_tributarios.filter(id => id !== regimeId)
+        }));
+    };
+
+
 
     const handleSalvar = async () => {
         if (!formData.nome.trim()) {
@@ -226,32 +151,25 @@ export const ServicosPage: React.FC = () => {
             return;
         }
 
-        if (!formData.tipo_atividade_id) {
-            setError('Tipo de atividade é obrigatório');
-            return;
-        }
-
-        if (!formData.regimes_tributarios || formData.regimes_tributarios.length === 0) {
-            setError('Regime tributário é obrigatório');
-            return;
-        }
-
-        if (!formData.valor_base || isNaN(Number(formData.valor_base))) {
-            setError('Valor base é obrigatório e deve ser um número válido');
+        if (!formData.valor_base || isNaN(Number(formData.valor_base)) || Number(formData.valor_base) <= 0) {
+            setError('Valor base é obrigatório e deve ser maior que zero');
             return;
         }
 
         try {
             setLoading(true);
             const dataToSend = {
-                ...formData,
+                nome: formData.nome.trim(),
+                categoria: formData.categoria,
                 valor_base: Number(formData.valor_base),
-                tipo_cobranca: 'MENSAL' // Valor padrão
+                descricao: formData.descricao?.trim() || null,
+                tipo_cobranca: 'MENSAL', // Valor padrão
+                regimes_tributarios: formData.regimes_tributarios
             };
             const response = await apiService.createServico(dataToSend);
             setServicos(prev => [response, ...prev]);
             setIsModalOpen(false);
-            setFormData({ nome: '', categoria: '', valor_base: '', descricao: '', tipo_atividade_id: null, regimes_tributarios: [] });
+            setFormData({ nome: '', categoria: '', valor_base: '', descricao: '', regimes_tributarios: [] });
             setError('');
         } catch (err: any) {
             console.error('Erro ao criar serviço:', err);
@@ -272,32 +190,25 @@ export const ServicosPage: React.FC = () => {
             return;
         }
 
-        if (!formData.tipo_atividade_id) {
-            setError('Tipo de atividade é obrigatório');
-            return;
-        }
-
-        if (!formData.regimes_tributarios || formData.regimes_tributarios.length === 0) {
-            setError('Regime tributário é obrigatório');
-            return;
-        }
-
-        if (!formData.valor_base || isNaN(Number(formData.valor_base))) {
-            setError('Valor base é obrigatório e deve ser um número válido');
+        if (!formData.valor_base || isNaN(Number(formData.valor_base)) || Number(formData.valor_base) <= 0) {
+            setError('Valor base é obrigatório e deve ser maior que zero');
             return;
         }
 
         try {
             setLoading(true);
             const dataToSend = {
-                ...formData,
-                valor_base: Number(formData.valor_base)
+                nome: formData.nome.trim(),
+                categoria: formData.categoria,
+                valor_base: Number(formData.valor_base),
+                descricao: formData.descricao?.trim() || null,
+                regimes_tributarios: formData.regimes_tributarios
             };
             const response = await apiService.updateServico(servicoParaEditar.id, dataToSend);
             setServicos(prev => prev.map(s => s.id === servicoParaEditar.id ? response : s));
             setIsModalEdicaoOpen(false);
             setServicoParaEditar(null);
-            setFormData({ nome: '', categoria: '', valor_base: '', descricao: '', tipo_atividade_id: null, regimes_tributarios: [] });
+            setFormData({ nome: '', categoria: '', valor_base: '', descricao: '', regimes_tributarios: [] });
             setError('');
         } catch (err: any) {
             setError(err.message);
@@ -356,39 +267,21 @@ export const ServicosPage: React.FC = () => {
 
 
 
-    const abrirModalEdicao = async (servico: Servico) => {
+    const abrirModalEdicao = (servico: Servico) => {
         console.log('🔍 DEBUG: Abrindo modal de edição para serviço:', servico);
 
         setServicoParaEditar(servico);
 
-        // Primeiro, definir os dados básicos
+        // ✅ Dados simplificados - apenas campos essenciais
         const dadosIniciais = {
             nome: servico.nome,
             categoria: servico.categoria,
             valor_base: servico.valor_base.toString(),
             descricao: servico.descricao || '',
-            tipo_atividade_id: servico.tipo_atividade_id || null,
             regimes_tributarios: servico.regimes_tributarios?.map(r => r.id) || []
         };
 
-        console.log('🔍 DEBUG: Dados iniciais do formulário:', dadosIniciais);
         setFormData(dadosIniciais);
-
-        // Carregar regimes tributários filtrados baseado no tipo de atividade do serviço
-        if (servico.tipo_atividade_id) {
-            console.log('🔍 DEBUG: Editando serviço - carregando regimes para tipo_atividade_id:', servico.tipo_atividade_id);
-            try {
-                await fetchRegimesTributarios(servico.tipo_atividade_id);
-                console.log('🔍 DEBUG: Regimes carregados com sucesso para edição');
-            } catch (error) {
-                console.error('❌ Erro ao carregar regimes para edição:', error);
-                setRegimesTributarios([]);
-            }
-        } else {
-            console.log('🔍 DEBUG: Editando serviço - serviço sem tipo_atividade_id, regimes permanecerão vazios');
-            setRegimesTributarios([]);
-        }
-
         setIsModalEdicaoOpen(true);
     };
 
@@ -447,18 +340,7 @@ export const ServicosPage: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            {/* Debug Info */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <h3 className="font-medium text-yellow-800">Debug Info:</h3>
-                <p className="text-sm text-yellow-700">
-                    Tipos de Atividade: {tiposAtividade.length} |
-                    Regimes Tributários: {regimesTributarios.length} |
-                    Tipo Selecionado: {formData.tipo_atividade_id || 'Nenhum'}
-                </p>
-                <p className="text-sm text-yellow-700">
-                    Regimes disponíveis: {regimesTributarios.map(r => r.codigo).join(', ') || 'Nenhum'}
-                </p>
-            </div>
+
             {/* Page Title */}
             <div className="mb-6">
                 <h1 className="text-2xl font-bold text-gray-900">Serviços</h1>
@@ -530,13 +412,10 @@ export const ServicosPage: React.FC = () => {
                                         Categoria
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Tipo Atividade
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Regime Tributário
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Valor Base
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Regimes Tributários
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Descrição
@@ -574,27 +453,28 @@ export const ServicosPage: React.FC = () => {
                                                 {servico.categoria}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {servico.tipo_atividade_id ? (
-                                                tiposAtividade.find(t => t.id === servico.tipo_atividade_id)?.nome || 'N/A'
-                                            ) : '-'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {servico.regimes_tributarios && servico.regimes_tributarios.length > 0 ? (
-                                                <div className="space-y-1">
-                                                    {servico.regimes_tributarios.map((regime: any, index: number) => (
-                                                        <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-1">
-                                                            {regime.codigo}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            ) : '-'}
-                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center text-sm text-gray-900">
                                                 <DollarSign className="w-4 h-4 mr-1 text-gray-400" />
                                                 {formatarValor(servico.valor_base)}
                                             </div>
+                                        </td>
+
+                                        <td className="px-6 py-4 text-sm text-gray-900">
+                                            {servico.regimes_tributarios && servico.regimes_tributarios.length > 0 ? (
+                                                <div className="flex flex-wrap gap-1">
+                                                    {servico.regimes_tributarios.map((regime, index) => (
+                                                        <span
+                                                            key={regime.id}
+                                                            className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
+                                                        >
+                                                            {regime.codigo}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-500">-</span>
+                                            )}
                                         </td>
 
                                         <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
@@ -696,145 +576,140 @@ export const ServicosPage: React.FC = () => {
                 isOpen={isModalOpen}
                 onClose={() => {
                     setIsModalOpen(false);
-                    setFormData({ nome: '', categoria: '', valor_base: '', descricao: '', tipo_atividade_id: null, regimes_tributarios: [] });
+                    setFormData({ nome: '', categoria: '', valor_base: '', descricao: '', regimes_tributarios: [] });
                     setError('');
                 }}
                 title="Cadastrar Novo Serviço"
+                size="md"
             >
-                <div className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Nome do Serviço *
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.nome}
-                            onChange={(e) => handleInputChange('nome', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Ex: Contabilidade Mensal"
-                        />
-                    </div>
+                <div className="space-y-4">
+                    {/* ✅ Layout em Grid para aproveitar melhor o espaço */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                    <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Categoria *
+                        {/* Nome do Serviço - Largura total */}
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Nome do Serviço *
                             </label>
-                            <select
-                                value={formData.categoria}
-                                onChange={(e) => handleInputChange('categoria', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            >
-                                <option value="">Selecione uma categoria</option>
-                                {categorias.map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                            </select>
+                            <input
+                                type="text"
+                                value={formData.nome}
+                                onChange={(e) => handleInputChange('nome', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                placeholder="Ex: Contabilidade Mensal"
+                            />
                         </div>
 
-                        <button
-                            type="button"
-                            onClick={() => setModalNovaCategoria(true)}
-                            className="mt-6 p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                            title="Criar nova categoria"
-                        >
-                            <Plus className="w-4 h-4" />
-                        </button>
+                        {/* Categoria e Valor Base - Uma ao lado da outra */}
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Categoria *
+                                    </label>
+                                    <select
+                                        value={formData.categoria}
+                                        onChange={(e) => handleInputChange('categoria', e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                    >
+                                        <option value="">Selecione...</option>
+                                        {categorias.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setModalNovaCategoria(true)}
+                                    className="mt-6 p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                    title="Nova categoria"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Valor Base *
+                            </label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+                                    R$
+                                </span>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={formData.valor_base}
+                                    onChange={(e) => handleInputChange('valor_base', e.target.value)}
+                                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                    placeholder="0,00"
+                                />
+                            </div>
+                        </div>
                     </div>
 
+                    {/* Descrição - Largura total, altura reduzida */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Tipo de Atividade
-                        </label>
-                        <select
-                            value={formData.tipo_atividade_id || ''}
-                            onChange={(e) => handleTipoAtividadeChange(e.target.value ? parseInt(e.target.value) : null)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                            <option value="">Selecione um tipo de atividade</option>
-                            {tiposAtividade.map((tipo) => (
-                                <option key={tipo.id} value={tipo.id}>
-                                    {tipo.codigo} - {tipo.nome}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Valor Base *
-                        </label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            value={formData.valor_base}
-                            onChange={(e) => handleInputChange('valor_base', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="0,00"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Regime Tributário
-                        </label>
-                        <select
-                            value={formData.regimes_tributarios[0] || ''}
-                            onChange={(e) => {
-                                const selectedValue = e.target.value ? parseInt(e.target.value) : null;
-                                setFormData(prev => ({
-                                    ...prev,
-                                    regimes_tributarios: selectedValue ? [selectedValue] : []
-                                }));
-                            }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            disabled={regimesTributarios.length === 0}
-                        >
-                            <option value="">
-                                {regimesTributarios.length === 0
-                                    ? (formData.tipo_atividade_id
-                                        ? "Nenhum regime tributário disponível para este tipo de atividade"
-                                        : "Selecione um tipo de atividade primeiro")
-                                    : "Selecione um regime tributário"
-                                }
-                            </option>
-                            {regimesTributarios.map((regime) => (
-                                <option key={regime.id} value={regime.id}>
-                                    {regime.codigo} - {regime.nome}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                             Descrição
                         </label>
                         <textarea
                             value={formData.descricao}
                             onChange={(e) => handleInputChange('descricao', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            rows={3}
-                            placeholder="Descreva o serviço oferecido"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            rows={2}
+                            placeholder="Descrição breve do serviço"
                         />
                     </div>
                 </div>
 
-                <div className="flex justify-end space-x-3 mt-6">
+                {/* Regimes Tributários */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Regimes Tributários
+                    </label>
+                    {loadingRegimes ? (
+                        <div className="flex items-center justify-center py-4">
+                            <LoadingSpinner size="sm" />
+                            <span className="ml-2 text-sm text-gray-500">Carregando regimes...</span>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-3">
+                            {regimesTributarios.map((regime) => (
+                                <label key={regime.id} className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.regimes_tributarios.includes(regime.id)}
+                                        onChange={(e) => handleRegimeChange(regime.id, e.target.checked)}
+                                        className="mr-2 h-4 w-4 text-blue-600 rounded border-gray-300"
+                                    />
+                                    <span className="text-sm text-gray-700">
+                                        {regime.codigo} - {regime.nome}
+                                    </span>
+                                </label>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* ✅ Botões com espaçamento reduzido */}
+                <div className="flex justify-end space-x-3 mt-4">
                     <button
                         onClick={() => {
                             setIsModalOpen(false);
-                            setFormData({ nome: '', categoria: '', valor_base: '', descricao: '', tipo_atividade_id: null, regimes_tributarios: [] });
+                            setFormData({ nome: '', categoria: '', valor_base: '', descricao: '', regimes_tributarios: [] });
                             setError('');
                         }}
-                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm"
                     >
                         Cancelar
                     </button>
                     <button
                         onClick={handleSalvar}
                         disabled={loading}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm"
                     >
                         {loading ? 'Salvando...' : 'Cadastrar'}
                     </button>
@@ -847,158 +722,141 @@ export const ServicosPage: React.FC = () => {
                 onClose={() => {
                     setIsModalEdicaoOpen(false);
                     setServicoParaEditar(null);
-                    setFormData({ nome: '', categoria: '', valor_base: '', descricao: '', tipo_atividade_id: null, regimes_tributarios: [] });
+                    setFormData({ nome: '', categoria: '', valor_base: '', descricao: '', regimes_tributarios: [] });
                     setError('');
                 }}
                 title="Editar Serviço"
             >
                 {/* Debug Info */}
-                {servicoParaEditar && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                        <h4 className="font-medium text-blue-800 text-sm">Debug Info:</h4>
-                        <p className="text-xs text-blue-700">
-                            Serviço: {servicoParaEditar.nome} |
-                            Tipo Atividade ID: {servicoParaEditar.tipo_atividade_id || 'N/A'} |
-                            Regimes: {servicoParaEditar.regimes_tributarios?.length || 0} |
-                            Regimes Disponíveis: {regimesTributarios.length}
-                        </p>
-                    </div>
-                )}
-                <div className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Nome do Serviço *
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.nome}
-                            onChange={(e) => handleInputChange('nome', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Ex: Contabilidade Mensal"
-                        />
-                    </div>
+                <div className="space-y-4">
+                    {/* ✅ Layout em Grid para aproveitar melhor o espaço */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                    <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Categoria *
+                        {/* Nome do Serviço - Largura total */}
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Nome do Serviço *
                             </label>
-                            <select
-                                value={formData.categoria}
-                                onChange={(e) => handleInputChange('categoria', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            >
-                                <option value="">Selecione uma categoria</option>
-                                {categorias.map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                            </select>
+                            <input
+                                type="text"
+                                value={formData.nome}
+                                onChange={(e) => handleInputChange('nome', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                placeholder="Ex: Contabilidade Mensal"
+                            />
                         </div>
 
-                        <button
-                            type="button"
-                            onClick={() => setModalNovaCategoria(true)}
-                            className="mt-6 p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                            title="Criar nova categoria"
-                        >
-                            <Plus className="w-4 h-4" />
-                        </button>
+                        {/* Categoria e Valor Base - Uma ao lado da outra */}
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Categoria *
+                                    </label>
+                                    <select
+                                        value={formData.categoria}
+                                        onChange={(e) => handleInputChange('categoria', e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                    >
+                                        <option value="">Selecione...</option>
+                                        {categorias.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setModalNovaCategoria(true)}
+                                    className="mt-6 p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                    title="Nova categoria"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Valor Base *
+                            </label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+                                    R$
+                                </span>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={formData.valor_base}
+                                    onChange={(e) => handleInputChange('valor_base', e.target.value)}
+                                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                    placeholder="0,00"
+                                />
+                            </div>
+                        </div>
                     </div>
 
+                    {/* Descrição - Largura total, altura reduzida */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Tipo de Atividade
-                        </label>
-                        <select
-                            value={formData.tipo_atividade_id || ''}
-                            onChange={(e) => handleTipoAtividadeChange(e.target.value ? parseInt(e.target.value) : null)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                            <option value="">Selecione um tipo de atividade</option>
-                            {tiposAtividade.map((tipo) => (
-                                <option key={tipo.id} value={tipo.id}>
-                                    {tipo.codigo} - {tipo.nome}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Valor Base *
-                        </label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            value={formData.valor_base}
-                            onChange={(e) => handleInputChange('valor_base', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="0,00"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Regime Tributário
-                        </label>
-                        <select
-                            value={formData.regimes_tributarios[0] || ''}
-                            onChange={(e) => {
-                                const selectedValue = e.target.value ? parseInt(e.target.value) : null;
-                                setFormData(prev => ({
-                                    ...prev,
-                                    regimes_tributarios: selectedValue ? [selectedValue] : []
-                                }));
-                            }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            disabled={regimesTributarios.length === 0}
-                        >
-                            <option value="">
-                                {regimesTributarios.length === 0
-                                    ? (formData.tipo_atividade_id
-                                        ? "Nenhum regime tributário disponível para este tipo de atividade"
-                                        : "Selecione um tipo de atividade primeiro")
-                                    : "Selecione um regime tributário"
-                                }
-                            </option>
-                            {regimesTributarios.map((regime) => (
-                                <option key={regime.id} value={regime.id}>
-                                    {regime.codigo} - {regime.nome}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                             Descrição
                         </label>
                         <textarea
                             value={formData.descricao}
                             onChange={(e) => handleInputChange('descricao', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            rows={3}
-                            placeholder="Descreva o serviço oferecido"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            rows={2}
+                            placeholder="Descrição breve do serviço"
                         />
                     </div>
                 </div>
 
-                <div className="flex justify-end space-x-3 mt-6">
+                {/* Regimes Tributários */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Regimes Tributários
+                    </label>
+                    {loadingRegimes ? (
+                        <div className="flex items-center justify-center py-4">
+                            <LoadingSpinner size="sm" />
+                            <span className="ml-2 text-sm text-gray-500">Carregando regimes...</span>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-3">
+                            {regimesTributarios.map((regime) => (
+                                <label key={regime.id} className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.regimes_tributarios.includes(regime.id)}
+                                        onChange={(e) => handleRegimeChange(regime.id, e.target.checked)}
+                                        className="mr-2 h-4 w-4 text-blue-600 rounded border-gray-300"
+                                    />
+                                    <span className="text-sm text-gray-700">
+                                        {regime.codigo} - {regime.nome}
+                                    </span>
+                                </label>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* ✅ Botões com espaçamento reduzido */}
+                <div className="flex justify-end space-x-3 mt-4">
                     <button
                         onClick={() => {
                             setIsModalEdicaoOpen(false);
                             setServicoParaEditar(null);
-                            setFormData({ nome: '', categoria: '', valor_base: '', descricao: '', tipo_atividade_id: null, regimes_tributarios: [] });
+                            setFormData({ nome: '', categoria: '', valor_base: '', descricao: '', regimes_tributarios: [] });
                             setError('');
                         }}
-                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm"
                     >
                         Cancelar
                     </button>
                     <button
                         onClick={handleEditar}
                         disabled={loading}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm"
                     >
                         {loading ? 'Salvando...' : 'Salvar'}
                     </button>

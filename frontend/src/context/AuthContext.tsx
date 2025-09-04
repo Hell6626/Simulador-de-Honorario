@@ -1,6 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiService } from '../services/api';
 
+interface Cargo {
+  id: number;
+  nome: string;
+  codigo: string;
+  nivel: number;
+}
+
+interface Empresa {
+  id: number;
+  nome: string;
+  cnpj: string;
+}
+
 interface User {
   id: number;
   nome: string;
@@ -9,6 +22,10 @@ interface User {
   ativo: boolean;
   empresa_id: number;
   cargo_id?: number;
+  cargo?: Cargo;
+  empresa?: Empresa;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface AuthContextType {
