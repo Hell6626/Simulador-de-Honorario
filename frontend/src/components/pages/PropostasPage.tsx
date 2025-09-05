@@ -18,7 +18,7 @@ import { ModalEdicaoCompleta } from '../modals/ModalEdicaoCompleta';
 import { HistoricoLogs } from '../propostas/HistoricoLogs';
 import { PropostaPDFViewer } from '../propostas/PropostaPDFViewer';
 import { Proposta, PropostaResponse } from '../../types';
-import { PropostaProvider } from '../../store/PropostaStore';
+import { usePropostaDataReset } from '../../hooks/usePropostaDataReset';
 
 // Interfaces removidas para evitar warnings de unused vars
 // As interfaces estão definidas nos componentes específicos
@@ -225,6 +225,9 @@ const getStatusLabel = (status: string): string => {
 };
 
 export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = false, propostaId }) => {
+  // ✅ NOVO: Hook para reset automático de dados
+  const { limparTodosDadosProposta, verificarDadosExistentes } = usePropostaDataReset();
+
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [filteredPropostas, setFilteredPropostas] = useState<Proposta[]>([]);
   const [loading, setLoading] = useState(true);
@@ -426,6 +429,27 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
     }
   }, [currentPage, searchTerm, currentStep]);
 
+  // ✅ NOVO: Reset automático quando volta para lista principal
+  useEffect(() => {
+    if (currentStep === 0) {
+      console.log('🔄 [PropostasPage] Voltou para lista principal - verificando dados salvos...');
+
+      const temDadosSalvos = verificarDadosExistentes();
+      if (temDadosSalvos) {
+        console.log('🧹 [PropostasPage] Dados encontrados - iniciando limpeza automática...');
+        const itensRemovidos = limparTodosDadosProposta();
+
+        if (itensRemovidos > 0) {
+          console.log(`✅ [PropostasPage] Reset automático concluído! ${itensRemovidos} itens removidos.`);
+        } else {
+          console.log('ℹ️ [PropostasPage] Nenhum dado para limpar.');
+        }
+      } else {
+        console.log('ℹ️ [PropostasPage] Nenhum dado salvo encontrado.');
+      }
+    }
+  }, [currentStep, limparTodosDadosProposta, verificarDadosExistentes]);
+
   // Carregar todos os serviços quando o componente montar
   useEffect(() => {
     fetchTodosServicos();
@@ -456,6 +480,14 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
   }, [openModalOnLoad]);
 
   const handleNovaPropostaClick = () => {
+    console.log('🔄 [PropostasPage] Iniciando nova proposta - limpando dados anteriores...');
+
+    // ✅ NOVO: Limpar dados salvos antes de iniciar nova proposta
+    const itensRemovidos = limparTodosDadosProposta();
+    if (itensRemovidos > 0) {
+      console.log(`🧹 [PropostasPage] Dados anteriores limpos: ${itensRemovidos} itens removidos`);
+    }
+
     setCurrentStep(1);
     // ⚠️ RESETAR: Estado principal da proposta
     setDadosProposta({
@@ -474,6 +506,8 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
     setTipoAtividade(null);
     setServicosSelecionados([]);
     setDadosPropostaCompleta(null);
+
+    console.log('✅ [PropostasPage] Nova proposta iniciada com estado limpo');
   };
 
   const handleVoltarPasso1 = () => {

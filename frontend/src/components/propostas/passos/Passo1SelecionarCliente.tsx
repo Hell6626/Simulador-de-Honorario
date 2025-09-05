@@ -6,12 +6,230 @@ import {
   ArrowLeft,
   Save,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Building2,
+  User,
+  CreditCard,
+  Mail
 } from 'lucide-react';
 import { apiService } from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { ModalCadastroCliente } from '../../modals/ModalCadastroCliente';
 import { Cliente, DataValidator } from '../../../types';
+import { formatarCPF, formatarCNPJ } from '../../../utils/formatters';
+import { usePropostaDataReset } from '../../../hooks/usePropostaDataReset';
+
+// ✅ NOVO: Design Tokens para cores e espaçamentos (baseado na imagem)
+const DESIGN_TOKENS = {
+  colors: {
+    pj: {
+      primary: 'bg-purple-600',
+      text: 'text-gray-900',
+      details: 'text-gray-700',
+      selected: 'bg-purple-50 border-purple-300',
+      icon: 'bg-purple-100 text-purple-600'
+    },
+    pf: {
+      primary: 'bg-green-600',
+      text: 'text-gray-900',
+      details: 'text-gray-700',
+      selected: 'bg-green-50 border-green-300',
+      icon: 'bg-green-100 text-green-600'
+    },
+    status: {
+      active: 'bg-green-100 text-green-700',
+      inactive: 'bg-red-100 text-red-700',
+      existing: 'bg-blue-100 text-blue-700'
+    }
+  },
+  spacing: {
+    card: 'p-3',
+    gap: 'space-y-2',
+    inner: 'space-y-1',
+    tags: 'space-x-1'
+  },
+  typography: {
+    title: 'text-sm font-semibold',
+    subtitle: 'text-xs font-medium',
+    metadata: 'text-xs',
+    badge: 'text-xs font-medium'
+  }
+};
+
+// ✅ NOVO: Função para determinar tipo de cliente e cores usando Design Tokens
+const getClienteConfig = (cliente: Cliente) => {
+  const temEntidadesJuridicas = cliente.entidades_juridicas && cliente.entidades_juridicas.length > 0;
+  const isPessoaJuridica = temEntidadesJuridicas || cliente.abertura_empresa;
+
+  if (isPessoaJuridica) {
+    return {
+      tipo: 'Pessoa Jurídica',
+      cores: {
+        tag: `${DESIGN_TOKENS.colors.pj.primary} text-white`,
+        icone: DESIGN_TOKENS.colors.pj.icon,
+        nome: DESIGN_TOKENS.colors.pj.text,
+        detalhes: DESIGN_TOKENS.colors.pj.details,
+        selecionado: DESIGN_TOKENS.colors.pj.selected,
+        iconePrincipal: Building2
+      }
+    };
+  } else {
+    return {
+      tipo: 'Pessoa Física',
+      cores: {
+        tag: `${DESIGN_TOKENS.colors.pf.primary} text-white`,
+        icone: DESIGN_TOKENS.colors.pf.icon,
+        nome: DESIGN_TOKENS.colors.pf.text,
+        detalhes: DESIGN_TOKENS.colors.pf.details,
+        selecionado: DESIGN_TOKENS.colors.pf.selected,
+        iconePrincipal: User
+      }
+    };
+  }
+};
+
+// ✅ NOVO: Componente CustomerCard modular e reutilizável
+interface CustomerCardProps {
+  cliente: Cliente;
+  isSelected: boolean;
+  onSelect: (clienteId: number) => void;
+}
+
+const CustomerCard: React.FC<CustomerCardProps> = ({ cliente, isSelected, onSelect }) => {
+  const config = getClienteConfig(cliente);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSelect(cliente.id);
+    }
+  };
+
+  return (
+    <div
+      role="radio"
+      aria-checked={isSelected}
+      aria-labelledby={`cliente-${cliente.id}-name`}
+      tabIndex={0}
+      className={`
+        relative ${DESIGN_TOKENS.spacing.card} rounded-lg border transition-all duration-300 ease-out
+        ${isSelected
+          ? `${config.cores.selecionado} border-2`
+          : 'bg-white border-gray-200 hover:border-gray-300'
+        }
+        group cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
+      `}
+      onClick={() => onSelect(cliente.id)}
+      onKeyDown={handleKeyDown}
+    >
+      {/* Radio button no canto superior esquerdo */}
+      <div className="absolute top-2 left-2">
+        <input
+          type="radio"
+          name="cliente"
+          value={cliente.id}
+          checked={isSelected}
+          onChange={() => onSelect(cliente.id)}
+          className={`h-3 w-3 ${isSelected ? 'text-purple-600' : 'text-gray-400'} focus:ring-purple-500 border-gray-300`}
+          aria-label={`Selecionar cliente ${cliente.nome}`}
+        />
+      </div>
+
+      {/* Conteúdo principal */}
+      <div className="ml-6">
+        {/* Header com tags */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center space-x-1">
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${config.cores.tag}`}>
+              {config.tipo}
+            </span>
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${DESIGN_TOKENS.colors.status.active}`}>
+              Ativo
+            </span>
+          </div>
+          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${DESIGN_TOKENS.colors.status.existing}`}>
+            Cliente Existente
+          </span>
+        </div>
+
+        {/* Nome da empresa com ícone de prédio */}
+        <div className="flex items-center space-x-1 mb-1">
+          <Building2 className="w-3 h-3 text-gray-600" aria-hidden="true" />
+          <h3 id={`cliente-${cliente.id}-name`} className={`text-sm font-semibold ${config.cores.nome}`}>
+            {config.tipo === 'Pessoa Jurídica' && cliente.entidades_juridicas && cliente.entidades_juridicas.length > 0
+              ? cliente.entidades_juridicas[0].nome
+              : cliente.nome
+            }
+          </h3>
+        </div>
+
+        {/* Subtítulo para Pessoa Jurídica */}
+        {config.tipo === 'Pessoa Jurídica' && (
+          <div className="mb-2">
+            <p className={`text-xs font-medium ${config.cores.detalhes}`}>
+              Responsável: {cliente.nome}
+            </p>
+          </div>
+        )}
+
+        {/* Informações específicas por tipo */}
+        <div className="space-y-0.5">
+          {/* Para Pessoa Jurídica: CNPJ, CPF do responsável e email */}
+          {config.tipo === 'Pessoa Jurídica' && (
+            <>
+              {/* CNPJ da empresa */}
+              {cliente.entidades_juridicas && cliente.entidades_juridicas.length > 0 && (
+                <div className="flex items-center space-x-1">
+                  <span className="text-gray-600 font-bold text-xs">#</span>
+                  <span className={`text-xs ${config.cores.detalhes}`}>
+                    CNPJ: {formatarCNPJ(cliente.entidades_juridicas[0].cnpj)}
+                  </span>
+                </div>
+              )}
+
+              {/* CPF do responsável */}
+              <div className="flex items-center space-x-1">
+                <CreditCard className="w-2.5 h-2.5 text-gray-600" aria-hidden="true" />
+                <span className={`text-xs ${config.cores.detalhes}`}>
+                  CPF Responsável: {formatarCPF(cliente.cpf)}
+                </span>
+              </div>
+
+              {/* Email */}
+              <div className="flex items-center space-x-1">
+                <Mail className="w-2.5 h-2.5 text-gray-600" aria-hidden="true" />
+                <span className={`text-xs ${config.cores.detalhes}`}>
+                  Email: {cliente.email}
+                </span>
+              </div>
+            </>
+          )}
+
+          {/* Para Pessoa Física: CPF e email */}
+          {config.tipo === 'Pessoa Física' && (
+            <>
+              {/* CPF */}
+              <div className="flex items-center space-x-1">
+                <CreditCard className="w-2.5 h-2.5 text-gray-600" aria-hidden="true" />
+                <span className={`text-xs ${config.cores.detalhes}`}>
+                  CPF: {formatarCPF(cliente.cpf)}
+                </span>
+              </div>
+
+              {/* Email */}
+              <div className="flex items-center space-x-1">
+                <Mail className="w-2.5 h-2.5 text-gray-600" aria-hidden="true" />
+                <span className={`text-xs ${config.cores.detalhes}`}>
+                  Email: {cliente.email}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 
 
@@ -30,6 +248,9 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
   dadosSalvos,
   onSalvarProgresso
 }) => {
+  // ✅ NOVO: Hook para reset automático de dados
+  const { limparDadosPasso } = usePropostaDataReset();
+
   const [selectedClienteId, setSelectedClienteId] = useState<number | null>(null);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -43,6 +264,7 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
   const [salvando, setSalvando] = useState(false);
   const [ultimoSalvamento, setUltimoSalvamento] = useState<Date | null>(null);
   const [erroSalvamento, setErroSalvamento] = useState<string | null>(null);
+
 
   // ⚠️ NOVO: Recuperar dados salvos ao montar componente
   useEffect(() => {
@@ -354,6 +576,13 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
 
     console.log('✅ Cliente validado com sucesso:', clienteValidado.nome);
 
+    // ✅ NOVO: Limpar dados do passo 1 antes de prosseguir
+    console.log('🧹 [Passo1] Limpando dados do passo 1 antes de prosseguir...');
+    const dadosRemovidos = limparDadosPasso(1);
+    if (dadosRemovidos) {
+      console.log('✅ [Passo1] Dados do passo 1 limpos com sucesso');
+    }
+
     // ⚠️ NOVO: Salvar antes de prosseguir
     salvarProgresso();
     onProximo(selectedClienteId);
@@ -463,92 +692,89 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
             </div>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div role="radiogroup" aria-label="Lista de clientes disponíveis" className={DESIGN_TOKENS.spacing.gap}>
             {clientes.map((cliente) => (
-              <div key={cliente.id} className="p-6 hover:bg-gray-50 transition-colors">
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="radio"
-                    name="cliente"
-                    value={cliente.id}
-                    checked={selectedClienteId === cliente.id}
-                    onChange={() => setSelectedClienteId(cliente.id)}
-                    className="h-5 w-5 text-custom-blue focus:ring-custom-blue border-gray-300"
-                  />
-                  <div className="ml-4 flex-1">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-lg font-medium text-gray-900">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${cliente.ativo ? 'bg-green-100 text-green-500' : 'bg-red-100 text-red-500'}`}>
-                            {cliente.ativo ? 'Ativo' : 'Inativo'}
-                          </span> {cliente.nome}
-                        </p>
-
-                        {/* CPF - sempre mostrar */}
-                        <p className="text-sm text-gray-500 mt-1">CPF: {cliente.cpf}</p>
-
-                        {/* CNPJs - só mostrar se existirem */}
-                        {cliente.entidades_juridicas && cliente.entidades_juridicas.length > 0 && (
-                          <div className="mt-1">
-                            {cliente.entidades_juridicas.map((entidade) => (
-                              <p key={entidade.id} className="text-sm text-gray-500">
-                                CNPJ: {entidade.cnpj} ({entidade.nome})
-                              </p>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Email */}
-                        <p className="text-sm text-gray-500 mt-1">Email: {cliente.email}</p>
-                      </div>
-
-                      {/* Selo de status */}
-                      <div className="text-right">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${cliente.abertura_empresa
-                          ? 'bg-purple-100 text-purple-800'
-                          : 'bg-green-100 text-green-800'
-                          }`}>
-                          {cliente.abertura_empresa ? 'Abertura de Empresa' : 'Cliente Existente'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </label>
-              </div>
+              <CustomerCard
+                key={cliente.id}
+                cliente={cliente}
+                isSelected={selectedClienteId === cliente.id}
+                onSelect={setSelectedClienteId}
+              />
             ))}
           </div>
         )}
 
         {clientes.length === 0 && !loading && (
-          <div className="text-center py-16">
-            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-lg text-gray-500 mb-2">
-              {searchTerm ? `Nenhum cliente encontrado para "${searchTerm}"` : 'Nenhum cliente encontrado'}
-            </p>
-            <p className="text-sm text-gray-400">
-              {searchTerm ? 'Tente buscar por nome, CPF ou email' : 'Cadastre um cliente para continuar'}
-            </p>
+          <div className="text-center py-20">
+            <div className="max-w-md mx-auto">
+              <div className="mb-6">
+                <div className="w-20 h-20 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Users className="w-10 h-10 text-gray-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  {searchTerm ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}
+                </h3>
+                <p className="text-gray-500 mb-6">
+                  {searchTerm
+                    ? `Não encontramos clientes para "${searchTerm}". Tente buscar por nome, CPF ou email.`
+                    : 'Você ainda não possui clientes cadastrados. Cadastre um cliente para começar a criar propostas.'
+                  }
+                </p>
+              </div>
+
+              {!searchTerm && (
+                <button
+                  onClick={() => setModalCadastroAberto(true)}
+                  className="inline-flex items-center px-6 py-3 bg-custom-blue text-white font-medium rounded-lg hover:bg-custom-blue-light transition-colors duration-200 shadow-sm hover:shadow-md"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  Cadastrar Primeiro Cliente
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
 
       {/* Paginação */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center space-x-2 mb-6">
+        <div className="flex items-center justify-center space-x-3 mb-6">
           <button
             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
-            className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition-all duration-200 font-medium text-gray-700 hover:border-gray-400 disabled:cursor-not-allowed"
           >
             Anterior
           </button>
-          <span className="px-4 py-2 text-sm text-gray-700">
+
+          <div className="flex items-center space-x-2">
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const page = i + 1;
+              const isActive = page === currentPage;
+
+              return (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-10 h-10 rounded-lg font-medium transition-all duration-200 ${isActive
+                    ? 'bg-custom-blue text-white shadow-md'
+                    : 'text-gray-700 hover:bg-gray-100 border border-gray-200'
+                    }`}
+                >
+                  {page}
+                </button>
+              );
+            })}
+          </div>
+
+          <span className="px-4 py-2 text-sm text-gray-500 font-medium">
             Página {currentPage} de {totalPages}
           </span>
+
           <button
             onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
-            className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition-all duration-200 font-medium text-gray-700 hover:border-gray-400 disabled:cursor-not-allowed"
           >
             Próxima
           </button>
@@ -556,22 +782,25 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
       )}
 
       {/* Botões de Ação Fixos */}
-      <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 px-6 py-4">
+      <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 px-6 py-4 shadow-lg">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-4">
             {selectedClienteId && (
-              <span className="text-sm text-gray-600">
-                Cliente selecionado: {clientes.find(c => c.id === selectedClienteId)?.nome}
-              </span>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-sm font-medium text-gray-700">
+                  Cliente selecionado: <span className="text-gray-900 font-semibold">{clientes.find(c => c.id === selectedClienteId)?.nome}</span>
+                </span>
+              </div>
             )}
 
-            {/* ⚠️ NOVO: Botão de salvamento manual */}
+            {/* Botão de salvamento manual */}
             <button
               onClick={salvarProgresso}
               disabled={!selectedClienteId || salvando}
-              className="flex items-center space-x-2 px-3 py-1 text-sm text-custom-blue bg-custom-blue-light rounded-lg hover:bg-custom-blue-light disabled:opacity-50 transition-colors"
+              className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-custom-blue bg-custom-blue-light rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-all duration-200 border border-custom-blue-light"
             >
-              <Save className="w-4 h-4" />
+              <Save className={`w-4 h-4 ${salvando ? 'animate-spin' : ''}`} />
               <span>{salvando ? 'Salvando...' : 'Salvar Progresso'}</span>
             </button>
           </div>
@@ -579,16 +808,16 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
           <div className="flex justify-end space-x-3">
             <button
               onClick={onVoltar}
-              className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 shadow-sm hover:shadow-md"
             >
               Cancelar
             </button>
             <button
               onClick={handleProximo}
               disabled={!selectedClienteId}
-              className="px-6 py-2 text-sm font-medium text-white bg-custom-blue rounded-lg hover:bg-custom-blue-light disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-3 text-sm font-medium text-white bg-custom-blue rounded-lg hover:bg-custom-blue-light disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md disabled:hover:shadow-sm"
             >
-              Próximo
+              Próximo Passo
             </button>
           </div>
         </div>

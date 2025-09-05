@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { apiService } from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
+import { designUtils } from '../../../utils/designTokens';
 
 interface Servico {
   id: number;
@@ -78,6 +79,40 @@ const formatarTipoCobranca = (tipoCobranca: string): string => {
   return tipos[tipoCobranca] || tipoCobranca;
 };
 
+// ✅ NOVO: Função de cálculo específica para Gestão de Funcionários
+const calcularValorGestaoFuncionarios = (quantidade: number): { valorTotal: number; detalhes: Array<{ funcionario: number; valor: number }> } => {
+  const detalhes: Array<{ funcionario: number; valor: number }> = [];
+  let valorTotal = 0;
+
+  for (let i = 1; i <= quantidade; i++) {
+    let valorFuncionario: number;
+
+    if (i === 1) {
+      valorFuncionario = 50.00; // 1º funcionário: R$ 50,00
+    } else if (i === 2) {
+      valorFuncionario = 40.00; // 2º funcionário: R$ 40,00
+    } else {
+      valorFuncionario = 30.00; // 3º funcionário em diante: R$ 30,00
+    }
+
+    detalhes.push({ funcionario: i, valor: valorFuncionario });
+    valorTotal += valorFuncionario;
+  }
+
+  return { valorTotal, detalhes };
+};
+
+// ✅ TESTES: Validação da regra de negócio
+// Teste 1: 1 funcionário = R$ 50,00
+// Teste 2: 2 funcionários = R$ 50,00 + R$ 40,00 = R$ 90,00
+// Teste 3: 3 funcionários = R$ 50,00 + R$ 40,00 + R$ 30,00 = R$ 120,00
+// Teste 4: 5 funcionários = R$ 50,00 + R$ 40,00 + R$ 30,00 + R$ 30,00 + R$ 30,00 = R$ 180,00
+console.log('🧪 Testes da regra de Gestão de Funcionários:');
+console.log('1 funcionário:', calcularValorGestaoFuncionarios(1)); // R$ 50,00
+console.log('2 funcionários:', calcularValorGestaoFuncionarios(2)); // R$ 90,00
+console.log('3 funcionários:', calcularValorGestaoFuncionarios(3)); // R$ 120,00
+console.log('5 funcionários:', calcularValorGestaoFuncionarios(5)); // R$ 180,00
+
 export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
   tipoAtividade,
   regimeTributario, // ⚠️ NOVO: Usar regime
@@ -108,7 +143,6 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
 
   // ✅ NOVO: Estado para serviços filtrados por regime
   const [servicosDisponiveis, setServicosDisponiveis] = useState<Servico[]>([]);
-  const [loadingServicos, setLoadingServicos] = useState(false);
 
   // Verificar se é atividade de serviços (para filtro especial na aba FISCAL)
   const isAtividadeServicos = useMemo(() => {
@@ -292,7 +326,6 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
   // ✅ IMPLEMENTAR: Carregar serviços filtrados pelo regime tributário específico
   const fetchServicosDisponiveis = async () => {
     try {
-      setLoadingServicos(true);
       console.log('🔍 Carregando serviços para regime:', regimeTributario);
 
       // ✅ NOVA LÓGICA: Filtrar serviços pelo regime tributário específico
@@ -328,7 +361,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
         totalFiltrados: 0
       });
     } finally {
-      setLoadingServicos(false);
+      // Loading state removido para simplificar
     }
   };
 
@@ -565,7 +598,18 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
 
   const getSubtotalServico = (servicoId: number): number => {
     const item = servicosSelecionados.get(servicoId);
-    return item ? item.quantidade * item.valor_unitario : 0;
+    if (!item) return 0;
+
+    const servico = todosServicos.find(s => s.id === servicoId);
+
+    // ✅ NOVO: Cálculo específico para Gestão de Funcionários
+    if (servico?.codigo === 'FUNCIONARIO') {
+      const calculo = calcularValorGestaoFuncionarios(item.quantidade);
+      return calculo.valorTotal;
+    }
+
+    // Cálculo padrão para outros serviços
+    return item.quantidade * item.valor_unitario;
   };
 
   // 🔄 LÓGICA ATUALIZADA: Função de Toggle para Diferentes Tipos de Serviço
@@ -583,11 +627,18 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
         });
       } else {
         // Serviços normais: quantidade inicial = 0
+        let subtotalInicial = 0;
+
+        // ✅ NOVO: Cálculo específico para Gestão de Funcionários
+        if (servico.codigo === 'FUNCIONARIO') {
+          subtotalInicial = calcularValorGestaoFuncionarios(0).valorTotal;
+        }
+
         newMap.set(servico.id, {
           servico_id: servico.id,
           quantidade: 0,
           valor_unitario: servico.valor_base,
-          subtotal: 0
+          subtotal: subtotalInicial
         });
       }
     } else {
@@ -608,10 +659,22 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
     const item = novosSelecionados.get(servicoId);
 
     if (item) {
+      const servico = todosServicos.find(s => s.id === servicoId);
+      let subtotal: number;
+
+      // ✅ NOVO: Cálculo específico para Gestão de Funcionários
+      if (servico?.codigo === 'FUNCIONARIO') {
+        const calculo = calcularValorGestaoFuncionarios(Math.max(0, quantidade));
+        subtotal = calculo.valorTotal;
+      } else {
+        // Cálculo padrão para outros serviços
+        subtotal = Math.max(0, quantidade) * item.valor_unitario;
+      }
+
       novosSelecionados.set(servicoId, {
         ...item,
         quantidade: Math.max(0, quantidade),
-        subtotal: Math.max(0, quantidade) * item.valor_unitario
+        subtotal: subtotal
       });
     }
 
@@ -665,6 +728,94 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
 
       onProximo(servicosParaEnvio);
     }
+  };
+
+  // ✅ NOVO: Componente específico para Gestão de Funcionários
+  const ComponenteGestaoFuncionarios: React.FC<{
+    servico: Servico;
+    quantidade: number;
+    subtotal: number;
+    onQuantidadeChange: (quantidade: number) => void;
+  }> = ({ quantidade, subtotal, onQuantidadeChange }) => {
+    const calculo = calcularValorGestaoFuncionarios(quantidade);
+
+    return (
+      <div className={`mt-4 ${designUtils.colors.backgroundInfo} p-6 rounded-lg`}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+              <span className="text-gray-600 font-bold text-lg">👥</span>
+            </div>
+            <div>
+              <h4 className={`text-lg font-semibold ${designUtils.colors.textPrimary}`}>
+                Gestão de Funcionários
+              </h4>
+              <p className={`text-sm ${designUtils.colors.textSecondary}`}>
+                Regra especial: 1º funcionário R$ 50,00 • 2º funcionário R$ 40,00 • 3º+ funcionários R$ 30,00
+              </p>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <p className={`text-sm ${designUtils.colors.textSecondary}`}>Valor Total</p>
+            <p className={`text-2xl font-bold ${designUtils.colors.textPrimary}`}>
+              {formatarMoeda(subtotal)}
+            </p>
+          </div>
+        </div>
+
+        {/* Controle de quantidade */}
+        <div className="flex items-center space-x-4 mb-4">
+          <label className={`text-sm font-medium ${designUtils.colors.textPrimary}`}>
+            Quantidade de Funcionários:
+          </label>
+          <input
+            type="number"
+            min="0"
+            max="50"
+            value={quantidade || ''}
+            onChange={(e) => onQuantidadeChange(parseInt(e.target.value) || 0)}
+            className={`w-24 px-3 py-2 ${designUtils.colors.input} bg-white`}
+            placeholder="0"
+          />
+        </div>
+
+        {/* Detalhamento do cálculo */}
+        {quantidade > 0 && (
+          <div className={`${designUtils.colors.card} p-4`}>
+            <h5 className={`text-sm font-semibold ${designUtils.colors.textPrimary} mb-3`}>
+              Detalhamento do Cálculo:
+            </h5>
+
+            <div className="border-t border-gray-200 pt-3 mt-3">
+              <div className="flex justify-between items-center">
+                <span className={`font-semibold ${designUtils.colors.textPrimary}`}>Total:</span>
+                <span className={`text-lg font-bold ${designUtils.colors.textPrimary}`}>
+                  {formatarMoeda(calculo.valorTotal)}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Informações da regra */}
+        <div className={`mt-4 ${designUtils.colors.backgroundInfo} rounded-lg p-3`}>
+          <div className="flex items-start space-x-2">
+            <div className="w-5 h-5 bg-gray-200 rounded-full flex items-center justify-center mt-0.5">
+              <span className="text-gray-600 text-xs">ℹ️</span>
+            </div>
+            <div className={`text-sm ${designUtils.colors.textSecondary}`}>
+              <p className={`font-medium mb-1 ${designUtils.colors.textPrimary}`}>Regra de Desconto Progressivo:</p>
+              <ul className={`space-y-1 text-xs ${designUtils.colors.textMuted}`}>
+                <li>• 1º funcionário: R$ 50,00 (valor base)</li>
+                <li>• 2º funcionário: R$ 40,00 (20% de desconto)</li>
+                <li>• 3º funcionário em diante: R$ 30,00 (40% de desconto)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // ⚠️ NOVO: Componente de indicador de filtro
@@ -754,7 +905,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
           </div>
           <button
             onClick={onVoltar}
-            className="text-gray-600 hover:text-gray-800 flex items-center space-x-2 transition-colors"
+            className={`${designUtils.colors.textSecondary} hover:${designUtils.colors.textPrimary} flex items-center space-x-2 transition-colors`}
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Voltar</span>
@@ -817,17 +968,17 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                     className={`
                       whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors
                       ${abaAtiva === index
-                        ? 'border-custom-blue text-custom-blue'
+                        ? `${designUtils.colors.tabActive}`
                         : temServicos
-                          ? 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                          : 'border-transparent text-gray-300 cursor-not-allowed'
+                          ? `${designUtils.colors.tabInactive}`
+                          : `${designUtils.colors.tabDisabled}`
                       }
                     `}
                   >
                     <div className="flex flex-col items-center">
                       <span className="capitalize">{categoria.categoria.toLowerCase()}</span>
                       {total > 0 && (
-                        <span className="text-xs bg-custom-blue-light text-custom-blue-dark px-2 py-1 rounded-full mt-1">
+                        <span className={`text-xs ${designUtils.colors.backgroundInfo} ${designUtils.colors.textPrimary} px-2 py-1 rounded-full mt-1`}>
                           {formatarMoeda(total)}
                         </span>
                       )}
@@ -872,9 +1023,9 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                 return (
                   <div
                     key={servico.id}
-                    className={`border rounded-lg p-6 transition-all ${isSelecionado
-                      ? 'border-custom-blue bg-custom-blue-light'
-                      : 'border-gray-200 hover:border-gray-300'
+                    className={`${designUtils.colors.card} p-6 transition-all ${isSelecionado
+                      ? `${designUtils.colors.cardSelected}`
+                      : `${designUtils.colors.cardHover}`
                       }`}
                   >
                     <div className="flex items-start space-x-4">
@@ -908,8 +1059,15 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                         {/* Controles específicos para cada tipo de serviço */}
                         {isSelecionado && (
                           <>
-                            {/* ⚠️ CORREÇÃO 3: Renderização especial para Registro de Órgão de Classe */}
-                            {servico.codigo === 'ORGAO-CLASSE' ? (
+                            {/* ✅ NOVO: Renderização especial para Gestão de Funcionários */}
+                            {servico.codigo === 'FUNCIONARIO' ? (
+                              <ComponenteGestaoFuncionarios
+                                servico={servico}
+                                quantidade={quantidade}
+                                subtotal={subtotal}
+                                onQuantidadeChange={(qtd) => handleQuantidadeChange(servico.id, qtd)}
+                              />
+                            ) : servico.codigo === 'ORGAO-CLASSE' ? (
                               <div className="mt-4 bg-white p-4 rounded-lg border border-gray-200">
                                 <div className="flex items-center justify-between mb-4">
                                   <div className="flex items-center space-x-3">
@@ -1091,6 +1249,18 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                         }
 
                         // Para serviços normais, mostrar quantidade
+                        // ✅ NOVO: Exibição especial para Gestão de Funcionários
+                        if (servico.codigo === 'FUNCIONARIO') {
+                          return (
+                            <div key={item.servico_id} className="text-sm text-gray-600">
+                              <div className="flex justify-between mb-1">
+                                <span>• {servico.nome}: {item.quantidade} funcionário(s)</span>
+                                <span>{formatarMoeda(item.subtotal)}</span>
+                              </div>
+                            </div>
+                          );
+                        }
+
                         return (
                           <div key={item.servico_id} className="text-sm text-gray-600 flex justify-between">
                             <span>• {servico.nome}: {item.quantidade} × {formatarMoeda(item.valor_unitario)}</span>
@@ -1142,7 +1312,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
             <button
               onClick={salvarProgresso}
               disabled={servicosSelecionados.size === 0 || salvando || !tipoAtividade?.id || !regimeTributario?.id}
-              className="flex items-center space-x-2 px-3 py-1 text-sm text-custom-blue bg-custom-blue-light rounded-lg hover:bg-custom-blue-light disabled:opacity-50 transition-colors"
+              className={`flex items-center space-x-2 px-3 py-1 text-sm ${designUtils.colors.primaryButton} rounded-lg disabled:opacity-50 transition-colors`}
             >
               <Save className="w-4 h-4" />
               <span>{salvando ? 'Salvando...' : 'Salvar Seleção'}</span>
@@ -1152,14 +1322,14 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
           <div className="flex space-x-3">
             <button
               onClick={onVoltar}
-              className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className={`px-6 py-2 text-sm font-medium ${designUtils.colors.secondaryButton} rounded-lg transition-colors`}
             >
               Anterior
             </button>
             <button
               onClick={handleProximo}
               disabled={!podeProximo}
-              className="px-6 py-2 text-sm font-medium text-white bg-custom-blue rounded-lg hover:bg-custom-blue-light disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+              className={`px-6 py-2 text-sm font-medium ${designUtils.colors.primaryButton} rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2`}
             >
               <span>Próximo</span>
               {!podeProximo && <AlertCircle className="w-4 h-4" />}

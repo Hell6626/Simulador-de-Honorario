@@ -321,6 +321,7 @@
                     <th>Serviço ou Produto</th>
                     <th>Quantidade</th>
                     <th>Preço Unitário</th>
+                    <th>Desconto</th>
                     <th>Total</th>
                 </tr>
             </thead>
@@ -330,6 +331,7 @@
                     <td>{{ item.servico.nome }}</td>
                     <td>{{ item.quantidade|int }}</td>
                     <td>{{ item.valor_unitario|currency }}</td>
+                    <td>{{ item.valor_desconto|currency }}</td>
                     <td>{{ item.valor_total|currency }}</td>
                 </tr>
                 {% endfor %}
@@ -337,12 +339,9 @@
                     <td colspan="3"><strong>Subtotal</strong></td>
                     <td>{{ subtotal|currency }}</td>
                 </tr>
-                <tr>
-                    <td colspan="3">Impostos</td>
-                    <td>R$ 0</td>
-                </tr>
                 <tr class="table-total">
                     <td colspan="3"><strong>Total</strong></td>
+                    <td>{{ proposta.valor_desconto|currency }}</td>
                     <td>{{ proposta.valor_total|currency }}</td>
                 </tr>
             </tbody>

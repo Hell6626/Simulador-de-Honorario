@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginPage } from './components/pages/LoginPage';
 import { DashboardPage } from './components/pages/DashboardPage';
@@ -8,6 +8,7 @@ import { Sidebar } from './components/layout/Sidebar';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 import { PropostasPage } from './components/pages/PropostasPage';
 import { AgendaPage } from './components/pages/AgendaPage';
+import { usePropostaDataReset } from './hooks/usePropostaDataReset';
 
 // Placeholder components for other pages
 import { FuncionariosPage } from './components/pages/FuncionariosPage';
@@ -50,6 +51,9 @@ const AppContent: React.FC = () => {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [navigationOptions, setNavigationOptions] = useState<{ openModal?: boolean; propostaId?: number }>({});
 
+  // ✅ NOVO: Hook para reset automático de dados
+  const { limparTodosDadosProposta, verificarDadosExistentes } = usePropostaDataReset();
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -76,6 +80,27 @@ const AppContent: React.FC = () => {
     setCurrentPage('propostas');
     setNavigationOptions({ propostaId });
   };
+
+  // ✅ NOVO: Reset automático quando navega para outras páginas (exceto propostas)
+  useEffect(() => {
+    if (currentPage !== 'propostas') {
+      console.log(`🔄 [App] Navegou para ${currentPage} - verificando dados salvos...`);
+
+      const temDadosSalvos = verificarDadosExistentes();
+      if (temDadosSalvos) {
+        console.log('🧹 [App] Dados encontrados - iniciando limpeza automática...');
+        const itensRemovidos = limparTodosDadosProposta();
+
+        if (itensRemovidos > 0) {
+          console.log(`✅ [App] Reset automático concluído! ${itensRemovidos} itens removidos.`);
+        } else {
+          console.log('ℹ️ [App] Nenhum dado para limpar.');
+        }
+      } else {
+        console.log('ℹ️ [App] Nenhum dado salvo encontrado.');
+      }
+    }
+  }, [currentPage, limparTodosDadosProposta, verificarDadosExistentes]);
 
   const renderPage = () => {
     switch (currentPage) {
