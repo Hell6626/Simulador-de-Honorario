@@ -26,7 +26,7 @@ export const AgendaPage: React.FC = () => {
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="border border-gray-200 rounded-lg p-4">
             <div className="flex items-center space-x-3 mb-3">
-              <Clock className="w-5 h-5 text-blue-500" />
+              <Clock className="w-5 h-5 text-blue-600" />
               <h3 className="font-medium text-gray-900">Compromissos</h3>
             </div>
             <p className="text-sm text-gray-600">

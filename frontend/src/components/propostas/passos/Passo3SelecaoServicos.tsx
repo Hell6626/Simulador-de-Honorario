@@ -673,21 +673,21 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
     regimeTributario: RegimeTributario;
     infoFiltros: any;
   }> = ({ tipoAtividade, regimeTributario, infoFiltros }) => (
-    <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+    <div className="mb-6 bg-custom-blue-light border border-custom-blue rounded-lg p-4">
       <div className="flex items-start space-x-3">
-        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-          <Info className="w-5 h-5 text-blue-600" />
+        <div className="w-8 h-8 bg-custom-blue-light rounded-full flex items-center justify-center">
+          <Info className="w-5 h-5 text-custom-blue" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-medium text-blue-900">
+          <p className="text-sm font-medium text-custom-blue-dark">
             Serviços Filtrados por Configuração
           </p>
-          <div className="text-xs text-blue-700 mt-1 space-y-1">
+          <div className="text-xs text-custom-blue-dark mt-1 space-y-1">
             <p><strong>Tipo de Atividade:</strong> {tipoAtividade.nome}</p>
             <p><strong>Regime Tributário:</strong> {regimeTributario.nome} ({regimeTributario.codigo})</p>
             <p><strong>Serviços Disponíveis:</strong> {infoFiltros.totalDisponiveis} serviços compatíveis</p>
           </div>
-          <div className="mt-2 text-xs text-blue-600">
+          <div className="mt-2 text-xs text-custom-blue">
             💡 Apenas serviços compatíveis com sua configuração são exibidos
           </div>
         </div>
@@ -731,8 +731,8 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
             {/* ⚠️ NOVO: Indicador de salvamento */}
             <div className="flex items-center space-x-2 mt-2">
               {salvando && (
-                <div className="flex items-center text-blue-600 text-sm">
-                  <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
+                <div className="flex items-center text-custom-blue text-sm">
+                  <div className="animate-spin w-4 h-4 border-2 border-custom-blue border-t-transparent rounded-full mr-2"></div>
                   <span>Salvando seleção de serviços...</span>
                 </div>
               )}
@@ -780,10 +780,10 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
 
       {/* ⚠️ NOVO: Aviso de recuperação se aplicável */}
       {dadosSalvos && dadosSalvos.servicosSelecionados && dadosSalvos.servicosSelecionados.length > 0 && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="mb-6 bg-custom-blue-light border border-custom-blue rounded-lg p-4">
           <div className="flex items-center space-x-2">
-            <CheckCircle className="w-5 h-5 text-blue-600" />
-            <span className="text-blue-800 text-sm">
+            <CheckCircle className="w-5 h-5 text-custom-blue" />
+            <span className="text-custom-blue-dark text-sm">
               Seleção de serviços recuperada - {dadosSalvos.servicosSelecionados.length} serviço(s) restaurado(s)
             </span>
           </div>
@@ -817,7 +817,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                     className={`
                       whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors
                       ${abaAtiva === index
-                        ? 'border-blue-500 text-blue-600'
+                        ? 'border-custom-blue text-custom-blue'
                         : temServicos
                           ? 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                           : 'border-transparent text-gray-300 cursor-not-allowed'
@@ -827,7 +827,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                     <div className="flex flex-col items-center">
                       <span className="capitalize">{categoria.categoria.toLowerCase()}</span>
                       {total > 0 && (
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full mt-1">
+                        <span className="text-xs bg-custom-blue-light text-custom-blue-dark px-2 py-1 rounded-full mt-1">
                           {formatarMoeda(total)}
                         </span>
                       )}
@@ -873,7 +873,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                   <div
                     key={servico.id}
                     className={`border rounded-lg p-6 transition-all ${isSelecionado
-                      ? 'border-blue-500 bg-blue-50'
+                      ? 'border-custom-blue bg-custom-blue-light'
                       : 'border-gray-200 hover:border-gray-300'
                       }`}
                   >
@@ -882,7 +882,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                         type="checkbox"
                         checked={isSelecionado}
                         onChange={(e) => handleServicoToggle(servico, e.target.checked)}
-                        className="mt-1 h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="mt-1 h-5 w-5 text-custom-blue focus:ring-custom-blue border-gray-300 rounded"
                       />
 
                       <div className="flex-1">
@@ -923,7 +923,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
 
                                   <div className="text-right">
                                     <p className="text-sm text-gray-500">Valor único</p>
-                                    <p className="text-xl font-bold text-blue-600">
+                                    <p className="text-xl font-bold text-custom-blue">
                                       {formatarMoeda(servico.valor_base)}
                                     </p>
                                   </div>
@@ -946,7 +946,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                                       });
                                       setInformacoesExtras(newMap);
                                     }}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-blue focus:border-transparent"
                                   />
                                   <p className="text-xs text-gray-500 mt-1">
                                     Informe o órgão específico se conhecido
@@ -972,7 +972,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
 
                                   <div className="text-right">
                                     <p className="text-sm text-gray-500">Valor do serviço</p>
-                                    <p className="text-xl font-bold text-blue-600">
+                                    <p className="text-xl font-bold text-custom-blue">
                                       {formatarMoeda(servico.valor_base)}
                                     </p>
                                   </div>
@@ -995,14 +995,14 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                                       min="0"
                                       value={quantidade || ''}
                                       onChange={(e) => handleQuantidadeChange(servico.id, parseInt(e.target.value) || 0)}
-                                      className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                      className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-blue focus:border-transparent"
                                       placeholder="0"
                                     />
                                   </div>
 
                                   <div className="text-right">
                                     <p className="text-sm text-gray-500">Subtotal</p>
-                                    <p className={`text-xl font-bold ${subtotal > 0 ? 'text-blue-600' : 'text-gray-400'}`}>
+                                    <p className={`text-xl font-bold ${subtotal > 0 ? 'text-custom-blue' : 'text-gray-400'}`}>
                                       {formatarMoeda(subtotal)}
                                     </p>
                                   </div>
@@ -1069,7 +1069,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                     <span className="font-medium text-gray-900 capitalize">
                       {categoria.categoria.toLowerCase()}:
                     </span>
-                    <span className={`font-semibold ${total > 0 ? 'text-blue-600' : 'text-gray-400'}`}>
+                    <span className={`font-semibold ${total > 0 ? 'text-custom-blue' : 'text-gray-400'}`}>
                       {formatarMoeda(total)}
                     </span>
                   </div>
@@ -1110,7 +1110,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                 <span className="text-xl font-semibold text-gray-900">
                   TOTAL GERAL:
                 </span>
-                <span className="text-2xl font-bold text-blue-600">
+                <span className="text-2xl font-bold text-custom-blue">
                   {formatarMoeda(totalGeral)}
                 </span>
               </div>
@@ -1142,7 +1142,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
             <button
               onClick={salvarProgresso}
               disabled={servicosSelecionados.size === 0 || salvando || !tipoAtividade?.id || !regimeTributario?.id}
-              className="flex items-center space-x-2 px-3 py-1 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
+              className="flex items-center space-x-2 px-3 py-1 text-sm text-custom-blue bg-custom-blue-light rounded-lg hover:bg-custom-blue-light disabled:opacity-50 transition-colors"
             >
               <Save className="w-4 h-4" />
               <span>{salvando ? 'Salvando...' : 'Salvar Seleção'}</span>
@@ -1159,7 +1159,7 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
             <button
               onClick={handleProximo}
               disabled={!podeProximo}
-              className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+              className="px-6 py-2 text-sm font-medium text-white bg-custom-blue rounded-lg hover:bg-custom-blue-light disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
             >
               <span>Próximo</span>
               {!podeProximo && <AlertCircle className="w-4 h-4" />}

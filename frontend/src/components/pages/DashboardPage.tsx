@@ -133,7 +133,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     switch (status) {
       case 'APROVADA': return 'text-green-600 bg-green-100';
       case 'RASCUNHO': return 'text-yellow-600 bg-yellow-100';
-      case 'ENVIADA': return 'text-blue-600 bg-blue-100';
+      case 'ENVIADA': return 'text-blue-600 bg-blue-50';
       case 'REJEITADA': return 'text-red-600 bg-red-100';
       case 'CANCELADA': return 'text-gray-600 bg-gray-100';
       default: return 'text-gray-600 bg-gray-100';
@@ -197,14 +197,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           value={stats?.totalClientes || 0}
           icon={Users}
           color="bg-blue-500"
-          trend={{ value: 12, label: 'este mês' }}
         />
         <StatCard
           title="Total de Propostas"
           value={stats?.totalPropostas || 0}
           icon={FileText}
           color="bg-green-500"
-          trend={{ value: 8, label: 'este mês' }}
         />
         <StatCard
           title="Propostas Abertas"
@@ -217,7 +215,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           value={formatCurrency(stats?.valorTotalPropostas || 0)}
           icon={DollarSign}
           color="bg-purple-500"
-          trend={{ value: 15, label: 'este mês' }}
+        //trend={{ value: 15, label: 'este mês' }}
         />
       </div>
 
@@ -280,9 +278,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={handleNovaPropostaClick}
-                className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors group cursor-pointer"
+                className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-custom-blue hover:bg-blue-50 transition-colors group cursor-pointer"
               >
-                <FileText className="w-8 h-8 text-gray-400 group-hover:text-blue-500 mx-auto mb-2" />
+                <FileText className="w-8 h-8 text-gray-400 group-hover:text-blue-600 mx-auto mb-2" />
                 <p className="text-sm font-medium text-gray-600 group-hover:text-blue-600">
                   Nova Proposta
                 </p>

@@ -40,17 +40,28 @@ export interface Cliente {
   ativo: boolean;
   created_at: string;
   updated_at: string;
-  endereco?: {
+  enderecos?: Array<{
+    id: number;
     rua: string;
     numero: string;
     cidade: string;
     estado: string;
     cep: string;
-  };
+    cliente_id: number;
+    ativo: boolean;
+    created_at: string;
+    updated_at: string;
+  }>;
   entidades_juridicas?: Array<{
+    id: number;
     nome: string;
     cnpj: string;
     tipo: string;
+    cliente_id: number;
+    endereco_id?: number;
+    ativo: boolean;
+    created_at: string;
+    updated_at: string;
   }>;
 }
 
@@ -78,8 +89,9 @@ export interface RegimeTributario {
 export interface FaixaFaturamento {
   id: number;
   nome: string;
-  valor_minimo: number;
-  valor_maximo: number;
+  valor_inicial: number;
+  valor_final?: number;
+  aliquota: number;
   regime_tributario_id: number;
 }
 
@@ -271,4 +283,139 @@ export interface RegimeTributarioPage {
   ativo: boolean;
   created_at?: string;
   updated_at?: string;
+}
+
+// ✅ NOVO: Funções de validação de dados
+export class DataValidator {
+  /**
+   * Valida se um cliente tem todos os dados necessários
+   */
+  static validateCliente(cliente: Cliente): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    if (!cliente) {
+      errors.push('Cliente é obrigatório');
+      return { isValid: false, errors };
+    }
+
+    if (!cliente.id || cliente.id <= 0) {
+      errors.push('ID do cliente é inválido');
+    }
+
+    if (!cliente.nome || cliente.nome.trim().length === 0) {
+      errors.push('Nome do cliente é obrigatório');
+    }
+
+    if (!cliente.cpf || cliente.cpf.trim().length === 0) {
+      errors.push('CPF do cliente é obrigatório');
+    }
+
+    if (!cliente.email || cliente.email.trim().length === 0) {
+      errors.push('Email do cliente é obrigatório');
+    }
+
+    // Validar entidades jurídicas se existirem
+    if (cliente.entidades_juridicas && cliente.entidades_juridicas.length > 0) {
+      cliente.entidades_juridicas.forEach((entidade, index) => {
+        if (!entidade.nome || entidade.nome.trim().length === 0) {
+          errors.push(`Nome da entidade jurídica ${index + 1} é obrigatório`);
+        }
+        if (!entidade.tipo || entidade.tipo.trim().length === 0) {
+          errors.push(`Tipo da entidade jurídica ${index + 1} é obrigatório`);
+        }
+      });
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }
+
+  /**
+   * Valida se uma proposta tem todos os dados necessários para ser criada
+   */
+  static validateProposta(proposta: PropostaParaCriacao): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    if (!proposta) {
+      errors.push('Dados da proposta são obrigatórios');
+      return { isValid: false, errors };
+    }
+
+    if (!proposta.cliente_id || proposta.cliente_id <= 0) {
+      errors.push('Cliente é obrigatório');
+    }
+
+    if (!proposta.tipo_atividade_id || proposta.tipo_atividade_id <= 0) {
+      errors.push('Tipo de atividade é obrigatório');
+    }
+
+    if (!proposta.regime_tributario_id || proposta.regime_tributario_id <= 0) {
+      errors.push('Regime tributário é obrigatório');
+    }
+
+    if (!proposta.valor_total || proposta.valor_total <= 0) {
+      errors.push('Valor total deve ser maior que zero');
+    }
+
+    if (!proposta.itens || proposta.itens.length === 0) {
+      errors.push('Pelo menos um serviço deve ser selecionado');
+    } else {
+      proposta.itens.forEach((item, index) => {
+        if (!item.servico_id || item.servico_id <= 0) {
+          errors.push(`Serviço ${index + 1} é obrigatório`);
+        }
+        if (!item.quantidade || item.quantidade <= 0) {
+          errors.push(`Quantidade do serviço ${index + 1} deve ser maior que zero`);
+        }
+        if (!item.valor_unitario || item.valor_unitario <= 0) {
+          errors.push(`Valor unitário do serviço ${index + 1} deve ser maior que zero`);
+        }
+      });
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }
+
+  /**
+   * Valida se os dados de salvamento automático estão completos
+   */
+  static validateDadosSalvamento(dados: any): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    if (!dados) {
+      errors.push('Dados de salvamento são obrigatórios');
+      return { isValid: false, errors };
+    }
+
+    if (!dados.passo || dados.passo <= 0) {
+      errors.push('Passo é obrigatório');
+    }
+
+    if (!dados.clienteId || dados.clienteId <= 0) {
+      errors.push('ID do cliente é obrigatório');
+    }
+
+    if (!dados.timestamp) {
+      errors.push('Timestamp é obrigatório');
+    }
+
+    if (!dados.dadosCompletos || !dados.dadosCompletos.cliente) {
+      errors.push('Dados completos do cliente são obrigatórios');
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }
+
+  /**
+   * Sanitiza dados de cliente para garantir consistência
+   */
+  static sanitizeCliente(cliente: any): Cliente {
+    return {
+      ...cliente,
+      entidades_juridicas: cliente.entidades_juridicas || [],
+      enderecos: cliente.enderecos || [],
+      nome: cliente.nome?.trim() || '',
+      cpf: cliente.cpf?.trim() || '',
+      email: cliente.email?.trim() || ''
+    };
+  }
 }

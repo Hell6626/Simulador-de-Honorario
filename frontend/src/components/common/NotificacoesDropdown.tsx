@@ -137,7 +137,7 @@ export const NotificacoesDropdown: React.FC<NotificacoesDropdownProps> = ({
             <div className="max-h-96 overflow-y-auto">
               {loading ? (
                 <div className="p-4 text-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-custom-blue mx-auto"></div>
                 </div>
               ) : notificacoes.length === 0 ? (
                 <div className="p-4 text-center text-gray-500">
@@ -148,18 +148,18 @@ export const NotificacoesDropdown: React.FC<NotificacoesDropdownProps> = ({
                   <div
                     key={notificacao.id}
                     onClick={() => handleClickNotificacao(notificacao)}
-                    className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors ${!notificacao.lida ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                    className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors ${!notificacao.lida ? 'bg-custom-blue-light border-l-4 border-l-custom-blue' : ''
                       }`}
                   >
                     <div className="flex items-start space-x-3">
                       <div className={`mt-1 p-1 rounded-full ${notificacao.tipo === 'APROVACAO_DESCONTO'
                         ? 'bg-yellow-100'
-                        : 'bg-blue-100'
+                        : 'bg-custom-blue-light'
                         }`}>
                         {notificacao.tipo === 'APROVACAO_DESCONTO' ? (
                           <AlertTriangle className="w-4 h-4 text-yellow-600" />
                         ) : (
-                          <Info className="w-4 h-4 text-blue-600" />
+                          <Info className="w-4 h-4 text-custom-blue" />
                         )}
                       </div>
 
@@ -177,7 +177,7 @@ export const NotificacoesDropdown: React.FC<NotificacoesDropdownProps> = ({
                       </div>
 
                       {!notificacao.lida && (
-                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-custom-blue rounded-full mt-2 flex-shrink-0"></div>
                       )}
                     </div>
                   </div>
@@ -189,7 +189,7 @@ export const NotificacoesDropdown: React.FC<NotificacoesDropdownProps> = ({
               <div className="p-3 border-t">
                 <button
                   onClick={handleMarcarTodasLidas}
-                  className="w-full text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                  className="w-full text-sm text-custom-blue hover:text-custom-blue-light transition-colors"
                 >
                   Marcar todas como lidas
                 </button>

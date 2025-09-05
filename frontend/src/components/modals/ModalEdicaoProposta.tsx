@@ -264,7 +264,7 @@ export const ModalEdicaoProposta: React.FC<ModalEdicaoPropostaProps> = ({
                                 onClick={handleSalvar}
                                 disabled={!podeSalvar || loading}
                                 className={`px-6 py-2 rounded-lg font-medium transition-colors ${podeSalvar && !loading
-                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                    ? 'bg-custom-blue text-white hover:bg-custom-blue-light'
                                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                     }`}
                             >

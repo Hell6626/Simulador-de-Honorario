@@ -485,44 +485,84 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
     setDadosPropostaCompleta(null);
   };
 
-  // ⚠️ CORRIGIDO: Função onProximo do Passo 1
+  // ⚠️ CORRIGIDO: Função onProximo do Passo 1 com tratamento robusto de erros
   const handleProximoPasso1 = (clienteId: number) => {
     // ⚠️ CAPTURAR: Dados completos do cliente, não apenas ID
     const buscarClienteCompleto = async () => {
       try {
-        const response = await apiService.getClientes({ search: clienteId.toString() });
-        const cliente = response.items?.[0] || response?.[0];
+        console.log(`🔍 Buscando cliente ID: ${clienteId}`);
 
-        if (cliente) {
-          setDadosProposta(prev => ({
-            ...prev,
-            cliente: cliente,
-            clienteId: clienteId
-          }));
-          setSelectedClienteId(clienteId);
-          setCurrentStep(2);
-          console.log('Cliente selecionado:', cliente, '- Indo para Passo 2');
-        } else {
-          console.error('Cliente não encontrado');
-          alert('Erro: Cliente não encontrado');
+        // Validação básica do ID
+        if (!clienteId || clienteId <= 0) {
+          throw new Error('ID do cliente inválido');
         }
-      } catch (error) {
-        console.error('Erro ao buscar cliente:', error);
-        // Fallback: usar dados básicos
+
+        const cliente = await apiService.getCliente(clienteId);
+
+        // Validação dos dados retornados
+        if (!cliente || !cliente.id) {
+          throw new Error('Cliente não encontrado na resposta da API');
+        }
+
+        // Validação de campos obrigatórios
+        if (!cliente.nome || !cliente.cpf) {
+          console.warn('⚠️ Cliente com dados incompletos:', cliente);
+        }
+
+        console.log('✅ Cliente encontrado:', cliente);
+
         setDadosProposta(prev => ({
           ...prev,
-          cliente: {
-            id: clienteId,
-            nome: 'Cliente ID: ' + clienteId,
-            cpf: '000.000.000-00',
-            email: 'cliente@exemplo.com',
-            abertura_empresa: false,
-            ativo: true
-          },
+          cliente: cliente,
           clienteId: clienteId
         }));
         setSelectedClienteId(clienteId);
         setCurrentStep(2);
+
+      } catch (error: any) {
+        console.error('❌ Erro ao buscar cliente:', error);
+
+        // Determinar tipo de erro e mensagem apropriada
+        let errorMessage = 'Erro desconhecido ao carregar cliente';
+        let shouldProceed = false;
+
+        if (error.message?.includes('404') || error.message?.includes('não encontrado')) {
+          errorMessage = `Cliente ID ${clienteId} não encontrado`;
+        } else if (error.message?.includes('401') || error.message?.includes('UNAUTHORIZED')) {
+          errorMessage = 'Erro de autenticação. Faça login novamente.';
+        } else if (error.message?.includes('403') || error.message?.includes('FORBIDDEN')) {
+          errorMessage = 'Sem permissão para acessar este cliente';
+        } else if (error.message?.includes('500') || error.message?.includes('INTERNAL')) {
+          errorMessage = 'Erro interno do servidor. Tente novamente.';
+        } else if (error.message?.includes('Failed to fetch') || error.message?.includes('Network')) {
+          errorMessage = 'Erro de conexão. Verifique sua internet.';
+          shouldProceed = true; // Permitir continuar com dados mockados
+        } else if (error.message?.includes('ID do cliente inválido')) {
+          errorMessage = 'ID do cliente inválido';
+        }
+
+        // Mostrar erro para o usuário
+        alert(`❌ ${errorMessage}`);
+
+        // Se for erro de rede, permitir continuar com dados básicos
+        if (shouldProceed) {
+          console.log('🔄 Continuando com dados básicos devido a erro de rede');
+          setDadosProposta(prev => ({
+            ...prev,
+            cliente: {
+              id: clienteId,
+              nome: `Cliente ID: ${clienteId}`,
+              cpf: '000.000.000-00',
+              email: 'cliente@exemplo.com',
+              abertura_empresa: false,
+              ativo: true,
+              entidades_juridicas: []
+            },
+            clienteId: clienteId
+          }));
+          setSelectedClienteId(clienteId);
+          setCurrentStep(2);
+        }
       }
     };
 
@@ -943,23 +983,13 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
             placeholder="Buscar por número, cliente, funcionário, status..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-blue focus:border-transparent w-full"
           />
         </div>
         <div className="flex items-center space-x-3">
-          {/* ⚠️ NOVO: Botão para testar conexão */}
-          <button
-            onClick={() => fetchPropostas(currentPage, searchTerm)}
-            className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2 text-sm"
-            title="Recarregar propostas"
-          >
-            <span>🔄</span>
-            <span>Recarregar</span>
-          </button>
-
           <button
             onClick={handleNovaPropostaClick}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            className="bg-custom-blue text-white px-4 py-2 rounded-lg hover:bg-custom-blue-light transition-colors flex items-center space-x-2"
           >
             <Plus className="w-4 h-4" />
             <span>Nova Proposta</span>
@@ -1032,7 +1062,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleEditarPropostaCompleta(proposta)}
-                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                            className="text-custom-blue hover:text-custom-blue-light transition-colors"
                             title="Editar proposta completa"
                           >
                             <Edit2 className="w-4 h-4" />

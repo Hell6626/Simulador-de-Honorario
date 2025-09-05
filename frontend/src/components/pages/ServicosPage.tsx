@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, Eye, Edit2, Shield, Package, DollarSign, AlertTriangle } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { LoadingSpinner } from '../common/LoadingSpinner';
@@ -380,7 +380,7 @@ export const ServicosPage: React.FC = () => {
 
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex items-center px-4 py-2 bg-custom-blue text-white rounded-lg hover:bg-custom-blue-light transition-colors"
                 >
                     <Plus className="w-4 h-4 mr-2" />
                     Novo Serviço
@@ -445,7 +445,7 @@ export const ServicosPage: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${servico.categoria === 'FISCAL' ? 'bg-blue-100 text-blue-800' :
+                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${servico.categoria === 'FISCAL' ? 'bg-blue-50 text-blue-800' :
                                                 servico.categoria === 'PESSOAL' ? 'bg-green-100 text-green-800' :
                                                     servico.categoria === 'SOCIETARIO' ? 'bg-purple-100 text-purple-800' :
                                                         'bg-yellow-100 text-yellow-800'
@@ -466,7 +466,7 @@ export const ServicosPage: React.FC = () => {
                                                     {servico.regimes_tributarios.map((regime, index) => (
                                                         <span
                                                             key={regime.id}
-                                                            className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
+                                                            className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-800"
                                                         >
                                                             {regime.codigo}
                                                         </span>
@@ -492,7 +492,7 @@ export const ServicosPage: React.FC = () => {
                                             <div className="flex items-center justify-end space-x-2">
                                                 <button
                                                     onClick={() => setServicoParaVisualizar(servico)}
-                                                    className="text-blue-600 hover:text-blue-900 p-1"
+                                                    className="text-blue-600 hover:text-blue-600-light p-1"
                                                     title="Visualizar"
                                                 >
                                                     <Eye className="w-4 h-4" />
@@ -709,7 +709,7 @@ export const ServicosPage: React.FC = () => {
                     <button
                         onClick={handleSalvar}
                         disabled={loading}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm"
+                        className="px-4 py-2 bg-custom-blue text-white rounded-lg hover:bg-custom-blue-light transition-colors disabled:opacity-50 text-sm"
                     >
                         {loading ? 'Salvando...' : 'Cadastrar'}
                     </button>
@@ -856,7 +856,7 @@ export const ServicosPage: React.FC = () => {
                     <button
                         onClick={handleEditar}
                         disabled={loading}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm"
+                        className="px-4 py-2 bg-custom-blue text-white rounded-lg hover:bg-custom-blue-light transition-colors disabled:opacity-50 text-sm"
                     >
                         {loading ? 'Salvando...' : 'Salvar'}
                     </button>
@@ -910,7 +910,7 @@ export const ServicosPage: React.FC = () => {
                             </button>
                             <button
                                 type="submit"
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                className="px-4 py-2 bg-custom-blue text-white rounded-lg hover:bg-custom-blue-light transition-colors"
                             >
                                 Criar Categoria
                             </button>

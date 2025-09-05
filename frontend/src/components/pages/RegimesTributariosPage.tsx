@@ -126,7 +126,7 @@ export const RegimesTributariosPage: React.FC = () => {
 
         <button
           onClick={openModal}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          className="bg-custom-blue text-white px-4 py-2 rounded-lg hover:bg-custom-blue-light transition-colors flex items-center space-x-2"
         >
           <Plus className="w-4 h-4" />
           <span>Novo Regime</span>
@@ -161,7 +161,7 @@ export const RegimesTributariosPage: React.FC = () => {
                     <tr key={regime.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                          <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center mr-3">
                             <BadgePercent className="w-4 h-4 text-blue-600" />
                           </div>
                           <div>
@@ -176,7 +176,7 @@ export const RegimesTributariosPage: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <div className="space-y-1">
                           {regime.aplicavel_pf && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-800 mr-2">
                               PF
                             </span>
                           )}
@@ -203,7 +203,7 @@ export const RegimesTributariosPage: React.FC = () => {
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleVisualizar(regime)}
-                            className="text-blue-600 hover:text-blue-900 p-1 rounded-full hover:bg-blue-50"
+                            className="text-blue-600 hover:text-blue-600-light p-1 rounded-full hover:bg-custom-blue-light"
                             title="Visualizar regime"
                           >
                             <Eye className="w-4 h-4" />

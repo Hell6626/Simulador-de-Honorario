@@ -601,8 +601,8 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
             {/* ⚠️ NOVO: Indicador de salvamento */}
             <div className="flex items-center space-x-2 mt-2">
               {salvando && (
-                <div className="flex items-center text-blue-600 text-sm">
-                  <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
+                <div className="flex items-center text-custom-blue text-sm">
+                  <div className="animate-spin w-4 h-4 border-2 border-custom-blue border-t-transparent rounded-full mr-2"></div>
                   <span>Salvando configurações...</span>
                 </div>
               )}
@@ -641,10 +641,10 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
 
       {/* ⚠️ NOVO: Aviso de recuperação se aplicável */}
       {dadosSalvos && (dadosSalvos.tipoAtividadeId || dadosSalvos.regimeTributarioId) && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="mb-6 bg-custom-blue-light border border-custom-blue rounded-lg p-4">
           <div className="flex items-center space-x-2">
-            <CheckCircle className="w-5 h-5 text-blue-600" />
-            <span className="text-blue-800 text-sm">
+            <CheckCircle className="w-5 h-5 text-custom-blue" />
+            <span className="text-custom-blue-dark text-sm">
               Configurações tributárias recuperadas - Dados restaurados automaticamente
             </span>
           </div>
@@ -693,7 +693,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
         <button
           onClick={() => setAbaAtiva(0)}
           className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${abaAtiva === 0
-            ? 'text-blue-600 border-b-2 border-blue-600'
+            ? 'text-custom-blue border-b-2 border-custom-blue'
             : 'text-gray-500 hover:text-gray-700'
             }`}
         >
@@ -704,7 +704,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
           onClick={() => setAbaAtiva(1)}
           disabled={!getTabState(1).enabled}
           className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${abaAtiva === 1
-            ? 'text-blue-600 border-b-2 border-blue-600'
+            ? 'text-custom-blue border-b-2 border-custom-blue'
             : getTabState(1).enabled
               ? 'text-gray-500 hover:text-gray-700'
               : 'text-gray-300 cursor-not-allowed'
@@ -718,7 +718,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
           onClick={() => setAbaAtiva(2)}
           disabled={!getTabState(2).enabled}
           className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${abaAtiva === 2
-            ? 'text-blue-600 border-b-2 border-blue-600'
+            ? 'text-custom-blue border-b-2 border-custom-blue'
             : getTabState(2).enabled
               ? 'text-gray-500 hover:text-gray-700'
               : 'text-gray-300 cursor-not-allowed'
@@ -753,7 +753,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
                         value={tipo.id}
                         checked={selectedTipoAtividade === tipo.id}
                         onChange={() => handleTipoAtividadeChange(tipo.id)}
-                        className="h-5 w-5 text-blue-600 focus:ring-blue-500"
+                        className="h-5 w-5 text-custom-blue focus:ring-custom-blue"
                       />
                       <div className="ml-4 flex-1">
                         <div className="flex items-center justify-between">
@@ -762,7 +762,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
                             <p className="text-sm text-gray-500">Código: {tipo.codigo}</p>
                           </div>
                           <div className="text-right">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-custom-blue-light text-custom-blue-dark">
                               Aplicável: {[tipo.aplicavel_pf && 'PF', tipo.aplicavel_pj && 'PJ'].filter(Boolean).join(', ')}
                             </span>
                           </div>
@@ -805,7 +805,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
                         value={regime.id}
                         checked={selectedRegimeTributario === regime.id}
                         onChange={() => handleRegimeTributarioChange(regime.id)}
-                        className="h-5 w-5 text-blue-600 focus:ring-blue-500"
+                        className="h-5 w-5 text-custom-blue focus:ring-custom-blue"
                       />
                       <div className="ml-4 flex-1">
                         <div className="flex items-center justify-between">
@@ -864,7 +864,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
                         value={faixa.id}
                         checked={selectedFaixaFaturamento === faixa.id}
                         onChange={() => setSelectedFaixaFaturamento(faixa.id)}
-                        className="h-5 w-5 text-blue-600 focus:ring-blue-500"
+                        className="h-5 w-5 text-custom-blue focus:ring-custom-blue"
                       />
                       <div className="ml-4 flex-1">
                         <div className="flex items-center justify-between">
@@ -936,7 +936,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
             <button
               onClick={salvarProgresso}
               disabled={!podeProximo || salvando}
-              className="flex items-center space-x-2 px-3 py-1 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
+              className="flex items-center space-x-2 px-3 py-1 text-sm text-custom-blue bg-custom-blue-light rounded-lg hover:bg-custom-blue-light disabled:opacity-50 transition-colors"
             >
               <Save className="w-4 h-4" />
               <span>{salvando ? 'Salvando...' : 'Salvar Configurações'}</span>
@@ -953,7 +953,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
             <button
               onClick={handleProximo}
               disabled={!podeProximo}
-              className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+              className="px-6 py-2 text-sm font-medium text-white bg-custom-blue rounded-lg hover:bg-custom-blue-light disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
             >
               <span>Próximo</span>
               {!podeProximo && <AlertCircle className="w-4 h-4" />}

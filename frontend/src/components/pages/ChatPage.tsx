@@ -143,7 +143,7 @@ export const ChatPage: React.FC = () => {
       <div className="flex flex-col h-[calc(100vh-200px)] bg-white rounded-lg shadow-sm border border-gray-200">
         {/* Chat Header */}
         <div className="flex items-center p-4 border-b border-gray-200">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-custom-blue to-purple-600 rounded-full flex items-center justify-center mr-3">
             <MessageCircle className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -160,7 +160,7 @@ export const ChatPage: React.FC = () => {
             </button>
             <button
               onClick={loadMessages}
-              className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              className="p-2 text-gray-500 hover:text-custom-blue hover:bg-custom-blue-light rounded-lg transition-colors"
               title="Recarregar mensagens"
             >
               <RotateCcw className="w-4 h-4" />
@@ -182,7 +182,7 @@ export const ChatPage: React.FC = () => {
               }`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                   message.sender === 'user' 
-                    ? 'bg-blue-600' 
+                    ? 'bg-custom-blue' 
                     : 'bg-gray-600'
                 }`}>
                   {message.sender === 'user' ? (
@@ -193,12 +193,12 @@ export const ChatPage: React.FC = () => {
                 </div>
                 <div className={`px-4 py-2 rounded-lg ${
                   message.sender === 'user'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-custom-blue text-white'
                     : 'bg-gray-100 text-gray-900'
                 }`}>
                   <p className="text-sm">{message.text}</p>
                   <p className={`text-xs mt-1 ${
-                    message.sender === 'user' ? 'text-blue-200' : 'text-gray-500'
+                    message.sender === 'user' ? 'text-custom-blue-light' : 'text-gray-500'
                   }`}>
                     {message.timestamp.toLocaleTimeString('pt-BR', { 
                       hour: '2-digit', 
@@ -238,13 +238,13 @@ export const ChatPage: React.FC = () => {
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Digite sua mensagem..."
-              className="flex-1 p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-custom-blue focus:border-transparent"
               rows={1}
             />
             <button
               onClick={sendMessage}
               disabled={!inputMessage.trim() || isLoading}
-              className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="p-3 bg-custom-blue text-white rounded-lg hover:bg-custom-blue-light disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <Send className="w-4 h-4" />
             </button>

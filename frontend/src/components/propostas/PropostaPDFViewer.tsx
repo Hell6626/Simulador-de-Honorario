@@ -74,7 +74,7 @@ export const PropostaPDFViewer: React.FC<PropostaPDFViewerProps> = ({
             <p className="text-gray-600 mb-4">Clique no botão abaixo para visualizar o PDF</p>
             <button
               onClick={handleVisualizarPDF}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              className="bg-custom-blue text-white px-6 py-2 rounded-lg hover:bg-custom-blue-light transition-colors"
             >
               Visualizar PDF
             </button>

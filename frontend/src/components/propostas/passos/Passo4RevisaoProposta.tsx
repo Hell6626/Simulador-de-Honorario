@@ -137,8 +137,8 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
         {/* Card do Cliente */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center mb-4">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-              <span className="text-blue-600 font-semibold">👤</span>
+            <div className="w-10 h-10 bg-custom-blue-light rounded-lg flex items-center justify-center mr-3">
+              <span className="text-custom-blue font-semibold">👤</span>
             </div>
             <h3 className="text-lg font-semibold text-gray-900">Cliente</h3>
           </div>
@@ -256,7 +256,7 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
               step="0.01"
               value={percentualDesconto}
               onChange={(e) => setPercentualDesconto(Math.max(0, Math.min(100, Number(e.target.value))))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-blue focus:border-transparent"
             />
           </div>
 
@@ -281,22 +281,22 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
       </div>
 
       {/* ✅ RESUMO FINAL - Card destacado */}
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg text-white p-6">
+      <div className="bg-gradient-to-r from-custom-blue to-custom-blue-light rounded-lg shadow-lg text-white p-6">
         <div className="flex justify-between items-center">
           <div>
-            <p className="text-blue-100 text-sm">Total da Proposta</p>
+            <p className="text-custom-blue-light text-sm">Total da Proposta</p>
             <p className="text-3xl font-bold">
               {formatarMoeda(totalFinal)}
             </p>
             {valorDesconto > 0 && (
-              <p className="text-blue-100 text-sm">
+              <p className="text-custom-blue-light text-sm">
                 Subtotal: {formatarMoeda(subtotal)}
                 (-{percentualDesconto}%)
               </p>
             )}
           </div>
           <div className="text-right">
-            <p className="text-blue-100 text-sm">Serviços</p>
+            <p className="text-custom-blue-light text-sm">Serviços</p>
             <p className="text-xl font-semibold">{dadosProposta.servicosSelecionados.length}</p>
           </div>
         </div>
@@ -313,7 +313,7 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
               ? "Observações são obrigatórias para descontos acima de 20%..."
               : "Adicione observações, condições especiais ou informações adicionais..."
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-blue focus:border-transparent"
             rows={4}
           />
           {requerAprovacao && !observacoes.trim() && (
@@ -343,7 +343,7 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
           <button
             onClick={handleAvancar}
             disabled={loading || (requerAprovacao && !observacoes.trim())}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center disabled:opacity-50"
+            className="px-6 py-2 bg-custom-blue text-white rounded-lg hover:bg-custom-blue-light transition-colors flex items-center disabled:opacity-50"
           >
             {loading ? (
               <>

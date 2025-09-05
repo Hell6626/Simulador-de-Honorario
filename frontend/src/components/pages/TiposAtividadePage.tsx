@@ -207,7 +207,7 @@ export const TiposAtividadePage: React.FC = () => {
                 <div className="flex justify-between items-center">
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-custom-blue hover:bg-custom-blue-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
                         <Plus className="h-4 w-4 mr-2" />
                         Novo Tipo de Atividade
@@ -277,7 +277,7 @@ export const TiposAtividadePage: React.FC = () => {
                                         <tr key={tipo.id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center">
-                                                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                                    <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center mr-3">
                                                         <Briefcase className="w-5 h-5 text-blue-600" />
                                                     </div>
                                                     <div>
@@ -289,14 +289,14 @@ export const TiposAtividadePage: React.FC = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-800">
                                                     {tipo.codigo}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex space-x-1">
                                                     {tipo.aplicavel_pf && (
-                                                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                                                        <span className="px-2 py-1 bg-blue-50 text-blue-800 text-xs font-medium rounded">
                                                             PF
                                                         </span>
                                                     )}
@@ -325,7 +325,7 @@ export const TiposAtividadePage: React.FC = () => {
                                                             setTipoParaEditar(tipo);
                                                             setIsModalVisualizacaoOpen(true);
                                                         }}
-                                                        className="text-blue-600 hover:text-blue-900"
+                                                        className="text-blue-600 hover:text-blue-600-light"
                                                         title="Visualizar"
                                                     >
                                                         <Eye className="h-4 w-4" />
@@ -449,7 +449,7 @@ export const TiposAtividadePage: React.FC = () => {
                     <button
                         onClick={handleSalvar}
                         disabled={loading}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                        className="px-4 py-2 bg-custom-blue text-white rounded-md text-sm font-medium hover:bg-custom-blue-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                     >
                         {loading ? 'Salvando...' : 'Salvar'}
                     </button>
@@ -550,7 +550,7 @@ export const TiposAtividadePage: React.FC = () => {
                     <button
                         onClick={handleEditar}
                         disabled={loading}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                        className="px-4 py-2 bg-custom-blue text-white rounded-md text-sm font-medium hover:bg-custom-blue-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                     >
                         {loading ? 'Salvando...' : 'Salvar'}
                     </button>
@@ -562,13 +562,13 @@ export const TiposAtividadePage: React.FC = () => {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
                     <div className="overflow-hidden shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto bg-white">
                         {/* Header Azul - CORREÇÃO: SEM rounded-t-lg */}
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+                        <div className="bg-gradient-to-r from-custom-blue to-custom-blue-light text-white p-6">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center">
                                     <Briefcase className="w-8 h-8 mr-3" />
                                     <div>
                                         <h2 className="text-xl font-semibold">Detalhes do Tipo de Atividade</h2>
-                                        <p className="text-blue-100">ID: {tipoParaEditar.id}</p>
+                                        <p className="text-blue-600-light">ID: {tipoParaEditar.id}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center space-x-3">
@@ -595,15 +595,15 @@ export const TiposAtividadePage: React.FC = () => {
                                 <div>
                                     <label className="text-sm font-medium text-gray-500">Nome Completo</label>
                                     <div className="flex items-center mt-1">
-                                        <Briefcase className="w-4 h-4 mr-2 text-blue-500" />
+                                        <Briefcase className="w-4 h-4 mr-2 text-blue-600" />
                                         <span className="text-gray-900 font-medium">{tipoParaEditar.nome}</span>
                                     </div>
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium text-gray-500">Código</label>
                                     <div className="flex items-center mt-1">
-                                        <Hash className="w-4 h-4 mr-2 text-blue-500" />
-                                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium">
+                                        <Hash className="w-4 h-4 mr-2 text-blue-600" />
+                                        <span className="bg-blue-50 text-blue-800 px-2 py-1 rounded text-sm font-medium">
                                             {tipoParaEditar.codigo}
                                         </span>
                                     </div>
@@ -622,7 +622,7 @@ export const TiposAtividadePage: React.FC = () => {
                                     }`}>
                                     <div className="flex items-center">
                                         <User className={`w-5 h-5 mr-2 ${tipoParaEditar.aplicavel_pf ? 'text-blue-600' : 'text-gray-400'}`} />
-                                        <span className={`font-medium ${tipoParaEditar.aplicavel_pf ? 'text-blue-900' : 'text-gray-500'}`}>
+                                        <span className={`font-medium ${tipoParaEditar.aplicavel_pf ? 'text-blue-800' : 'text-gray-500'}`}>
                                             Pessoa Física
                                         </span>
                                     </div>
@@ -631,7 +631,7 @@ export const TiposAtividadePage: React.FC = () => {
                                     }`}>
                                     <div className="flex items-center">
                                         <Building2 className={`w-5 h-5 mr-2 ${tipoParaEditar.aplicavel_pj ? 'text-blue-600' : 'text-gray-400'}`} />
-                                        <span className={`font-medium ${tipoParaEditar.aplicavel_pj ? 'text-blue-900' : 'text-gray-500'}`}>
+                                        <span className={`font-medium ${tipoParaEditar.aplicavel_pj ? 'text-blue-800' : 'text-gray-500'}`}>
                                             Pessoa Jurídica
                                         </span>
                                     </div>
@@ -662,7 +662,7 @@ export const TiposAtividadePage: React.FC = () => {
                                 <div>
                                     <label className="text-sm font-medium text-gray-500">Data de Criação</label>
                                     <div className="flex items-center mt-1">
-                                        <Clock className="w-5 h-5 mr-2 text-blue-500" />
+                                        <Clock className="w-5 h-5 mr-2 text-blue-600" />
                                         <span className="text-gray-900">
                                             {tipoParaEditar.created_at ? new Date(tipoParaEditar.created_at).toLocaleString('pt-BR') : '-'}
                                         </span>
@@ -671,7 +671,7 @@ export const TiposAtividadePage: React.FC = () => {
                                 <div>
                                     <label className="text-sm font-medium text-gray-500">Última Atualização</label>
                                     <div className="flex items-center mt-1">
-                                        <Clock className="w-5 h-5 mr-2 text-blue-500" />
+                                        <Clock className="w-5 h-5 mr-2 text-blue-600" />
                                         <span className="text-gray-900">
                                             {tipoParaEditar.updated_at ? new Date(tipoParaEditar.updated_at).toLocaleString('pt-BR') : '-'}
                                         </span>
@@ -687,7 +687,7 @@ export const TiposAtividadePage: React.FC = () => {
                                     setIsModalVisualizacaoOpen(false);
                                     setTipoParaEditar(null);
                                 }}
-                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                className="px-6 py-2 bg-custom-blue text-white rounded-lg hover:bg-custom-blue-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                             >
                                 Fechar
                             </button>
@@ -739,7 +739,7 @@ export const TiposAtividadePage: React.FC = () => {
                     {/* Informação sobre restrições */}
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <div className="flex">
-                            <Shield className="h-5 w-5 text-blue-400 mr-2 mt-0.5" />
+                            <Shield className="h-5 w-5 text-blue-600-light mr-2 mt-0.5" />
                             <div className="text-sm text-blue-800">
                                 <p className="font-medium mb-1">Restrições de Exclusão:</p>
                                 <ul className="list-disc list-inside space-y-1 text-xs">

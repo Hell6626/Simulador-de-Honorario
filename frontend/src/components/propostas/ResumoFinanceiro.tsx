@@ -25,7 +25,7 @@ export const ResumoFinanceiro: React.FC<ResumoFinanceiroProps> = ({
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-        <Calculator className="w-5 h-5 mr-2 text-blue-600" />
+        <Calculator className="w-5 h-5 mr-2 text-custom-blue" />
         Valores e Desconto
       </h2>
 
@@ -67,10 +67,10 @@ export const ResumoFinanceiro: React.FC<ResumoFinanceiroProps> = ({
         </div>
 
         {/* Controle de Desconto */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+        <div className="bg-gradient-to-r from-custom-blue-light to-indigo-50 rounded-xl p-6 border border-custom-blue">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Percent className="w-5 h-5 mr-2 text-blue-600" />
+              <Percent className="w-5 h-5 mr-2 text-custom-blue" />
               Aplicar Desconto
             </h3>
 
@@ -83,10 +83,10 @@ export const ResumoFinanceiro: React.FC<ResumoFinanceiroProps> = ({
                   step="0.1"
                   value={percentualDesconto || ''}
                   onChange={(e) => handleDescontoChange(parseFloat(e.target.value) || 0)}
-                  className="w-24 h-12 text-center text-lg font-bold border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  className="w-24 h-12 text-center text-lg font-bold border-2 border-custom-blue rounded-lg focus:ring-2 focus:ring-custom-blue focus:border-custom-blue transition-all"
                   placeholder="0"
                 />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-600 font-bold">%</span>
+                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-custom-blue font-bold">%</span>
               </div>
 
               <div className="bg-white rounded-lg px-4 py-3 border-2 border-red-200 min-w-[120px]">
@@ -139,8 +139,8 @@ export const ResumoFinanceiro: React.FC<ResumoFinanceiroProps> = ({
                 className="absolute transform -translate-x-1/2 mt-1"
                 style={{ left: `${Math.min(percentualDesconto, 100)}%` }}
               >
-                <div className="bg-white border-2 border-blue-600 rounded-lg px-2 py-1 shadow-lg">
-                  <span className="text-xs font-bold text-blue-600">{percentualDesconto.toFixed(1)}%</span>
+                <div className="bg-white border-2 border-custom-blue rounded-lg px-2 py-1 shadow-lg">
+                  <span className="text-xs font-bold text-custom-blue">{percentualDesconto.toFixed(1)}%</span>
                 </div>
               </div>
             )}
@@ -194,23 +194,23 @@ export const ResumoFinanceiro: React.FC<ResumoFinanceiroProps> = ({
         )}
 
         {/* Total Final */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 text-white">
+        <div className="bg-gradient-to-r from-custom-blue to-custom-blue-dark rounded-xl p-6 text-white">
           <div className="flex justify-between items-center">
             <div>
-              <span className="text-blue-100 text-sm font-medium">VALOR TOTAL DA PROPOSTA</span>
+              <span className="text-custom-blue-light text-sm font-medium">VALOR TOTAL DA PROPOSTA</span>
               <div className="flex items-baseline space-x-2 mt-1">
                 <span className="text-3xl font-bold">
                   {formatarMoeda(resumo.totalFinal)}
                 </span>
                 {percentualDesconto > 0 && (
-                  <span className="text-blue-200 text-sm">
+                  <span className="text-custom-blue-light text-sm">
                     (economia de {formatarMoeda(resumo.valorDesconto)})
                   </span>
                 )}
               </div>
 
               {/* Breakdown no total */}
-              <div className="text-blue-200 text-xs mt-2 space-y-1">
+              <div className="text-custom-blue-light text-xs mt-2 space-y-1">
                 <div>Serviços: {formatarMoeda(resumo.subtotalServicos)}</div>
                 {resumo.taxaAberturaEmpresa > 0 && (
                   <div>
@@ -226,7 +226,7 @@ export const ResumoFinanceiro: React.FC<ResumoFinanceiroProps> = ({
             {percentualDesconto > 0 && (
               <div className="text-right">
                 <div className="bg-white bg-opacity-20 rounded-lg px-3 py-2">
-                  <span className="text-blue-100 text-xs">Desconto aplicado</span>
+                  <span className="text-custom-blue-light text-xs">Desconto aplicado</span>
                   <p className="text-xl font-bold text-white">-{percentualDesconto}%</p>
                 </div>
               </div>

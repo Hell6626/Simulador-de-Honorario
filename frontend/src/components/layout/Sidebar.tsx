@@ -86,7 +86,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 key={item.id}
                 onClick={() => setCurrentPage(item.id)}
                 className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === item.id
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-custom-blue text-white'
                   : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   }`}
               >
@@ -105,7 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Header */}
       <div className="flex items-center p-4 border-b border-gray-200">
         <div className="flex items-center">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-br from-custom-blue to-purple-600 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">P</span>
           </div>
           <div className="ml-3">
@@ -125,7 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex items-center justify-between mb-3">
           {/* User Info */}
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-custom-blue to-purple-600 rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-sm">
                 {user?.nome ? user.nome.charAt(0).toUpperCase() : 'U'}
               </span>

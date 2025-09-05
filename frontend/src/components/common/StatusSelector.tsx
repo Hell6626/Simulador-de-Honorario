@@ -35,7 +35,7 @@ export const StatusSelector: React.FC<StatusSelectorProps> = ({
                         className={`
               p-2 rounded-lg border-2 transition-all duration-200
               ${selectedStatus === status
-                                ? 'border-blue-500 bg-blue-50 shadow-md'
+                                ? 'border-custom-blue bg-custom-blue-light shadow-md'
                                 : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                             }
             `}

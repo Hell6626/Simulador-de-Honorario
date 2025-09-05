@@ -12,14 +12,14 @@ export const DadosProposta: React.FC<DadosPropostaProps> = ({ dadosProposta }) =
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-        <User className="w-5 h-5 mr-2 text-blue-600" />
+        <User className="w-5 h-5 mr-2 text-custom-blue" />
         Dados da Proposta
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Cliente */}
         <InfoCard title="Cliente" icon={<User className="w-4 h-4" />} variant="info">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+          <div className="bg-gradient-to-r from-custom-blue-light to-indigo-50 rounded-lg p-4 border border-custom-blue">
             <p className="font-semibold text-gray-900 text-lg">{dadosProposta.cliente.nome}</p>
             <div className="mt-2 space-y-1">
               <p className="text-sm text-gray-600 flex items-center">
@@ -32,11 +32,10 @@ export const DadosProposta: React.FC<DadosPropostaProps> = ({ dadosProposta }) =
               </p>
             </div>
             <div className="mt-3">
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                dadosProposta.cliente.abertura_empresa
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${dadosProposta.cliente.abertura_empresa
                   ? 'bg-purple-100 text-purple-800 border border-purple-200'
                   : 'bg-green-100 text-green-800 border border-green-200'
-              }`}>
+                }`}>
                 {dadosProposta.cliente.abertura_empresa ? (
                   <>
                     <Building className="w-3 h-3 mr-1" />

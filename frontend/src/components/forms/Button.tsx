@@ -27,9 +27,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
     'disabled:opacity-50 disabled:cursor-not-allowed',
     {
       // Variants
-      'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500': variant === 'primary',
+      'bg-custom-blue text-white hover:bg-custom-blue-light focus:ring-custom-blue': variant === 'primary',
       'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500': variant === 'secondary',
-      'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500': variant === 'outline',
+      'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-custom-blue': variant === 'outline',
       'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-500': variant === 'ghost',
       'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500': variant === 'danger',
       

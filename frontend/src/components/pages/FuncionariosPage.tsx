@@ -188,7 +188,7 @@ export const FuncionariosPage: React.FC<FuncionariosPageProps> = ({ openModalOnL
         </div>
         <button
           onClick={() => openModal()}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          className="bg-custom-blue text-white px-4 py-2 rounded-lg hover:bg-custom-blue-light transition-colors flex items-center space-x-2"
         >
           <Plus className="w-4 h-4" />
           <span>Novo Funcionário</span>
@@ -243,7 +243,7 @@ export const FuncionariosPage: React.FC<FuncionariosPageProps> = ({ openModalOnL
                     <tr key={funcionario.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                          <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center mr-3">
                             <User className="w-4 h-4 text-blue-600" />
                           </div>
                           <div>
@@ -288,7 +288,7 @@ export const FuncionariosPage: React.FC<FuncionariosPageProps> = ({ openModalOnL
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleVisualizar(funcionario)}
-                            className="text-blue-600 hover:text-blue-900 p-1 rounded-full hover:bg-blue-50"
+                            className="text-blue-600 hover:text-blue-600-light p-1 rounded-full hover:bg-custom-blue-light"
                             title="Visualizar funcionário"
                           >
                             <Eye className="w-4 h-4" />

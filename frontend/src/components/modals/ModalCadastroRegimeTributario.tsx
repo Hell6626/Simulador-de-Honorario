@@ -208,7 +208,7 @@ export const ModalCadastroRegimeTributario: React.FC<ModalCadastroRegimeTributar
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-white bg-custom-blue rounded-lg hover:bg-custom-blue-light disabled:opacity-50"
             >
               {loading ? 'Salvando...' : (isEditing ? 'Atualizar' : 'Criar')}
             </button>

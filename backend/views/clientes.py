@@ -40,7 +40,7 @@ def get_clientes():
         page, per_page
     )
 
-    data = [c.to_json() for c in clientes.items]
+    data = [c.to_json_completo() for c in clientes.items]
     return jsonify({
         'items': data,
         'clientes': data,

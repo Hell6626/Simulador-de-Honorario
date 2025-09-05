@@ -24,9 +24,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
     'placeholder:text-gray-400',
     {
       // Variants
-      'border border-gray-300 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20': variant === 'default',
-      'border-0 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20': variant === 'filled',
-      'border-2 border-gray-200 bg-transparent focus:border-blue-500': variant === 'outline',
+      'border border-gray-300 bg-white focus:border-custom-blue focus:ring-2 focus:ring-custom-blue/20': variant === 'default',
+      'border-0 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-custom-blue/20': variant === 'filled',
+      'border-2 border-gray-200 bg-transparent focus:border-custom-blue': variant === 'outline',
       
       // Sizes
       'px-3 py-2 text-sm': size === 'sm',

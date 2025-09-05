@@ -11,15 +11,8 @@ import {
 import { apiService } from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { ModalCadastroCliente } from '../../modals/ModalCadastroCliente';
-import { Cliente } from '../../../types';
+import { Cliente, DataValidator } from '../../../types';
 
-interface EntidadeJuridica {
-  id: number;
-  nome: string;
-  cnpj: string;
-  tipo: string;
-  cliente_id: number;
-}
 
 
 
@@ -71,7 +64,7 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
     }
   }, [dadosSalvos]);
 
-  // ⚠️ NOVO: Função de salvamento automático
+  // ⚠️ NOVO: Função de salvamento automático com validação de dados completos
   const salvarProgresso = useCallback(async () => {
     if (!selectedClienteId) return;
 
@@ -79,14 +72,40 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
     setErroSalvamento(null);
 
     try {
+      // ✅ BUSCAR: Cliente selecionado com dados completos
+      const clienteSelecionado = clientes.find(c => c.id === selectedClienteId);
+
+      if (!clienteSelecionado) {
+        throw new Error('Cliente selecionado não encontrado na lista');
+      }
+
+      // ✅ VALIDAR: Dados completos do cliente usando DataValidator
+      const clienteValidado = DataValidator.sanitizeCliente(clienteSelecionado);
+
+      // Validar dados do cliente
+      const validacao = DataValidator.validateCliente(clienteValidado);
+      if (!validacao.isValid) {
+        console.warn('⚠️ Cliente com dados inválidos:', validacao.errors);
+        // Continuar mesmo com dados inválidos, mas logar o problema
+      }
+
       const dadosParaSalvar = {
         passo: 1,
         clienteId: selectedClienteId,
         timestamp: new Date().toISOString(),
         dadosCompletos: {
-          cliente: clientes.find(c => c.id === selectedClienteId)
+          cliente: clienteValidado
+        },
+        // ✅ METADADOS: Informações sobre o salvamento
+        metadata: {
+          versao: '1.0',
+          dadosCompletos: true,
+          entidadesJuridicas: clienteValidado.entidades_juridicas?.length || 0,
+          enderecos: clienteValidado.enderecos?.length || 0
         }
       };
+
+      console.log(`💾 Salvando progresso - Cliente: ${clienteValidado.nome}, Entidades: ${clienteValidado.entidades_juridicas?.length || 0}`);
 
       // Salvar no localStorage como backup
       localStorage.setItem('proposta_passo1_backup', JSON.stringify(dadosParaSalvar));
@@ -97,10 +116,10 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
       }
 
       setUltimoSalvamento(new Date());
-      console.log('Progresso do Passo 1 salvo com sucesso');
+      console.log('✅ Progresso do Passo 1 salvo com sucesso');
 
     } catch (error) {
-      console.error('Erro ao salvar progresso:', error);
+      console.error('❌ Erro ao salvar progresso:', error);
       setErroSalvamento(error instanceof Error ? error.message : 'Erro desconhecido');
     } finally {
       setSalvando(false);
@@ -142,6 +161,8 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
     setError('');
 
     try {
+      console.log(`🔍 Buscando clientes - Página: ${page}, Busca: "${search}"`);
+
       const response = await apiService.getClientes({
         page,
         per_page: 5,
@@ -149,7 +170,20 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
         ativo: true
       });
 
-      setClientes(response.items || []);
+      const clientesData = response.items || [];
+
+      // ✅ VALIDAÇÃO: Garantir que os dados estão completos
+      const clientesValidados = clientesData.map((cliente: any) => ({
+        ...cliente,
+        // Garantir que entidades_juridicas sempre existe como array
+        entidades_juridicas: cliente.entidades_juridicas || [],
+        // Garantir que enderecos sempre existe como array
+        enderecos: cliente.enderecos || []
+      }));
+
+      console.log(`✅ ${clientesValidados.length} clientes carregados com dados completos`);
+
+      setClientes(clientesValidados);
       setTotalPages(response.pages || 1);
     } catch (err: any) {
       console.error('Erro ao carregar clientes:', err);
@@ -167,7 +201,10 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
             email: 'joao@email.com',
             abertura_empresa: false,
             ativo: true,
-            entidades_juridicas: []
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            entidades_juridicas: [],
+            enderecos: []
           },
           {
             id: 2,
@@ -176,10 +213,31 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
             email: 'maria@email.com',
             abertura_empresa: true,
             ativo: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
             entidades_juridicas: [
-              { id: 1, nome: 'Empresa ABC Ltda', cnpj: '12.345.678/0001-90', tipo: 'LTDA', cliente_id: 2 },
-              { id: 2, nome: 'Comércio XYZ ME', cnpj: '98.765.432/0001-10', tipo: 'ME', cliente_id: 2 }
-            ]
+              {
+                id: 1,
+                nome: 'Empresa ABC Ltda',
+                cnpj: '12.345.678/0001-90',
+                tipo: 'LTDA',
+                cliente_id: 2,
+                ativo: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              },
+              {
+                id: 2,
+                nome: 'Comércio XYZ ME',
+                cnpj: '98.765.432/0001-10',
+                tipo: 'ME',
+                cliente_id: 2,
+                ativo: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }
+            ],
+            enderecos: []
           },
           {
             id: 3,
@@ -188,9 +246,21 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
             email: 'pedro@comercio.com',
             abertura_empresa: false,
             ativo: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
             entidades_juridicas: [
-              { id: 3, nome: 'Comércio Pedro EIRELI', cnpj: '11.222.333/0001-44', tipo: 'EIRELI', cliente_id: 3 }
-            ]
+              {
+                id: 3,
+                nome: 'Comércio Pedro EIRELI',
+                cnpj: '11.222.333/0001-44',
+                tipo: 'EIRELI',
+                cliente_id: 3,
+                ativo: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }
+            ],
+            enderecos: []
           },
           {
             id: 4,
@@ -199,7 +269,10 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
             email: 'ana@consultoria.com',
             abertura_empresa: true,
             ativo: true,
-            entidades_juridicas: []
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            entidades_juridicas: [],
+            enderecos: []
           },
           {
             id: 5,
@@ -208,10 +281,31 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
             email: 'carlos@industria.com',
             abertura_empresa: false,
             ativo: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
             entidades_juridicas: [
-              { id: 4, nome: 'Indústria Beta S/A', cnpj: '33.333.333/0001-33', tipo: 'S/A', cliente_id: 5 },
-              { id: 5, nome: 'Tecnologia Zeta S/A', cnpj: '77.777.777/0001-77', tipo: 'S/A', cliente_id: 5 }
-            ]
+              {
+                id: 4,
+                nome: 'Indústria Beta S/A',
+                cnpj: '33.333.333/0001-33',
+                tipo: 'S/A',
+                cliente_id: 5,
+                ativo: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              },
+              {
+                id: 5,
+                nome: 'Tecnologia Zeta S/A',
+                cnpj: '77.777.777/0001-77',
+                tipo: 'S/A',
+                cliente_id: 5,
+                ativo: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }
+            ],
+            enderecos: []
           }
         ];
 
@@ -236,11 +330,33 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
   };
 
   const handleProximo = () => {
-    if (selectedClienteId) {
-      // ⚠️ NOVO: Salvar antes de prosseguir
-      salvarProgresso();
-      onProximo(selectedClienteId);
+    if (!selectedClienteId) {
+      alert('❌ Selecione um cliente para continuar');
+      return;
     }
+
+    // ✅ VALIDAR: Cliente selecionado antes de prosseguir
+    const clienteSelecionado = clientes.find(c => c.id === selectedClienteId);
+    if (!clienteSelecionado) {
+      alert('❌ Cliente selecionado não encontrado. Recarregue a página.');
+      return;
+    }
+
+    // ✅ VALIDAR: Dados do cliente usando DataValidator
+    const clienteValidado = DataValidator.sanitizeCliente(clienteSelecionado);
+    const validacao = DataValidator.validateCliente(clienteValidado);
+
+    if (!validacao.isValid) {
+      const mensagemErro = `❌ Dados do cliente incompletos:\n${validacao.errors.join('\n')}`;
+      alert(mensagemErro);
+      return;
+    }
+
+    console.log('✅ Cliente validado com sucesso:', clienteValidado.nome);
+
+    // ⚠️ NOVO: Salvar antes de prosseguir
+    salvarProgresso();
+    onProximo(selectedClienteId);
   };
 
   const handleClienteCadastrado = (novoCliente: Cliente) => {
@@ -265,8 +381,8 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
             {/* ⚠️ NOVO: Indicador de salvamento */}
             <div className="flex items-center space-x-2 mt-2">
               {salvando && (
-                <div className="flex items-center text-blue-600 text-sm">
-                  <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
+                <div className="flex items-center text-custom-blue text-sm">
+                  <div className="animate-spin w-4 h-4 border-2 border-custom-blue border-t-transparent rounded-full mr-2"></div>
                   <span>Salvando progresso...</span>
                 </div>
               )}
@@ -305,10 +421,10 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
 
       {/* ⚠️ NOVO: Aviso de recuperação se aplicável */}
       {selectedClienteId && dadosSalvos?.clienteId === selectedClienteId && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="mb-6 bg-custom-blue-light border border-custom-blue rounded-lg p-4">
           <div className="flex items-center space-x-2">
-            <CheckCircle className="w-5 h-5 text-blue-600" />
-            <span className="text-blue-800 text-sm">
+            <CheckCircle className="w-5 h-5 text-custom-blue" />
+            <span className="text-custom-blue-dark text-sm">
               Progresso recuperado - Cliente selecionado anteriormente
             </span>
           </div>
@@ -332,7 +448,7 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
             placeholder="Buscar cliente..."
             value={searchTerm}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-blue focus:border-transparent w-full"
           />
         </div>
       </div>
@@ -357,7 +473,7 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
                     value={cliente.id}
                     checked={selectedClienteId === cliente.id}
                     onChange={() => setSelectedClienteId(cliente.id)}
-                    className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    className="h-5 w-5 text-custom-blue focus:ring-custom-blue border-gray-300"
                   />
                   <div className="ml-4 flex-1">
                     <div className="flex items-center justify-between">
@@ -389,8 +505,8 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
                       {/* Selo de status */}
                       <div className="text-right">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${cliente.abertura_empresa
-                            ? 'bg-purple-100 text-purple-800'
-                            : 'bg-green-100 text-green-800'
+                          ? 'bg-purple-100 text-purple-800'
+                          : 'bg-green-100 text-green-800'
                           }`}>
                           {cliente.abertura_empresa ? 'Abertura de Empresa' : 'Cliente Existente'}
                         </span>
@@ -453,7 +569,7 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
             <button
               onClick={salvarProgresso}
               disabled={!selectedClienteId || salvando}
-              className="flex items-center space-x-2 px-3 py-1 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
+              className="flex items-center space-x-2 px-3 py-1 text-sm text-custom-blue bg-custom-blue-light rounded-lg hover:bg-custom-blue-light disabled:opacity-50 transition-colors"
             >
               <Save className="w-4 h-4" />
               <span>{salvando ? 'Salvando...' : 'Salvar Progresso'}</span>
@@ -470,7 +586,7 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
             <button
               onClick={handleProximo}
               disabled={!selectedClienteId}
-              className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-2 text-sm font-medium text-white bg-custom-blue rounded-lg hover:bg-custom-blue-light disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Próximo
             </button>

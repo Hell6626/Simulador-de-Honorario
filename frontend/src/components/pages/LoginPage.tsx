@@ -35,7 +35,7 @@ export const LoginPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-xl p-8">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-custom-blue to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-white font-bold text-xl">P</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Sistema de Propostas</h1>
@@ -66,7 +66,7 @@ export const LoginPage: React.FC = () => {
                       message: 'E-mail inválido'
                     }
                   })}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-blue focus:border-transparent"
                   placeholder="seu@email.com"
                 />
               </div>
@@ -84,7 +84,7 @@ export const LoginPage: React.FC = () => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   {...register('senha', { required: 'Senha é obrigatória' })}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-blue focus:border-transparent"
                   placeholder="Digite sua senha"
                 />
                 <button
@@ -103,7 +103,7 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-custom-blue text-white py-3 px-4 rounded-lg font-medium hover:bg-custom-blue-light focus:ring-2 focus:ring-custom-blue focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Entrando...' : 'Entrar'}
             </button>

@@ -396,7 +396,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="text-blue-200 hover:text-white transition-colors p-1"
+              className="text-blue-100 hover:text-white transition-colors p-1"
             >
               <X className="w-6 h-6" />
             </button>
@@ -441,7 +441,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
                       key={aba.id}
                       onClick={() => setAbaSelecionada(aba.id)}
                       className={`w-full text-left p-3 rounded-lg transition-colors border ${abaSelecionada === aba.id
-                        ? 'bg-blue-100 border-blue-200 text-blue-900'
+                        ? 'bg-blue-50 border-blue-200 text-blue-800'
                         : 'bg-white border-gray-200 hover:bg-gray-50'
                         }`}
                     >
@@ -534,7 +534,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
                     </div>
 
                     {/* ⚠️ EXPLICAÇÃO DA FÓRMULA */}
-                    <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+                    <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-600-dark">
                       <p className="font-medium">Fórmula do desconto:</p>
                       <p>Base ({formatarMoeda(dados.valor_base)}) - Final ({formatarMoeda(dados.valor_total)}) = {formatarMoeda(dados.desconto_valor)}</p>
                       {dados.taxa_abertura > 0 && (
@@ -610,7 +610,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
             <button
               onClick={handleSalvar}
               disabled={salvando || loading}
-              className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center space-x-2"
+              className="px-6 py-2 text-sm font-medium text-white bg-custom-blue rounded-lg hover:bg-custom-blue-light disabled:opacity-50 transition-colors flex items-center space-x-2"
             >
               {salvando ? (
                 <>
@@ -791,7 +791,7 @@ const ServicosEditCorrigido: React.FC<{
 
         <button
           onClick={adicionarServico}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          className="bg-custom-blue text-white px-4 py-2 rounded-lg hover:bg-custom-blue-light transition-colors flex items-center space-x-2"
         >
           <Plus className="w-4 h-4" />
           <span>Adicionar Serviço</span>
@@ -910,15 +910,15 @@ const ServicosEditCorrigido: React.FC<{
       {/* Resumo dos serviços */}
       {dados.servicosSelecionados.length > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-medium text-blue-900 mb-2">Resumo dos Serviços</h4>
+          <h4 className="font-medium text-blue-600-dark mb-2">Resumo dos Serviços</h4>
           <div className="text-sm space-y-1">
             <div className="flex justify-between">
-              <span className="text-blue-700">Total de serviços:</span>
-              <span className="font-medium text-blue-900">{dados.servicosSelecionados.length}</span>
+              <span className="text-blue-600-dark">Total de serviços:</span>
+              <span className="font-medium text-blue-600-dark">{dados.servicosSelecionados.length}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-blue-700">Valor total dos serviços:</span>
-              <span className="font-medium text-blue-900">{formatarMoeda(dados.valor_servicos)}</span>
+              <span className="text-blue-600-dark">Valor total dos serviços:</span>
+              <span className="font-medium text-blue-600-dark">{formatarMoeda(dados.valor_servicos)}</span>
             </div>
           </div>
         </div>
@@ -936,7 +936,7 @@ const FinalizacaoEditCorrigida: React.FC<{
 
   const statusOptions = [
     { value: 'RASCUNHO', label: 'Rascunho', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'PENDENTE', label: 'Pendente', color: 'bg-blue-100 text-blue-800' },
+    { value: 'PENDENTE', label: 'Pendente', color: 'bg-blue-50 text-blue-800' },
     { value: 'APROVADA', label: 'Aprovada', color: 'bg-green-100 text-green-800' },
     { value: 'REJEITADA', label: 'Rejeitada', color: 'bg-red-100 text-red-800' },
     { value: 'REALIZADA', label: 'Realizada', color: 'bg-purple-100 text-purple-800' },
@@ -973,7 +973,7 @@ const FinalizacaoEditCorrigida: React.FC<{
               key={status.value}
               onClick={() => setDados((prev: any) => ({ ...prev, status: status.value }))}
               className={`p-3 rounded-lg border text-sm font-medium transition-colors ${dados.status === status.value
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                ? 'border-blue-500 bg-blue-50 text-blue-800'
                 : 'border-gray-200 hover:border-gray-300'
                 }`}
             >

@@ -79,7 +79,7 @@ export const ModalConfirmacaoDesconto: React.FC<ModalConfirmacaoDescontoProps> =
               </div>
 
               <div className="flex items-start space-x-3">
-                <Clock className="w-5 h-5 text-blue-500 mt-0.5" />
+                <Clock className="w-5 h-5 text-blue-600 mt-0.5" />
                 <div className="text-sm text-gray-700">
                   <p className="font-medium text-blue-800">Tempo de aprovação</p>
                   <p>Estimativa: 1-2 dias úteis para análise administrativa.</p>

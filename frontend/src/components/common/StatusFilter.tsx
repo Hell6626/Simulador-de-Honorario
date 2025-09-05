@@ -33,7 +33,7 @@ export const StatusFilter: React.FC<StatusFilterProps> = ({
                     className={`
             px-3 py-1 rounded-full text-xs font-medium border transition-all duration-200
             ${selectedStatus === null
-                            ? 'bg-blue-100 text-blue-800 border-blue-300'
+                            ? 'bg-custom-blue-light text-custom-blue-dark border-custom-blue'
                             : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200'
                         }
           `}
@@ -47,7 +47,7 @@ export const StatusFilter: React.FC<StatusFilterProps> = ({
                         className={`
               px-3 py-1 rounded-full text-xs font-medium border transition-all duration-200
               ${selectedStatus === status.value
-                                ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                ? 'bg-custom-blue-light text-custom-blue-dark border-custom-blue'
                                 : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200'
                             }
             `}

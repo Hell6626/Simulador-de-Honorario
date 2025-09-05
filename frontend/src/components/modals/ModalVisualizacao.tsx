@@ -304,7 +304,7 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
                 <p className="text-sm font-medium text-indigo-600 mb-2">Nível de Acesso</p>
                 <div className={`inline-flex items-center px-3 py-2 rounded-full text-sm font-medium ${data.gerente
                   ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                  : 'bg-blue-100 text-blue-800 border border-blue-200'
+                  : 'bg-blue-50 text-blue-800 border border-blue-200'
                   }`}>
                   {data.gerente ? 'Gerente' : 'Funcionário'}
                 </div>
@@ -398,7 +398,7 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-4 bg-blue-50 rounded-lg">
                 <p className="text-sm font-medium text-blue-600 mb-2">Nível do Cargo</p>
-                <div className="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                <div className="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-blue-50 text-blue-800 border border-blue-200">
                   Nível {data.nivel || 'N/A'}
                 </div>
               </div>
@@ -546,7 +546,7 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
       <div className="overflow-hidden shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden mx-4">
         {/* Header - CORREÇÃO: SEM rounded-t-2xl */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-white bg-opacity-20 rounded-xl">
@@ -554,7 +554,7 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
               </div>
               <div>
                 <h2 className="text-2xl font-bold">Regime Tributário</h2>
-                <p className="text-blue-100">{data?.nome || 'Detalhes do Regime'}</p>
+                <p className="text-blue-600-light">{data?.nome || 'Detalhes do Regime'}</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -587,7 +587,7 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
                 <p className="text-sm font-medium text-emerald-600 mb-2">Aplicável para:</p>
                 <div className="space-y-2">
                   {data?.aplicavel_pf && (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-50 text-blue-600-dark">
                       Pessoa Física
                     </span>
                   )}

@@ -261,7 +261,7 @@ export const Passo5FinalizacaoProposta: React.FC<Passo5Props> = ({
                 <button
                     onClick={gerarPDFProposta}
                     disabled={gerandoPDF}
-                    className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center space-x-2"
+                    className="w-full bg-custom-blue text-white py-3 px-6 rounded-lg hover:bg-custom-blue-light disabled:opacity-50 transition-colors flex items-center justify-center space-x-2"
                 >
                     {gerandoPDF ? (
                         <>

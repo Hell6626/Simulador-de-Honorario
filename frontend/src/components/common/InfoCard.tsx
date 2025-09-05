@@ -19,7 +19,7 @@ export const InfoCard: React.FC<InfoCardProps> = ({
     default: 'bg-white border-gray-200',
     success: 'bg-green-50 border-green-200',
     warning: 'bg-orange-50 border-orange-200',
-    info: 'bg-blue-50 border-blue-200'
+    info: 'bg-custom-blue-light border-custom-blue'
   };
 
   return (

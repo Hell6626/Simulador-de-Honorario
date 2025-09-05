@@ -22,7 +22,7 @@ export const StatusSalvamento: React.FC<StatusSalvamentoProps> = ({
   return (
     <div className={`flex items-center space-x-2 text-xs ${className}`}>
       {estado.salvando && (
-        <div className="flex items-center text-blue-600">
+        <div className="flex items-center text-custom-blue">
           <Loader2 className="w-3 h-3 animate-spin mr-1" />
           <span>Salvando proposta...</span>
         </div>
