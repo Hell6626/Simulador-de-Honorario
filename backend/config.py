@@ -35,10 +35,17 @@ def create_app():
 
     jwt.init_app(app)
 
-    # Configuração CORS mais robusta para desenvolvimento
+    # 🌐 Configuração CORS para rede local
     CORS(
         app,
-        origins=["http://192.168.5.202:5173", "http://localhost:5173", "http://127.0.0.1:5173"],
+        origins=[
+            "http://localhost:5173", 
+            "http://127.0.0.1:5173",
+            "http://192.168.0.97:5173",  # IP atual da máquina
+            "http://192.168.0.*:5173",  # Qualquer IP na rede 192.168.0.x
+            "http://192.168.1.*:5173",  # Qualquer IP na rede 192.168.1.x
+            "http://10.0.0.*:5173",     # Qualquer IP na rede 10.0.0.x
+        ],
         allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         supports_credentials=True,
@@ -54,9 +61,20 @@ def create_app():
             response = app.response_class()
             response.status_code = 200
             
-            # Define os headers CORS
+            # Define os headers CORS para rede local
             origin = request.headers.get("Origin")
-            if origin in ["http://192.168.0.99:5173", "http://localhost:5173", "http://127.0.0.1:5173"]:
+            allowed_origins = [
+                "http://localhost:5173", 
+                "http://127.0.0.1:5173",
+                "http://192.168.0.97:5173",  # IP atual da máquina
+            ]
+            
+            # Permitir qualquer IP na rede local (192.168.x.x, 10.x.x.x)
+            if origin and (
+                origin.startswith("http://192.168.") or 
+                origin.startswith("http://10.") or
+                origin in allowed_origins
+            ):
                 response.headers["Access-Control-Allow-Origin"] = origin
             else:
                 response.headers["Access-Control-Allow-Origin"] = "*"

@@ -25,6 +25,7 @@ from .notificacoes import notificacoes_bp
 from .error_handlers import error_handlers_bp
 from .cargos import cargos_bp
 from .empresas import empresas_bp
+from .mensalidades import mensalidades_bp
 
 # =====================================================
 # BLUEPRINT PRINCIPAL
@@ -50,6 +51,7 @@ def register_blueprints(app):
     api_bp.register_blueprint(notificacoes_bp, url_prefix='/notificacoes')
     api_bp.register_blueprint(cargos_bp, url_prefix='/cargos')
     api_bp.register_blueprint(empresas_bp, url_prefix='/empresas')
+    api_bp.register_blueprint(mensalidades_bp, url_prefix='/mensalidades')
     
     # Registra o blueprint principal na aplicação
     app.register_blueprint(api_bp)

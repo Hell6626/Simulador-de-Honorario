@@ -1,6 +1,26 @@
 import Cookies from 'js-cookie';
 
-const BASE_URL = 'http://localhost:5000/api';
+// 🌐 Configuração dinâmica para rede local
+const getBaseUrl = () => {
+  // Se estiver rodando em desenvolvimento, detectar automaticamente o IP
+  if (import.meta.env.DEV) {
+    // Tentar usar o IP da rede local se disponível
+    const hostname = window.location.hostname;
+
+    // Se não for localhost, usar o IP atual
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return `http://${hostname}:5000/api`;
+    }
+
+    // Para localhost, manter como está
+    return 'http://localhost:5000/api';
+  }
+
+  // Para produção, usar configuração padrão
+  return 'http://localhost:5000/api';
+};
+
+const BASE_URL = getBaseUrl();
 const TOKEN_KEY = 'propostas_token';
 
 class ApiService {
@@ -617,6 +637,38 @@ class ApiService {
     return this.request<any>('/chat/clear-session', {
       method: 'POST',
       body: JSON.stringify({ session_id: sessionId }),
+    });
+  }
+
+  // Mensalidades Automáticas
+  async buscarMensalidade(configuracao: {
+    tipo_atividade_id: number;
+    regime_tributario_id: number;
+    faixa_faturamento_id: number;
+  }) {
+    return this.request<any>('/mensalidades/buscar', {
+      method: 'POST',
+      body: JSON.stringify(configuracao),
+    });
+  }
+
+  async buscarMensalidadePorProposta(propostaId: number) {
+    return this.request<any>(`/mensalidades/buscar-por-proposta/${propostaId}`);
+  }
+
+  async listarMensalidades() {
+    return this.request<any>('/mensalidades/listar');
+  }
+
+  async calcularTotalComMensalidade(dados: {
+    tipo_atividade_id: number;
+    regime_tributario_id: number;
+    faixa_faturamento_id: number;
+    valor_servicos: number;
+  }) {
+    return this.request<any>('/mensalidades/calcular-total', {
+      method: 'POST',
+      body: JSON.stringify(dados),
     });
   }
 

@@ -1,5 +1,6 @@
 // 🎨 Design System Unificado - Passos da Proposta
 // Sistema de tokens de design para garantir consistência visual
+// ✅ ATUALIZADO: Inclui sistema unificado de cores para status das propostas
 
 export const DESIGN_TOKENS = {
     // 🎯 CORES PRINCIPAIS
@@ -50,6 +51,46 @@ export const DESIGN_TOKENS = {
                 DEFAULT: '#3b82f6',
                 light: '#dbeafe',
                 dark: '#2563eb',
+            }
+        },
+
+        // ✅ NOVO: Cores específicas para status das propostas
+        status: {
+            rascunho: {
+                DEFAULT: '#eab308',    // yellow-500
+                light: '#fef3c7',     // yellow-100
+                dark: '#ca8a04',      // yellow-600
+                text: '#92400e',      // yellow-800
+            },
+            pendente: {
+                DEFAULT: '#3b82f6',   // blue-500
+                light: '#dbeafe',     // blue-100
+                dark: '#2563eb',      // blue-600
+                text: '#1e40af',      // blue-800
+            },
+            aprovada: {
+                DEFAULT: '#10b981',   // emerald-500
+                light: '#d1fae5',     // emerald-100
+                dark: '#059669',      // emerald-600
+                text: '#065f46',      // emerald-800
+            },
+            realizada: {
+                DEFAULT: '#059669',   // emerald-600
+                light: '#d1fae5',     // emerald-100
+                dark: '#047857',      // emerald-700
+                text: '#064e3b',      // emerald-900
+            },
+            rejeitada: {
+                DEFAULT: '#ef4444',   // red-500
+                light: '#fee2e2',     // red-100
+                dark: '#dc2626',      // red-600
+                text: '#991b1b',      // red-800
+            },
+            cancelada: {
+                DEFAULT: '#6b7280',   // gray-500
+                light: '#f3f4f6',     // gray-100
+                dark: '#4b5563',      // gray-600
+                text: '#374151',      // gray-700
             }
         }
     },
@@ -154,6 +195,14 @@ export const getColorClasses = {
     tabActive: 'border-custom-blue text-custom-blue',
     tabInactive: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
     tabDisabled: 'border-transparent text-gray-300 cursor-not-allowed',
+
+    // ✅ NOVO: Status das propostas
+    statusRascunho: 'bg-yellow-50 text-yellow-800 border-yellow-200',
+    statusPendente: 'bg-blue-50 text-blue-800 border-blue-200',
+    statusAprovada: 'bg-green-50 text-green-800 border-green-200',
+    statusRealizada: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    statusRejeitada: 'bg-red-50 text-red-800 border-red-200',
+    statusCancelada: 'bg-gray-50 text-gray-800 border-gray-200',
 } as const;
 
 // 🎯 FUNÇÃO PARA GERAR CLASSES DE CORES DINÂMICAS
@@ -256,6 +305,20 @@ export const validateColorContrast = (foreground: string, background: string): b
     return contrastRatios[key as keyof typeof contrastRatios] >= 4.5; // WCAG AA
 };
 
+// ✅ NOVO: Função para obter classes de status
+export const getStatusClasses = (status: string) => {
+    const statusMap = {
+        'RASCUNHO': getColorClasses.statusRascunho,
+        'PENDENTE': getColorClasses.statusPendente,
+        'APROVADA': getColorClasses.statusAprovada,
+        'REALIZADA': getColorClasses.statusRealizada,
+        'REJEITADA': getColorClasses.statusRejeitada,
+        'CANCELADA': getColorClasses.statusCancelada,
+    };
+
+    return statusMap[status.toUpperCase() as keyof typeof statusMap] || getColorClasses.statusRascunho;
+};
+
 // 🎨 EXPORTAÇÃO DE TODAS AS FUNÇÕES AUXILIARES
 export const designUtils = {
     colors: getColorClasses,
@@ -266,6 +329,7 @@ export const designUtils = {
     transitions: getTransitionClasses,
     borders: getBorderClasses,
     validateContrast: validateColorContrast,
+    getStatusClasses,
 } as const;
 
 export default DESIGN_TOKENS;

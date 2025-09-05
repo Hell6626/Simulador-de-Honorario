@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { LoadingSpinner, StatusBadge } from '../common';
+import { getStatusConfig, normalizeStatus } from '../../utils/statusColors';
 import { Passo1SelecionarCliente, Passo2ConfiguracoesTributarias, Passo3SelecaoServicos, Passo4RevisaoProposta, Passo5FinalizacaoProposta } from '../propostas/passos';
 import { ModalEdicaoProposta } from '../modals/ModalEdicaoProposta';
 import { ModalExclusaoProposta } from '../modals/ModalExclusaoProposta';
@@ -184,43 +185,13 @@ interface PropostasPageProps {
   propostaId?: number;
 }
 
-// Funções helper para mapear status das propostas
-const getStatusBadgeType = (status: string): 'success' | 'warning' | 'error' | 'info' | 'neutral' => {
-  switch (status?.toUpperCase()) {
-    case 'APROVADA':
-    case 'REALIZADA':
-      return 'success';
-    case 'PENDENTE':
-    case 'ENVIADA':
-      return 'warning';
-    case 'REJEITADA':
-    case 'CANCELADA':
-      return 'error';
-    case 'RASCUNHO':
-      return 'info';
-    default:
-      return 'neutral';
-  }
-};
-
-const getStatusLabel = (status: string): string => {
-  switch (status?.toUpperCase()) {
-    case 'RASCUNHO':
-      return 'Rascunho';
-    case 'PENDENTE':
-      return 'Pendente';
-    case 'APROVADA':
-      return 'Aprovada';
-    case 'ENVIADA':
-      return 'Enviada';
-    case 'REALIZADA':
-      return 'Realizada';
-    case 'REJEITADA':
-      return 'Rejeitada';
-    case 'CANCELADA':
-      return 'Cancelada';
-    default:
-      return status || 'Indefinido';
+// ✅ CORREÇÃO: Usar sistema unificado de status
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const getStatusConfigForProposta = (status: string) => {
+  try {
+    return getStatusConfig(normalizeStatus(status));
+  } catch {
+    return getStatusConfig('RASCUNHO');
   }
 };
 
@@ -252,8 +223,10 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
   // Estados para controle de passos
   const [currentStep, setCurrentStep] = useState(0); // 0: Lista, 1: Passo1, 2: Passo2, 3: Passo3, 4: Passo4
   const [selectedClienteId, setSelectedClienteId] = useState<number | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [configTributarias, setConfigTributarias] = useState<ConfiguracoesTributarias | null>(null);
   const [tipoAtividade, setTipoAtividade] = useState<TipoAtividade | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [servicosSelecionados, setServicosSelecionados] = useState<ServicoSelecionado[]>([]);
   const [dadosPropostaCompleta, setDadosPropostaCompleta] = useState<DadosPropostaCompleta | null>(null);
 
@@ -279,7 +252,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
   // Estado para todos os serviços
   const [todosServicos, setTodosServicos] = useState<any[]>([]);
 
-  // ⚠️ NOVO: useEffect para lidar com propostaId da notificação
+  // ✅ CORREÇÃO: useEffect para lidar com propostaId da notificação com limpeza automática
   useEffect(() => {
     if (propostaId) {
       // Buscar a proposta específica e abrir modal de edição
@@ -288,8 +261,21 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
         setPropostaSelecionada(proposta);
         setModalEdicaoCompletaOpen(true);
       }
+    } else {
+      // ✅ NOVO: Limpeza automática quando propostaId é undefined
+      setPropostaSelecionada(null);
+      setModalEdicaoCompletaOpen(false);
     }
   }, [propostaId, propostas]);
+
+  // ✅ NOVO: Cleanup quando componente é desmontado
+  useEffect(() => {
+    return () => {
+      // Limpar estado quando componente é desmontado
+      setPropostaSelecionada(null);
+      setModalEdicaoCompletaOpen(false);
+    };
+  }, []);
 
   const fetchTodosServicos = async () => {
     try {
@@ -821,6 +807,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
   };
 
   // Funções para manipulação de edição e exclusão
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleEditarProposta = (proposta: Proposta) => {
     setPropostaSelecionada(proposta);
     setModalEdicaoOpen(true);
@@ -1082,9 +1069,12 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
                         R$ {proposta.valor_total ? proposta.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <StatusBadge status={getStatusBadgeType(proposta.status)}>
-                          {getStatusLabel(proposta.status)}
-                        </StatusBadge>
+                        <StatusBadge
+                          status={proposta.status}
+                          size="sm"
+                          showIcon={true}
+                          showTooltip={true}
+                        />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {proposta.created_at ? new Date(proposta.created_at).toLocaleDateString('pt-BR') : 'N/A'}

@@ -5,15 +5,15 @@ import {
   TrendingUp,
   DollarSign,
   Calendar,
-  AlertCircle,
-  CheckCircle,
-  Clock,
   BarChart3,
-  UserCheck
+  UserCheck,
+  AlertCircle
 } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { LoadingSpinner } from '../common/LoadingSpinner';
+import { StatusBadge } from '../common/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
+import { getStatusConfig, getStatusIcon, normalizeStatus } from '../../utils/statusColors';
 
 interface DashboardStats {
   totalClientes: number;
@@ -53,6 +53,7 @@ interface DashboardPageProps {
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,25 +130,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     }).format(value);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'APROVADA': return 'text-green-600 bg-green-100';
-      case 'RASCUNHO': return 'text-yellow-600 bg-yellow-100';
-      case 'ENVIADA': return 'text-blue-600 bg-blue-50';
-      case 'REJEITADA': return 'text-red-600 bg-red-100';
-      case 'CANCELADA': return 'text-gray-600 bg-gray-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'APROVADA': return CheckCircle;
-      case 'RASCUNHO': return Clock;
-      case 'ENVIADA': return AlertCircle;
-      case 'REJEITADA': return AlertCircle;
-      case 'CANCELADA': return AlertCircle;
-      default: return Clock;
+  // ✅ CORREÇÃO: Usar sistema unificado de status
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const getStatusConfigForProposta = (status: string) => {
+    try {
+      return getStatusConfig(normalizeStatus(status));
+    } catch {
+      return getStatusConfig('RASCUNHO');
     }
   };
 
@@ -207,7 +196,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         <StatCard
           title="Propostas Abertas"
           value={stats?.propostasAbertas || 0}
-          icon={Clock}
+          icon={AlertCircle}
           color="bg-yellow-500"
         />
         <StatCard
@@ -236,7 +225,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
             ) : (
               <div className="space-y-4">
                 {stats?.propostas.slice(0, 5).map((proposta: any) => {
-                  const StatusIcon = getStatusIcon(proposta.status);
+                  const StatusIcon = getStatusIcon(normalizeStatus(proposta.status));
+
                   return (
                     <div key={proposta.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center space-x-3">
@@ -251,9 +241,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(proposta.status)}`}>
-                          {proposta.status}
-                        </span>
+                        <StatusBadge
+                          status={proposta.status}
+                          size="sm"
+                          showIcon={true}
+                          showTooltip={true}
+                        />
                         <p className="text-sm font-medium text-gray-900">
                           {formatCurrency(proposta.valor_total || 0)}
                         </p>

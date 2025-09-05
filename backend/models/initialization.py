@@ -3,7 +3,7 @@ Funções para inicialização de dados básicos do sistema.
 """
 
 from config import db
-from .tributario import TipoAtividade, RegimeTributario, FaixaFaturamento
+from .tributario import TipoAtividade, RegimeTributario, FaixaFaturamento, MensalidadeAutomatica
 from .servicos import Servico
 from .organizacional import Empresa, Cargo, Funcionario
 from werkzeug.security import generate_password_hash
@@ -854,6 +854,232 @@ def inicializar_relacionamentos_servico_regime():
         return False
 
 
+def inicializar_mensalidades_automaticas():
+    """
+    Inicializa as mensalidades automáticas baseadas na regra de negócio.
+    """
+    print("💰 Inicializando mensalidades automáticas...")
+    
+    try:
+        # Buscar dados existentes
+        tipo_servicos = TipoAtividade.query.filter_by(codigo='SERV').first()
+        tipo_comercio = TipoAtividade.query.filter_by(codigo='COM').first()
+        tipo_pf = TipoAtividade.query.filter_by(codigo='PF').first()
+        
+        regime_simples = RegimeTributario.query.filter_by(codigo='SN').first()
+        regime_presumido = RegimeTributario.query.filter_by(codigo='LP').first()
+        regime_real = RegimeTributario.query.filter_by(codigo='LR').first()
+        regime_mei = RegimeTributario.query.filter_by(codigo='MEI').first()
+        
+        # Buscar faixas de faturamento
+        faixas_simples = FaixaFaturamento.query.filter_by(regime_tributario_id=regime_simples.id).all()
+        faixas_presumido = FaixaFaturamento.query.filter_by(regime_tributario_id=regime_presumido.id).all()
+        faixas_real = FaixaFaturamento.query.filter_by(regime_tributario_id=regime_real.id).all()
+        faixas_mei = FaixaFaturamento.query.filter_by(regime_tributario_id=regime_mei.id).all()
+        
+        mensalidades = []
+        
+        # ✅ REGRA DE NEGÓCIO: Serviços
+        if tipo_servicos and regime_simples:
+            # Simples Nacional - Serviços
+            for faixa in faixas_simples:
+                if faixa.valor_inicial <= 180000:  # Até 180k
+                    mensalidades.append({
+                        'tipo_atividade_id': tipo_servicos.id,
+                        'regime_tributario_id': regime_simples.id,
+                        'faixa_faturamento_id': faixa.id,
+                        'valor_mensalidade': 800.00,
+                        'observacoes': 'Serviços - Simples Nacional - Até 180k'
+                    })
+                elif faixa.valor_inicial <= 360000:  # Até 360k
+                    mensalidades.append({
+                        'tipo_atividade_id': tipo_servicos.id,
+                        'regime_tributario_id': regime_simples.id,
+                        'faixa_faturamento_id': faixa.id,
+                        'valor_mensalidade': 1200.00,
+                        'observacoes': 'Serviços - Simples Nacional - Até 360k'
+                    })
+                elif faixa.valor_inicial <= 720000:  # Até 720k
+                    mensalidades.append({
+                        'tipo_atividade_id': tipo_servicos.id,
+                        'regime_tributario_id': regime_simples.id,
+                        'faixa_faturamento_id': faixa.id,
+                        'valor_mensalidade': 1600.00,
+                        'observacoes': 'Serviços - Simples Nacional - Até 720k'
+                    })
+                else:  # Acima de 720k
+                    mensalidades.append({
+                        'tipo_atividade_id': tipo_servicos.id,
+                        'regime_tributario_id': regime_simples.id,
+                        'faixa_faturamento_id': faixa.id,
+                        'valor_mensalidade': 2000.00,
+                        'observacoes': 'Serviços - Simples Nacional - Acima 720k'
+                    })
+        
+        if tipo_servicos and regime_presumido:
+            # Lucro Presumido - Serviços
+            for faixa in faixas_presumido:
+                if faixa.valor_inicial <= 180000:
+                    mensalidades.append({
+                        'tipo_atividade_id': tipo_servicos.id,
+                        'regime_tributario_id': regime_presumido.id,
+                        'faixa_faturamento_id': faixa.id,
+                        'valor_mensalidade': 1000.00,
+                        'observacoes': 'Serviços - Lucro Presumido - Até 180k'
+                    })
+                elif faixa.valor_inicial <= 360000:
+                    mensalidades.append({
+                        'tipo_atividade_id': tipo_servicos.id,
+                        'regime_tributario_id': regime_presumido.id,
+                        'faixa_faturamento_id': faixa.id,
+                        'valor_mensalidade': 1400.00,
+                        'observacoes': 'Serviços - Lucro Presumido - Até 360k'
+                    })
+                elif faixa.valor_inicial <= 720000:
+                    mensalidades.append({
+                        'tipo_atividade_id': tipo_servicos.id,
+                        'regime_tributario_id': regime_presumido.id,
+                        'faixa_faturamento_id': faixa.id,
+                        'valor_mensalidade': 1800.00,
+                        'observacoes': 'Serviços - Lucro Presumido - Até 720k'
+                    })
+                else:
+                    mensalidades.append({
+                        'tipo_atividade_id': tipo_servicos.id,
+                        'regime_tributario_id': regime_presumido.id,
+                        'faixa_faturamento_id': faixa.id,
+                        'valor_mensalidade': 2200.00,
+                        'observacoes': 'Serviços - Lucro Presumido - Acima 720k'
+                    })
+        
+        if tipo_servicos and regime_real:
+            # Lucro Real - Serviços
+            for faixa in faixas_real:
+                if faixa.valor_inicial <= 180000:
+                    mensalidades.append({
+                        'tipo_atividade_id': tipo_servicos.id,
+                        'regime_tributario_id': regime_real.id,
+                        'faixa_faturamento_id': faixa.id,
+                        'valor_mensalidade': 1200.00,
+                        'observacoes': 'Serviços - Lucro Real - Até 180k'
+                    })
+                elif faixa.valor_inicial <= 360000:
+                    mensalidades.append({
+                        'tipo_atividade_id': tipo_servicos.id,
+                        'regime_tributario_id': regime_real.id,
+                        'faixa_faturamento_id': faixa.id,
+                        'valor_mensalidade': 1600.00,
+                        'observacoes': 'Serviços - Lucro Real - Até 360k'
+                    })
+                elif faixa.valor_inicial <= 720000:
+                    mensalidades.append({
+                        'tipo_atividade_id': tipo_servicos.id,
+                        'regime_tributario_id': regime_real.id,
+                        'faixa_faturamento_id': faixa.id,
+                        'valor_mensalidade': 2000.00,
+                        'observacoes': 'Serviços - Lucro Real - Até 720k'
+                    })
+                else:
+                    mensalidades.append({
+                        'tipo_atividade_id': tipo_servicos.id,
+                        'regime_tributario_id': regime_real.id,
+                        'faixa_faturamento_id': faixa.id,
+                        'valor_mensalidade': 2400.00,
+                        'observacoes': 'Serviços - Lucro Real - Acima 720k'
+                    })
+        
+        # ✅ REGRA DE NEGÓCIO: Comércio
+        if tipo_comercio and regime_simples:
+            # Simples Nacional - Comércio
+            for faixa in faixas_simples:
+                if faixa.valor_inicial <= 180000:
+                    mensalidades.append({
+                        'tipo_atividade_id': tipo_comercio.id,
+                        'regime_tributario_id': regime_simples.id,
+                        'faixa_faturamento_id': faixa.id,
+                        'valor_mensalidade': 600.00,
+                        'observacoes': 'Comércio - Simples Nacional - Até 180k'
+                    })
+                elif faixa.valor_inicial <= 360000:
+                    mensalidades.append({
+                        'tipo_atividade_id': tipo_comercio.id,
+                        'regime_tributario_id': regime_simples.id,
+                        'faixa_faturamento_id': faixa.id,
+                        'valor_mensalidade': 900.00,
+                        'observacoes': 'Comércio - Simples Nacional - Até 360k'
+                    })
+                elif faixa.valor_inicial <= 720000:
+                    mensalidades.append({
+                        'tipo_atividade_id': tipo_comercio.id,
+                        'regime_tributario_id': regime_simples.id,
+                        'faixa_faturamento_id': faixa.id,
+                        'valor_mensalidade': 1200.00,
+                        'observacoes': 'Comércio - Simples Nacional - Até 720k'
+                    })
+                else:
+                    mensalidades.append({
+                        'tipo_atividade_id': tipo_comercio.id,
+                        'regime_tributario_id': regime_simples.id,
+                        'faixa_faturamento_id': faixa.id,
+                        'valor_mensalidade': 1500.00,
+                        'observacoes': 'Comércio - Simples Nacional - Acima 720k'
+                    })
+        
+        # ✅ REGRA DE NEGÓCIO: MEI (casos especiais)
+        if tipo_servicos and regime_mei:
+            for faixa in faixas_mei:
+                mensalidades.append({
+                    'tipo_atividade_id': tipo_servicos.id,
+                    'regime_tributario_id': regime_mei.id,
+                    'faixa_faturamento_id': faixa.id,
+                    'valor_mensalidade': 300.00,
+                    'observacoes': 'MEI - Serviços - Sem funcionário'
+                })
+        
+        if tipo_comercio and regime_mei:
+            for faixa in faixas_mei:
+                mensalidades.append({
+                    'tipo_atividade_id': tipo_comercio.id,
+                    'regime_tributario_id': regime_mei.id,
+                    'faixa_faturamento_id': faixa.id,
+                    'valor_mensalidade': 250.00,
+                    'observacoes': 'MEI - Comércio - Sem funcionário'
+                })
+        
+        # ✅ REGRA DE NEGÓCIO: Pessoa Física
+        if tipo_pf:
+            # Pessoa Física - valores "A Combinar"
+            mensalidades.append({
+                'tipo_atividade_id': tipo_pf.id,
+                'regime_tributario_id': None,  # PF não tem regime específico
+                'faixa_faturamento_id': None,  # PF não tem faixa específica
+                'valor_mensalidade': 0.00,  # Valor será "A Combinar"
+                'observacoes': 'Pessoa Física - Valor a combinar'
+            })
+        
+        # Inserir mensalidades no banco
+        for mensalidade_data in mensalidades:
+            # Verificar se já existe
+            existing = MensalidadeAutomatica.query.filter_by(
+                tipo_atividade_id=mensalidade_data['tipo_atividade_id'],
+                regime_tributario_id=mensalidade_data['regime_tributario_id'],
+                faixa_faturamento_id=mensalidade_data['faixa_faturamento_id']
+            ).first()
+            
+            if not existing:
+                mensalidade = MensalidadeAutomatica(**mensalidade_data)
+                db.session.add(mensalidade)
+        
+        db.session.commit()
+        print(f"✅ {len(mensalidades)} mensalidades automáticas inicializadas com sucesso!")
+        return True
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Erro ao inicializar mensalidades automáticas: {e}")
+        return False
+
+
 def inicializar_sistema_completo():
     """
     Inicializa o sistema completo com dados básicos e usuário administrador.
@@ -880,7 +1106,13 @@ def inicializar_sistema_completo():
             print("❌ Falha ao inicializar relacionamentos serviço x regime")
             return False
         
-        # 4. Criar usuário administrador
+        # 4. Inicializar mensalidades automáticas
+        print("\n💰 Inicializando mensalidades automáticas...")
+        if not inicializar_mensalidades_automaticas():
+            print("❌ Falha ao inicializar mensalidades automáticas")
+            return False
+        
+        # 5. Criar usuário administrador
         if not criar_usuario_admin():
             print("❌ Falha ao criar usuário administrador")
             return False

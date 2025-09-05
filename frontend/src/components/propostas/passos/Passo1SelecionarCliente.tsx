@@ -10,7 +10,8 @@ import {
   Building2,
   User,
   CreditCard,
-  Mail
+  Mail,
+  Edit3
 } from 'lucide-react';
 import { apiService } from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
@@ -93,9 +94,10 @@ interface CustomerCardProps {
   cliente: Cliente;
   isSelected: boolean;
   onSelect: (clienteId: number) => void;
+  onEdit?: (cliente: Cliente) => void;
 }
 
-const CustomerCard: React.FC<CustomerCardProps> = ({ cliente, isSelected, onSelect }) => {
+const CustomerCard: React.FC<CustomerCardProps> = ({ cliente, isSelected, onSelect, onEdit }) => {
   const config = getClienteConfig(cliente);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -134,6 +136,23 @@ const CustomerCard: React.FC<CustomerCardProps> = ({ cliente, isSelected, onSele
           aria-label={`Selecionar cliente ${cliente.nome}`}
         />
       </div>
+
+      {/* ✅ NOVO: Botão Editar no canto inferior direito - apenas quando selecionado */}
+      {onEdit && isSelected && (
+        <div className="absolute bottom-2 right-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // Evita que o clique no botão selecione o cliente
+              onEdit(cliente);
+            }}
+            className="opacity-70 group-hover:opacity-100 transition-opacity duration-200 p-1.5 rounded-full bg-white shadow-sm border border-gray-200 hover:bg-gray-50 hover:border-custom-blue focus:outline-none focus:ring-2 focus:ring-custom-blue focus:ring-offset-1"
+            title={`Editar dados de ${cliente.nome}`}
+            aria-label={`Editar dados de ${cliente.nome}`}
+          >
+            <Edit3 className="w-4 h-4 text-gray-700 hover:text-custom-blue transition-colors duration-200" />
+          </button>
+        </div>
+      )}
 
       {/* Conteúdo principal */}
       <div className="ml-6">
@@ -259,6 +278,8 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
+  const [modalEdicaoAberto, setModalEdicaoAberto] = useState(false);
+  const [clienteParaEditar, setClienteParaEditar] = useState<Cliente | null>(null);
 
   // ⚠️ NOVO: Estados para salvamento automático
   const [salvando, setSalvando] = useState(false);
@@ -598,6 +619,30 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
     alert('Cliente cadastrado com sucesso!');
   };
 
+  // ✅ NOVO: Função para abrir modal de edição
+  const handleEditarCliente = () => {
+    if (!selectedClienteId) return;
+
+    const clienteSelecionado = clientes.find(c => c.id === selectedClienteId);
+    if (clienteSelecionado) {
+      setClienteParaEditar(clienteSelecionado);
+      setModalEdicaoAberto(true);
+    }
+  };
+
+  // ✅ NOVO: Função para lidar com cliente editado
+  const handleClienteEditado = (clienteEditado: Cliente) => {
+    // Atualizar a lista de clientes
+    setClientes(prev => prev.map(c => c.id === clienteEditado.id ? clienteEditado : c));
+
+    // Fechar modal
+    setModalEdicaoAberto(false);
+    setClienteParaEditar(null);
+
+    // Salvar progresso automaticamente
+    salvarProgresso();
+  };
+
   return (
     <div>
       {/* Header da Página */}
@@ -692,16 +737,20 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
             </div>
           </div>
         ) : (
-          <div role="radiogroup" aria-label="Lista de clientes disponíveis" className={DESIGN_TOKENS.spacing.gap}>
-            {clientes.map((cliente) => (
-              <CustomerCard
-                key={cliente.id}
-                cliente={cliente}
-                isSelected={selectedClienteId === cliente.id}
-                onSelect={setSelectedClienteId}
-              />
-            ))}
-          </div>
+          <>
+
+            <div role="radiogroup" aria-label="Lista de clientes disponíveis" className={DESIGN_TOKENS.spacing.gap}>
+              {clientes.map((cliente) => (
+                <CustomerCard
+                  key={cliente.id}
+                  cliente={cliente}
+                  isSelected={selectedClienteId === cliente.id}
+                  onSelect={setSelectedClienteId}
+                  onEdit={handleEditarCliente}
+                />
+              ))}
+            </div>
+          </>
         )}
 
         {clientes.length === 0 && !loading && (
@@ -828,6 +877,17 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
         isOpen={modalCadastroAberto}
         onClose={() => setModalCadastroAberto(false)}
         onClienteCadastrado={handleClienteCadastrado}
+      />
+
+      {/* ✅ NOVO: Modal de Edição de Cliente */}
+      <ModalCadastroCliente
+        isOpen={modalEdicaoAberto}
+        onClose={() => {
+          setModalEdicaoAberto(false);
+          setClienteParaEditar(null);
+        }}
+        onClienteCadastrado={handleClienteEditado}
+        clienteParaEditar={clienteParaEditar}
       />
     </div>
   );

@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { PropostaResponse } from '../../types';
+import { StatusBadge } from '../common/StatusBadge';
+import { getStatusConfig, STATUS_COLORS } from '../../utils/statusColors';
 
 interface ModalEdicaoCompletaProps {
   proposta: PropostaResponse | null;
@@ -934,14 +936,12 @@ const FinalizacaoEditCorrigida: React.FC<{
   formatarMoeda: (valor: number) => string;
 }> = ({ dados, setDados, formatarMoeda }) => {
 
-  const statusOptions = [
-    { value: 'RASCUNHO', label: 'Rascunho', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'PENDENTE', label: 'Pendente', color: 'bg-blue-50 text-blue-800' },
-    { value: 'APROVADA', label: 'Aprovada', color: 'bg-green-100 text-green-800' },
-    { value: 'REJEITADA', label: 'Rejeitada', color: 'bg-red-100 text-red-800' },
-    { value: 'REALIZADA', label: 'Realizada', color: 'bg-purple-100 text-purple-800' },
-    { value: 'CANCELADA', label: 'Cancelada', color: 'bg-gray-100 text-gray-800' }
-  ];
+  // ✅ CORREÇÃO: Usar sistema unificado de status
+  const statusOptions = Object.entries(STATUS_COLORS).map(([value, config]) => ({
+    value,
+    label: config.label,
+    config
+  }));
 
   return (
     <div className="space-y-6">
@@ -977,9 +977,12 @@ const FinalizacaoEditCorrigida: React.FC<{
                 : 'border-gray-200 hover:border-gray-300'
                 }`}
             >
-              <span className={`inline-block px-2 py-1 rounded-full text-xs ${status.color}`}>
-                {status.label}
-              </span>
+              <StatusBadge
+                status={status.value}
+                size="sm"
+                showIcon={true}
+                showTooltip={false}
+              />
             </button>
           ))}
         </div>

@@ -35,13 +35,49 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // ✅ NOVO: Estados para mensalidade automática
+  const [mensalidadeAutomatica, setMensalidadeAutomatica] = useState<any>(null);
+  const [loadingMensalidade, setLoadingMensalidade] = useState(false);
+
   // Calcular totais
   const subtotal = dadosProposta.servicosSelecionados.reduce(
     (total, servico) => total + servico.subtotal, 0
   );
-  const valorDesconto = (subtotal * percentualDesconto) / 100;
-  const totalFinal = subtotal - valorDesconto;
+  const valorMensalidade = mensalidadeAutomatica?.valor_mensalidade || 0;
+  const subtotalComMensalidade = subtotal + valorMensalidade;
+  const valorDesconto = (subtotalComMensalidade * percentualDesconto) / 100;
+  const totalFinal = subtotalComMensalidade - valorDesconto;
   const requerAprovacao = percentualDesconto > 20;
+
+  // ✅ NOVO: Buscar mensalidade automática quando componente carregar
+  useEffect(() => {
+    const buscarMensalidadeAutomatica = async () => {
+      if (!dadosProposta.configuracoesTributarias) return;
+
+      const { tipo_atividade_id, regime_tributario_id, faixa_faturamento_id } = dadosProposta.configuracoesTributarias;
+
+      if (!tipo_atividade_id || !regime_tributario_id || !faixa_faturamento_id) return;
+
+      setLoadingMensalidade(true);
+      try {
+        const response = await apiService.buscarMensalidade({
+          tipo_atividade_id,
+          regime_tributario_id,
+          faixa_faturamento_id
+        });
+
+        if (response.success && response.data) {
+          setMensalidadeAutomatica(response.data);
+        }
+      } catch (error) {
+        console.log('Mensalidade automática não encontrada para esta configuração');
+      } finally {
+        setLoadingMensalidade(false);
+      }
+    };
+
+    buscarMensalidadeAutomatica();
+  }, [dadosProposta.configuracoesTributarias]);
 
   const handleAvancar = async () => {
     if (requerAprovacao && !observacoes.trim()) {
@@ -68,6 +104,7 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
         valor_total: totalFinal,
         percentual_desconto: percentualDesconto,
         valor_desconto: valorDesconto,
+        valor_mensalidade: valorMensalidade,
         requer_aprovacao: requerAprovacao,
         observacoes: observacoes.trim() || null,
         status: requerAprovacao ? 'PENDENTE' : 'APROVADA'
@@ -201,6 +238,50 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
         </div>
       </div>
 
+      {/* ✅ NOVO: MENSALIDADE AUTOMÁTICA - Card */}
+      {mensalidadeAutomatica && (
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg shadow-sm border border-green-200">
+          <div className="p-6">
+            <div className="flex items-center mb-4">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                <span className="text-green-600 font-semibold">💰</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Mensalidade Automática</h3>
+                <p className="text-sm text-gray-600">
+                  {mensalidadeAutomatica.tipo_atividade?.nome} - {mensalidadeAutomatica.regime_tributario?.nome}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Tipo de Atividade</p>
+                <p className="text-gray-900">{mensalidadeAutomatica.tipo_atividade?.nome}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700">Regime Tributário</p>
+                <p className="text-gray-900">{mensalidadeAutomatica.regime_tributario?.nome}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700">Valor Mensal</p>
+                <p className="text-lg font-semibold text-green-600">
+                  {mensalidadeAutomatica.valor_mensalidade === 0 ? 'A Combinar' : formatarMoeda(mensalidadeAutomatica.valor_mensalidade)}
+                </p>
+              </div>
+            </div>
+
+            {mensalidadeAutomatica.observacoes && (
+              <div className="mt-4 p-3 bg-green-100 rounded-lg">
+                <p className="text-sm text-green-800">
+                  <strong>Observação:</strong> {mensalidadeAutomatica.observacoes}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ✅ SERVIÇOS SELECIONADOS - Card único */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200">
@@ -290,8 +371,13 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
             </p>
             {valorDesconto > 0 && (
               <p className="text-custom-blue-light text-sm">
-                Subtotal: {formatarMoeda(subtotal)}
+                Subtotal: {formatarMoeda(subtotalComMensalidade)}
                 (-{percentualDesconto}%)
+              </p>
+            )}
+            {valorMensalidade > 0 && (
+              <p className="text-custom-blue-light text-sm">
+                Serviços: {formatarMoeda(subtotal)} + Mensalidade: {formatarMoeda(valorMensalidade)}
               </p>
             )}
           </div>

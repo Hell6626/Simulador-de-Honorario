@@ -54,36 +54,11 @@ const AppContent: React.FC = () => {
   // ✅ NOVO: Hook para reset automático de dados
   const { limparTodosDadosProposta, verificarDadosExistentes } = usePropostaDataReset();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <LoadingSpinner />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <LoginPage />;
-  }
-
-  const handleNavigate = (page: string, options?: { openModal?: boolean }) => {
-    setCurrentPage(page);
-    setNavigationOptions(options || {});
-
-    // Limpar as opções após um breve delay para evitar que o modal abra novamente
-    setTimeout(() => {
-      setNavigationOptions({});
-    }, 100);
-  };
-
-  const handleNavigateToProposta = (propostaId: number) => {
-    setCurrentPage('propostas');
-    setNavigationOptions({ propostaId });
-  };
-
-  // ✅ NOVO: Reset automático quando navega para outras páginas (exceto propostas)
+  // ✅ CORREÇÃO: Reset automático quando navega para outras páginas (exceto propostas)
+  // Movido para antes dos returns condicionais para evitar violação das Rules of Hooks
   useEffect(() => {
-    if (currentPage !== 'propostas') {
+    // Só executa se estiver autenticado e não estiver carregando
+    if (isAuthenticated && !loading && currentPage !== 'propostas') {
       console.log(`🔄 [App] Navegou para ${currentPage} - verificando dados salvos...`);
 
       const temDadosSalvos = verificarDadosExistentes();
@@ -100,7 +75,45 @@ const AppContent: React.FC = () => {
         console.log('ℹ️ [App] Nenhum dado salvo encontrado.');
       }
     }
-  }, [currentPage, limparTodosDadosProposta, verificarDadosExistentes]);
+  }, [currentPage, limparTodosDadosProposta, verificarDadosExistentes, isAuthenticated, loading]);
+
+  // ✅ CORREÇÃO: Returns condicionais após todos os hooks
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  const handleNavigate = (page: string, options?: { openModal?: boolean }) => {
+    // ✅ NOVO: Limpeza automática quando navega para outras páginas (exceto propostas)
+    if (page !== 'propostas') {
+      setNavigationOptions({});
+    }
+
+    setCurrentPage(page);
+    setNavigationOptions(options || {});
+
+    // ✅ CORREÇÃO: Limpar as opções após um delay maior para garantir que modal abra corretamente
+    setTimeout(() => {
+      setNavigationOptions({});
+    }, 500); // Aumentado de 100ms para 500ms
+  };
+
+  const handleNavigateToProposta = (propostaId: number) => {
+    setCurrentPage('propostas');
+    setNavigationOptions({ propostaId });
+
+    // ✅ NOVO: Limpeza automática após navegação para proposta
+    setTimeout(() => {
+      setNavigationOptions({});
+    }, 1000); // Delay maior para garantir que modal abra
+  };
 
   const renderPage = () => {
     switch (currentPage) {
