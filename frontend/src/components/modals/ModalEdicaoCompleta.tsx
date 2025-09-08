@@ -53,6 +53,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
   const [abaSelecionada, setAbaSelecionada] = useState('configuracoes');
   const [loading, setLoading] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [regenerandoPDF, setRegenerandoPDF] = useState(false);
 
   // Estados dos dados corrigidos
   const [dados, setDados] = useState<DadosProposta>({
@@ -244,6 +245,13 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
     // ⚠️ VALOR BASE: Serviços + Taxa + Mensalidade
     const valorBaseAtual = valorServicosAtual + taxaAberturaAtual + dados.valor_mensalidade;
 
+    console.log('🧮 Cálculo do valor base:', {
+      valorServicosAtual,
+      taxaAberturaAtual,
+      valor_mensalidade: dados.valor_mensalidade,
+      valorBaseAtual
+    });
+
     // ⚠️ APLICAR: Desconto ao valor base
     const descontoValor = (valorBaseAtual * dados.percentual_desconto) / 100;
     const valorTotalFinal = valorBaseAtual - descontoValor;
@@ -304,9 +312,17 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
     }
   };
 
+  // Função para lidar com mensalidade encontrada
+  const handleMensalidadeEncontrada = (mensalidade: any) => {
+    console.log('💰 Mensalidade encontrada no callback:', mensalidade);
+    console.log('💰 Estado atual dos dados:', dados);
+    // Aqui podemos adicionar lógica adicional se necessário
+  };
+
   // Salvar alterações corrigido
   const handleSalvar = async () => {
     setSalvando(true);
+    setRegenerandoPDF(true);
     try {
       // ⚠️ CALCULAR: Valor total baseado no desconto
       const valorServicos = dados.servicosSelecionados.reduce((sum, item) => sum + item.subtotal, 0);
@@ -329,6 +345,8 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
         percentual_desconto: dados.percentual_desconto, // ⚠️ DESCONTO INCLUÍDO
         data_validade: dados.data_validade,
         observacoes: montarObservacoesCompletas(),
+        // Flag para indicar que deve regenerar PDF
+        regenerar_pdf: true,
         // Incluir itens atualizados
         itens: dados.servicosSelecionados.map(servico => ({
           servico_id: servico.servico_id,
@@ -344,6 +362,14 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
       await apiService.updateProposta(proposta!.id, dadosUpdate);
 
       console.log(`✅ Proposta #${proposta!.numero} atualizada completamente`);
+
+      // Mostrar feedback sobre regeneração de PDF
+      if (valorMensalidade > 0) {
+        alert('Proposta atualizada com sucesso! O PDF será regenerado automaticamente com a nova mensalidade.');
+      } else {
+        alert('Proposta atualizada com sucesso!');
+      }
+
       onSaved();
       onClose();
 
@@ -352,6 +378,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
       alert('Erro ao salvar alterações. Tente novamente.');
     } finally {
       setSalvando(false);
+      setRegenerandoPDF(false);
     }
   };
 
@@ -590,6 +617,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
                     regimesTributarios={regimesTributarios}
                     faixasFaturamento={faixasFaturamento}
                     onRegimeChange={handleRegimeChange}
+                    onMensalidadeEncontrada={handleMensalidadeEncontrada}
                   />
                 )}
 
@@ -639,7 +667,9 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
               {salvando ? (
                 <>
                   <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                  <span>Salvando...</span>
+                  <span>
+                    {regenerandoPDF ? 'Regenerando PDF...' : 'Salvando...'}
+                  </span>
                 </>
               ) : (
                 <>
@@ -663,7 +693,77 @@ const ConfiguracoesTributariasEdit: React.FC<{
   regimesTributarios: any[];
   faixasFaturamento: any[];
   onRegimeChange: (regimeId: number) => void;
-}> = ({ dados, setDados, tiposAtividade, regimesTributarios, faixasFaturamento, onRegimeChange }) => {
+  onMensalidadeEncontrada?: (mensalidade: any) => void;
+}> = ({ dados, setDados, tiposAtividade, regimesTributarios, faixasFaturamento, onRegimeChange, onMensalidadeEncontrada }) => {
+
+  const [buscandoMensalidade, setBuscandoMensalidade] = useState(false);
+  const [mensalidadeEncontrada, setMensalidadeEncontrada] = useState<any>(null);
+
+  // Função para buscar mensalidade automática
+  const buscarMensalidadeAutomatica = async () => {
+    if (!dados.tipo_atividade_id || !dados.regime_tributario_id) {
+      console.log('❌ Configurações incompletas para buscar mensalidade:', {
+        tipo_atividade_id: dados.tipo_atividade_id,
+        regime_tributario_id: dados.regime_tributario_id,
+        faixa_faturamento_id: dados.faixa_faturamento_id
+      });
+      return;
+    }
+
+    console.log('🔍 Buscando mensalidade automática com configuração:', {
+      tipo_atividade_id: dados.tipo_atividade_id,
+      regime_tributario_id: dados.regime_tributario_id,
+      faixa_faturamento_id: dados.faixa_faturamento_id
+    });
+
+    setBuscandoMensalidade(true);
+    try {
+      const configuracao = {
+        tipo_atividade_id: dados.tipo_atividade_id,
+        regime_tributario_id: dados.regime_tributario_id,
+        faixa_faturamento_id: dados.faixa_faturamento_id || undefined
+      };
+
+      const response = await apiService.buscarMensalidadeAutomatica(configuracao);
+
+      console.log('📊 Resposta da API de mensalidade:', response);
+
+      // O backend retorna { success: true, data: { valor_mensalidade: ... } }
+      if (response && response.success && response.data && response.data.valor_mensalidade) {
+        console.log('✅ Mensalidade encontrada:', response.data.valor_mensalidade);
+        setMensalidadeEncontrada(response.data);
+        setDados(prev => ({ ...prev, valor_mensalidade: response.data.valor_mensalidade }));
+        onMensalidadeEncontrada?.(response.data);
+      } else {
+        console.log('❌ Nenhuma mensalidade encontrada para esta configuração');
+        setMensalidadeEncontrada(null);
+        setDados(prev => ({ ...prev, valor_mensalidade: 0 }));
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar mensalidade automática:', error);
+      setMensalidadeEncontrada(null);
+      setDados(prev => ({ ...prev, valor_mensalidade: 0 }));
+    } finally {
+      setBuscandoMensalidade(false);
+    }
+  };
+
+  // Buscar mensalidade quando configurações mudarem
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      buscarMensalidadeAutomatica();
+    }, 500); // Debounce de 500ms
+
+    return () => clearTimeout(timer);
+  }, [dados.tipo_atividade_id, dados.regime_tributario_id, dados.faixa_faturamento_id]);
+
+  const handleTipoAtividadeChange = (tipoId: number) => {
+    setDados(prev => ({ ...prev, tipo_atividade_id: tipoId }));
+  };
+
+  const handleFaixaFaturamentoChange = (faixaId: number | null) => {
+    setDados(prev => ({ ...prev, faixa_faturamento_id: faixaId }));
+  };
 
   return (
     <div className="space-y-6">
@@ -681,7 +781,7 @@ const ConfiguracoesTributariasEdit: React.FC<{
         </label>
         <select
           value={dados.tipo_atividade_id}
-          onChange={(e) => setDados(prev => ({ ...prev, tipo_atividade_id: parseInt(e.target.value) }))}
+          onChange={(e) => handleTipoAtividadeChange(parseInt(e.target.value))}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value={0}>Selecione um tipo de atividade</option>
@@ -720,10 +820,7 @@ const ConfiguracoesTributariasEdit: React.FC<{
           </label>
           <select
             value={dados.faixa_faturamento_id || ''}
-            onChange={(e) => setDados(prev => ({
-              ...prev,
-              faixa_faturamento_id: e.target.value ? parseInt(e.target.value) : null
-            }))}
+            onChange={(e) => handleFaixaFaturamentoChange(e.target.value ? parseInt(e.target.value) : null)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Nenhuma faixa específica</option>
@@ -733,6 +830,47 @@ const ConfiguracoesTributariasEdit: React.FC<{
               </option>
             ))}
           </select>
+        </div>
+      )}
+
+      {/* Card de Mensalidade Automática */}
+      {(buscandoMensalidade || mensalidadeEncontrada) && (
+        <div className={`border rounded-lg p-4 ${mensalidadeEncontrada
+          ? 'bg-green-50 border-green-200'
+          : 'bg-blue-50 border-blue-200'
+          }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <DollarSign className={`w-5 h-5 mr-2 ${mensalidadeEncontrada ? 'text-green-600' : 'text-blue-600'
+                }`} />
+              <div>
+                <h4 className={`font-medium ${mensalidadeEncontrada ? 'text-green-900' : 'text-blue-900'
+                  }`}>
+                  Mensalidade Automática
+                </h4>
+                {buscandoMensalidade ? (
+                  <p className="text-sm text-blue-700">Buscando mensalidade...</p>
+                ) : mensalidadeEncontrada ? (
+                  <div className="text-sm">
+                    <p className={`${mensalidadeEncontrada ? 'text-green-700' : 'text-blue-700'
+                      }`}>
+                      ✅ Valor encontrado: <span className="font-semibold text-lg">
+                        R$ {mensalidadeEncontrada.valor_mensalidade.toFixed(2)}
+                      </span>
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Este valor será incluído automaticamente na proposta
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-blue-700">Nenhuma mensalidade encontrada para esta configuração</p>
+                )}
+              </div>
+            </div>
+            {buscandoMensalidade && (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -20,6 +20,7 @@ import { HistoricoLogs } from '../propostas/HistoricoLogs';
 import { PropostaPDFViewer } from '../propostas/PropostaPDFViewer';
 import { Proposta, PropostaResponse } from '../../types';
 import { usePropostaDataReset } from '../../hooks/usePropostaDataReset';
+import { useAuth } from '../../context/AuthContext';
 
 // Interfaces removidas para evitar warnings de unused vars
 // As interfaces estão definidas nos componentes específicos
@@ -205,6 +206,9 @@ const getStatusConfigForProposta = (status: string) => {
 export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = false, propostaId }) => {
   // ✅ NOVO: Hook para reset automático de dados
   const { limparTodosDadosProposta, verificarDadosExistentes } = usePropostaDataReset();
+
+  // ✅ NOVO: Hook para autenticação
+  const { user } = useAuth();
 
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [filteredPropostas, setFilteredPropostas] = useState<Proposta[]>([]);
@@ -920,9 +924,17 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
     }
   };
 
-  const handleConfirmarExclusao = async (propostaId: number) => {
+  const handleConfirmarExclusao = async (propostaId: number, observacao?: string) => {
     try {
-      await apiService.deleteProposta(propostaId);
+      const response = await apiService.deleteProposta(propostaId, observacao);
+
+      // Mostrar mensagem de sucesso com informações adicionais
+      if (response.notificacao_enviada) {
+        alert('Proposta excluída com sucesso! Uma notificação foi enviada ao funcionário responsável.');
+      } else {
+        alert('Proposta excluída com sucesso!');
+      }
+
       await fetchPropostas(currentPage, searchTerm);
     } catch (error) {
       console.error('Erro ao excluir proposta:', error);
@@ -1252,6 +1264,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
 
       <ModalExclusaoProposta
         proposta={propostaSelecionada}
+        funcionarioAtual={user ? { id: user.id, nome: user.nome } : null}
         isOpen={modalExclusaoOpen}
         onClose={() => setModalExclusaoOpen(false)}
         onDelete={handleConfirmarExclusao}

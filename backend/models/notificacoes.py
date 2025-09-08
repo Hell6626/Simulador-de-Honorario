@@ -111,6 +111,30 @@ class Notificacao(db.Model, TimestampMixin, ActiveMixin):
             lida=False
         )
         
+    @classmethod
+    def criar_notificacao_exclusao_proposta(cls, proposta, de_funcionario_id, observacao=""):
+        """Cria notificação de exclusão de proposta para o funcionário responsável"""
+        if not proposta.funcionario_responsavel_id:
+            return None
+            
+        funcionario_excluidor = Funcionario.query.get(de_funcionario_id)
+        nome_excluidor = funcionario_excluidor.nome if funcionario_excluidor else "Funcionário"
+        
+        # Montar mensagem com observação se fornecida
+        mensagem_base = f'Sua proposta #{proposta.numero} foi excluída por {nome_excluidor}.'
+        if observacao:
+            mensagem_base += f'\n\nObservação: {observacao}'
+        
+        notificacao = cls(
+            tipo='EXCLUSAO_PROPOSTA',
+            titulo=f'Proposta #{proposta.numero} Excluída',
+            mensagem=mensagem_base,
+            proposta_id=proposta.id,
+            para_funcionario_id=proposta.funcionario_responsavel_id,
+            de_funcionario_id=de_funcionario_id,
+            lida=False
+        )
+        
         db.session.add(notificacao)
         db.session.commit()
         return notificacao

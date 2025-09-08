@@ -498,8 +498,12 @@ class ApiService {
     });
   }
 
-  async deleteProposta(id: number) {
-    return this.request(`/propostas/${id}`, { method: 'DELETE' });
+  async deleteProposta(id: number, observacao?: string) {
+    const body = observacao ? { observacao } : undefined;
+    return this.request(`/propostas/${id}`, {
+      method: 'DELETE',
+      body: body ? JSON.stringify(body) : undefined
+    });
   }
 
   async calcularServicosProposta(id: number) {

@@ -438,6 +438,41 @@ def update_proposta(proposta_id: int):
     if 'itens' in data:
         itens_alterados = processar_itens_proposta(proposta, data['itens'], alteracoes_realizadas)
     
+    # ⚠️ REGENERAÇÃO DE PDF: Verificar se deve regenerar PDF automaticamente
+    regenerar_pdf = data.get('regenerar_pdf', False)
+    pdf_regenerado = False
+    
+    if regenerar_pdf and verificar_mudancas_significativas(alteracoes_realizadas):
+        try:
+            # Excluir PDF antigo se existir
+            if proposta.caminho_pdf:
+                import os
+                pdf_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'pdfs', proposta.caminho_pdf)
+                if os.path.exists(pdf_path):
+                    os.remove(pdf_path)
+                    current_app.logger.info(f"PDF antigo excluído: {pdf_path}")
+            
+            # Limpar campos de PDF no banco
+            proposta.caminho_pdf = None
+            proposta.nome_arquivo_pdf = None
+            proposta.data_geracao_pdf = None
+            
+            # Gerar novo PDF
+            from services.pdf_generator import PDFGenerator
+            pdf_generator = PDFGenerator()
+            pdf_path = pdf_generator.gerar_proposta_pdf(proposta.id)
+            
+            if pdf_path:
+                proposta.caminho_pdf = os.path.basename(pdf_path)
+                proposta.nome_arquivo_pdf = f"proposta_{proposta.numero}.pdf"
+                proposta.data_geracao_pdf = datetime.utcnow()
+                pdf_regenerado = True
+                
+                current_app.logger.info(f"PDF regenerado automaticamente: {pdf_path}")
+                
+        except Exception as e:
+            current_app.logger.warning(f"Erro ao regenerar PDF automaticamente: {str(e)}")
+    
     # ⚠️ SALVAR: Alterações no banco
     try:
         db.session.commit()
@@ -497,8 +532,12 @@ def update_proposta(proposta_id: int):
         f"Taxa: R$ {dados_atualizados['taxa_abertura']:.2f}, "
         f"Mensalidade: R$ {dados_atualizados['valor_mensalidade']:.2f}, "
         f"Base: R$ {dados_atualizados['valor_base']:.2f}, "
-        f"Final: R$ {dados_atualizados['valor_final']:.2f}"
+        f"Final: R$ {dados_atualizados['valor_final']:.2f}, "
+        f"PDF regenerado: {pdf_regenerado}"
     )
+    
+    # Incluir informação sobre regeneração de PDF na resposta
+    resposta['pdf_regenerado'] = pdf_regenerado
     
     return jsonify(resposta)
 
@@ -883,15 +922,69 @@ def delete_proposta(proposta_id: int):
     if not funcionario or not funcionario.ativo:
         raise ValueError('Funcionário não encontrado')
 
+    # Obter dados da requisição
+    data = request.get_json() or {}
+    observacao = data.get('observacao', '').strip()
+    
+    # Verificar se é proposta de outro funcionário
+    is_propria_proposta = proposta.funcionario_responsavel_id == funcionario_id
+    
+    # Se não é própria proposta, observação é obrigatória
+    if not is_propria_proposta and not observacao:
+        raise ValueError('Observação é obrigatória para exclusão de proposta de outro funcionário')
+
+    # Excluir PDF vinculado se existir
+    pdf_excluido = False
+    if proposta.caminho_pdf:
+        try:
+            import os
+            pdf_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'pdfs', proposta.caminho_pdf)
+            if os.path.exists(pdf_path):
+                os.remove(pdf_path)
+                pdf_excluido = True
+                current_app.logger.info(f"PDF excluído: {pdf_path}")
+        except Exception as e:
+            current_app.logger.warning(f"Erro ao excluir PDF: {str(e)}")
+    
+    # Limpar campos de PDF no banco
+    if pdf_excluido:
+        proposta.caminho_pdf = None
+        proposta.nome_arquivo_pdf = None
+        proposta.data_geracao_pdf = None
+
     # Soft delete - marcar como inativa
     proposta.ativo = False
     db.session.commit()
 
+    # Criar notificação se não for própria proposta
+    notificacao_enviada = False
+    if not is_propria_proposta and proposta.funcionario_responsavel_id:
+        try:
+            from models.notificacoes import Notificacao
+            Notificacao.criar_notificacao_exclusao_proposta(
+                proposta=proposta,
+                de_funcionario_id=funcionario_id,
+                observacao=observacao
+            )
+            notificacao_enviada = True
+        except Exception as e:
+            current_app.logger.warning(f"Erro ao criar notificação: {str(e)}")
+
+    # Log detalhado
+    responsavel_nome = "própria" if is_propria_proposta else f"de {proposta.funcionario_responsavel.nome if proposta.funcionario_responsavel else 'N/A'}"
     current_app.logger.info(
         f"Proposta marcada como inativa: #{proposta.numero} "
-        f"(ID: {proposta.id}, Funcionário: {funcionario.nome})"
+        f"(ID: {proposta.id}, Funcionário: {funcionario.nome}, "
+        f"Proposta: {responsavel_nome}, PDF excluído: {pdf_excluido}, "
+        f"Notificação enviada: {notificacao_enviada})"
     )
-    return jsonify({'message': 'Proposta excluída com sucesso'})
+    
+    return jsonify({
+        'message': 'Proposta excluída com sucesso',
+        'pdf_excluido': pdf_excluido,
+        'notificacao_enviada': notificacao_enviada,
+        'is_propria_proposta': is_propria_proposta
+    })
 
 
 def processar_itens_proposta(proposta: Proposta, novos_itens: list, alteracoes_realizadas: list) -> bool:
@@ -1116,3 +1209,39 @@ def excluir_pdf_proposta(proposta_id: int):
         db.session.rollback()
         current_app.logger.error(f"Erro ao excluir PDF da proposta {proposta_id}: {str(e)}")
         return jsonify({'error': f'Erro ao excluir PDF: {str(e)}'}), 500
+
+
+def verificar_mudancas_significativas(alteracoes_realizadas: list) -> bool:
+    """
+    Verifica se houve mudanças significativas que justifiquem regeneração de PDF
+    
+    Args:
+        alteracoes_realizadas: Lista de alterações realizadas na proposta
+        
+    Returns:
+        bool: True se houve mudanças significativas, False caso contrário
+    """
+    # Campos que justificam regeneração de PDF
+    campos_significativos = {
+        'tipo_atividade_id',
+        'regime_tributario_id', 
+        'faixa_faturamento_id',
+        'valor_total',
+        'valor_mensalidade',
+        'percentual_desconto',
+        'status',
+        'data_validade',
+        'observacoes'
+    }
+    
+    # Verificar se alguma alteração envolve campos significativos
+    for alteracao in alteracoes_realizadas:
+        if alteracao.get('campo') in campos_significativos:
+            return True
+    
+    # Verificar se houve alterações nos itens/serviços
+    for alteracao in alteracoes_realizadas:
+        if alteracao.get('campo') == 'itens':
+            return True
+    
+    return False

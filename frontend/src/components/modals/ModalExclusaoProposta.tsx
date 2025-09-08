@@ -3,22 +3,29 @@ import { Proposta } from '../../types';
 
 interface ModalExclusaoPropostaProps {
     proposta: Proposta | null;
+    funcionarioAtual: { id: number; nome: string } | null;
     isOpen: boolean;
     onClose: () => void;
-    onDelete: (propostaId: number) => Promise<void>;
+    onDelete: (propostaId: number, observacao?: string) => Promise<void>;
 }
 
 export const ModalExclusaoProposta: React.FC<ModalExclusaoPropostaProps> = ({
     proposta,
+    funcionarioAtual,
     isOpen,
     onClose,
     onDelete
 }) => {
     const [loading, setLoading] = useState(false);
     const [confirmacao, setConfirmacao] = useState('');
+    const [observacao, setObservacao] = useState('');
     const [erro, setErro] = useState<string>('');
 
     if (!isOpen || !proposta) return null;
+
+    // Verificar se é proposta própria ou de outro funcionário
+    const isPropriaProposta = funcionarioAtual && proposta.funcionario_responsavel_id === funcionarioAtual.id;
+    const observacaoObrigatoria = !isPropriaProposta;
 
     const handleExcluir = async () => {
         if (confirmacao !== proposta.id.toString()) {
@@ -26,11 +33,16 @@ export const ModalExclusaoProposta: React.FC<ModalExclusaoPropostaProps> = ({
             return;
         }
 
+        if (observacaoObrigatoria && !observacao.trim()) {
+            setErro('Observação é obrigatória para exclusão de proposta de outro funcionário');
+            return;
+        }
+
         setLoading(true);
         setErro('');
 
         try {
-            await onDelete(proposta.id);
+            await onDelete(proposta.id, observacao.trim() || undefined);
             handleFechar();
         } catch (error) {
             setErro('Erro ao excluir proposta. Tente novamente.');
@@ -41,11 +53,14 @@ export const ModalExclusaoProposta: React.FC<ModalExclusaoPropostaProps> = ({
 
     const handleFechar = () => {
         setConfirmacao('');
+        setObservacao('');
         setErro('');
         onClose();
     };
 
-    const podeExcluir = confirmacao === proposta.id.toString() && !loading;
+    const podeExcluir = confirmacao === proposta.id.toString() &&
+        (!observacaoObrigatoria || observacao.trim()) &&
+        !loading;
 
     const formatarData = (data: string | null) => {
         if (!data) return 'Não definida';
@@ -93,7 +108,7 @@ export const ModalExclusaoProposta: React.FC<ModalExclusaoPropostaProps> = ({
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
-            <div className="overflow-hidden shadow-xl max-w-lg w-full mx-4">
+            <div className="overflow-hidden shadow-xl max-w-2xl w-full mx-4">
                 <div className="bg-white p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-xl font-bold text-gray-900">
@@ -110,19 +125,37 @@ export const ModalExclusaoProposta: React.FC<ModalExclusaoPropostaProps> = ({
                     </div>
 
                     <div className="mb-6">
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                            <div className="flex items-center">
-                                <svg className="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                </svg>
-                                <span className="text-red-800 font-medium">
-                                    Atenção: Esta ação marcará a proposta como inativa
-                                </span>
+                        {/* Aviso diferenciado para proposta própria vs. de outro funcionário */}
+                        {isPropriaProposta ? (
+                            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+                                <div className="flex items-center">
+                                    <svg className="w-5 h-5 text-orange-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    <span className="text-orange-800 font-medium">
+                                        Exclusão da sua própria proposta
+                                    </span>
+                                </div>
+                                <p className="text-orange-700 text-sm mt-2">
+                                    Esta proposta será marcada como inativa e mantida no sistema para fins de auditoria.
+                                </p>
                             </div>
-                            <p className="text-red-700 text-sm mt-2">
-                                A proposta será mantida no sistema para fins de auditoria, mas não aparecerá mais na lista ativa.
-                            </p>
-                        </div>
+                        ) : (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                                <div className="flex items-center">
+                                    <svg className="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    <span className="text-red-800 font-medium">
+                                        Exclusão de proposta de outro funcionário
+                                    </span>
+                                </div>
+                                <p className="text-red-700 text-sm mt-2">
+                                    Esta proposta pertence a <strong>{proposta.funcionario_responsavel?.nome || 'N/A'}</strong>.
+                                    Uma notificação será enviada ao funcionário responsável.
+                                </p>
+                            </div>
+                        )}
 
                         <div className="bg-gray-50 rounded-lg p-4 mb-4">
                             <h3 className="font-semibold text-gray-900 mb-3">Informações da Proposta</h3>
@@ -147,14 +180,43 @@ export const ModalExclusaoProposta: React.FC<ModalExclusaoPropostaProps> = ({
                                 </div>
                                 <div>
                                     <span className="text-gray-600">Criação:</span>
-                                    <span className="ml-2 font-medium">{formatarData(proposta.data_criacao)}</span>
+                                    <span className="ml-2 font-medium">{formatarData(proposta.created_at)}</span>
                                 </div>
                                 <div>
                                     <span className="text-gray-600">Validade:</span>
                                     <span className="ml-2 font-medium">{formatarData(proposta.data_validade)}</span>
                                 </div>
+                                <div>
+                                    <span className="text-gray-600">Responsável:</span>
+                                    <span className="ml-2 font-medium">{proposta.funcionario_responsavel?.nome || 'N/A'}</span>
+                                </div>
+                                <div>
+                                    <span className="text-gray-600">PDF:</span>
+                                    <span className="ml-2 font-medium">
+                                        {proposta.pdf_gerado ? 'Gerado' : 'Não gerado'}
+                                    </span>
+                                </div>
                             </div>
                         </div>
+
+                        {/* Campo de observação obrigatório para propostas de outros funcionários */}
+                        {observacaoObrigatoria && (
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Observação <span className="text-red-500">*</span>
+                                </label>
+                                <p className="text-sm text-gray-600 mb-3">
+                                    Explique o motivo da exclusão desta proposta de outro funcionário:
+                                </p>
+                                <textarea
+                                    value={observacao}
+                                    onChange={(e) => setObservacao(e.target.value)}
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                    placeholder="Digite o motivo da exclusão..."
+                                    rows={3}
+                                />
+                            </div>
+                        )}
 
                         <div className="mb-4">
                             <label className="block text-sm font-medium text-gray-700 mb-2">

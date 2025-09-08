@@ -19,74 +19,26 @@ import { ModalCadastroCliente } from '../../modals/ModalCadastroCliente';
 import { Cliente, DataValidator } from '../../../types';
 import { formatarCPF, formatarCNPJ } from '../../../utils/formatters';
 import { usePropostaDataReset } from '../../../hooks/usePropostaDataReset';
+// 🎨 NOVO: Importações do sistema de cores padronizado
+import {
+  PessoaFisicaBadge,
+  PessoaJuridicaBadge,
+  AtivoBadge,
+  ClienteExistenteBadge
+} from '../../common/Badge';
+import { getClienteConfig, getClienteCssClasses } from '../../../utils/colorUtils';
 
-// ✅ NOVO: Design Tokens para cores e espaçamentos (baseado na imagem)
-const DESIGN_TOKENS = {
-  colors: {
-    pj: {
-      primary: 'bg-purple-600',
-      text: 'text-gray-900',
-      details: 'text-gray-700',
-      selected: 'bg-purple-50 border-purple-300',
-      icon: 'bg-purple-100 text-purple-600'
-    },
-    pf: {
-      primary: 'bg-green-600',
-      text: 'text-gray-900',
-      details: 'text-gray-700',
-      selected: 'bg-green-50 border-green-300',
-      icon: 'bg-green-100 text-green-600'
-    },
-    status: {
-      active: 'bg-green-100 text-green-700',
-      inactive: 'bg-red-100 text-red-700',
-      existing: 'bg-blue-100 text-blue-700'
-    }
-  },
-  spacing: {
-    card: 'p-3',
-    gap: 'space-y-2',
-    inner: 'space-y-1',
-    tags: 'space-x-1'
-  },
-  typography: {
-    title: 'text-sm font-semibold',
-    subtitle: 'text-xs font-medium',
-    metadata: 'text-xs',
-    badge: 'text-xs font-medium'
-  }
-};
+// 🎨 NOVO: Sistema de cores padronizado usando funções utilitárias
+const getClienteDisplayInfo = (cliente: Cliente) => {
+  const config = getClienteConfig(cliente);
+  const cssClasses = getClienteCssClasses(cliente);
 
-// ✅ NOVO: Função para determinar tipo de cliente e cores usando Design Tokens
-const getClienteConfig = (cliente: Cliente) => {
-  const temEntidadesJuridicas = cliente.entidades_juridicas && cliente.entidades_juridicas.length > 0;
-  const isPessoaJuridica = temEntidadesJuridicas || cliente.abertura_empresa;
-
-  if (isPessoaJuridica) {
-    return {
-      tipo: 'Pessoa Jurídica',
-      cores: {
-        tag: `${DESIGN_TOKENS.colors.pj.primary} text-white`,
-        icone: DESIGN_TOKENS.colors.pj.icon,
-        nome: DESIGN_TOKENS.colors.pj.text,
-        detalhes: DESIGN_TOKENS.colors.pj.details,
-        selecionado: DESIGN_TOKENS.colors.pj.selected,
-        iconePrincipal: Building2
-      }
-    };
-  } else {
-    return {
-      tipo: 'Pessoa Física',
-      cores: {
-        tag: `${DESIGN_TOKENS.colors.pf.primary} text-white`,
-        icone: DESIGN_TOKENS.colors.pf.icon,
-        nome: DESIGN_TOKENS.colors.pf.text,
-        detalhes: DESIGN_TOKENS.colors.pf.details,
-        selecionado: DESIGN_TOKENS.colors.pf.selected,
-        iconePrincipal: User
-      }
-    };
-  }
+  return {
+    tipo: config.tipo === 'pessoaFisica' ? 'Pessoa Física' : 'Pessoa Jurídica',
+    tipoEnum: config.tipo,
+    cssClasses,
+    icon: config.tipo === 'pessoaFisica' ? User : Building2
+  };
 };
 
 // ✅ NOVO: Componente CustomerCard modular e reutilizável
@@ -98,7 +50,7 @@ interface CustomerCardProps {
 }
 
 const CustomerCard: React.FC<CustomerCardProps> = ({ cliente, isSelected, onSelect, onEdit }) => {
-  const config = getClienteConfig(cliente);
+  const displayInfo = getClienteDisplayInfo(cliente);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -107,20 +59,22 @@ const CustomerCard: React.FC<CustomerCardProps> = ({ cliente, isSelected, onSele
     }
   };
 
+  // 🎨 NOVO: Classes CSS usando o sistema padronizado
+  const cardClasses = [
+    'relative p-3 rounded-lg border transition-all duration-300 ease-out',
+    'group cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2',
+    isSelected
+      ? `card-cliente-selected ${displayInfo.tipoEnum === 'pessoaFisica' ? 'card-cliente-pessoa-fisica-selected' : 'card-cliente-pessoa-juridica-selected'}`
+      : 'card-cliente hover:border-gray-300'
+  ].join(' ');
+
   return (
     <div
       role="radio"
       aria-checked={isSelected}
       aria-labelledby={`cliente-${cliente.id}-name`}
       tabIndex={0}
-      className={`
-        relative ${DESIGN_TOKENS.spacing.card} rounded-lg border transition-all duration-300 ease-out
-        ${isSelected
-          ? `${config.cores.selecionado} border-2`
-          : 'bg-white border-gray-200 hover:border-gray-300'
-        }
-        group cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
-      `}
+      className={cardClasses}
       onClick={() => onSelect(cliente.id)}
       onKeyDown={handleKeyDown}
     >
@@ -156,26 +110,24 @@ const CustomerCard: React.FC<CustomerCardProps> = ({ cliente, isSelected, onSele
 
       {/* Conteúdo principal */}
       <div className="ml-6">
-        {/* Header com tags */}
+        {/* 🎨 NOVO: Header com badges padronizados */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-1">
-            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${config.cores.tag}`}>
-              {config.tipo}
-            </span>
-            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${DESIGN_TOKENS.colors.status.active}`}>
-              Ativo
-            </span>
+            {displayInfo.tipoEnum === 'pessoaFisica' ? (
+              <PessoaFisicaBadge size="sm" />
+            ) : (
+              <PessoaJuridicaBadge size="sm" />
+            )}
+            <AtivoBadge size="sm" />
           </div>
-          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${DESIGN_TOKENS.colors.status.existing}`}>
-            Cliente Existente
-          </span>
+          <ClienteExistenteBadge size="sm" />
         </div>
 
-        {/* Nome da empresa com ícone de prédio */}
+        {/* Nome da empresa com ícone */}
         <div className="flex items-center space-x-1 mb-1">
-          <Building2 className="w-3 h-3 text-gray-600" aria-hidden="true" />
-          <h3 id={`cliente-${cliente.id}-name`} className={`text-sm font-semibold ${config.cores.nome}`}>
-            {config.tipo === 'Pessoa Jurídica' && cliente.entidades_juridicas && cliente.entidades_juridicas.length > 0
+          <displayInfo.icon className="w-3 h-3 text-gray-600" aria-hidden="true" />
+          <h3 id={`cliente-${cliente.id}-name`} className="text-sm font-semibold text-gray-900">
+            {displayInfo.tipo === 'Pessoa Jurídica' && cliente.entidades_juridicas && cliente.entidades_juridicas.length > 0
               ? cliente.entidades_juridicas[0].nome
               : cliente.nome
             }
@@ -183,24 +135,24 @@ const CustomerCard: React.FC<CustomerCardProps> = ({ cliente, isSelected, onSele
         </div>
 
         {/* Subtítulo para Pessoa Jurídica */}
-        {config.tipo === 'Pessoa Jurídica' && (
+        {displayInfo.tipo === 'Pessoa Jurídica' && (
           <div className="mb-2">
-            <p className={`text-xs font-medium ${config.cores.detalhes}`}>
+            <p className="text-xs font-medium text-gray-700">
               Responsável: {cliente.nome}
             </p>
           </div>
         )}
 
-        {/* Informações específicas por tipo */}
+        {/* 🎨 NOVO: Informações específicas por tipo usando classes padronizadas */}
         <div className="space-y-0.5">
           {/* Para Pessoa Jurídica: CNPJ, CPF do responsável e email */}
-          {config.tipo === 'Pessoa Jurídica' && (
+          {displayInfo.tipo === 'Pessoa Jurídica' && (
             <>
               {/* CNPJ da empresa */}
               {cliente.entidades_juridicas && cliente.entidades_juridicas.length > 0 && (
                 <div className="flex items-center space-x-1">
                   <span className="text-gray-600 font-bold text-xs">#</span>
-                  <span className={`text-xs ${config.cores.detalhes}`}>
+                  <span className="text-xs text-gray-700">
                     CNPJ: {formatarCNPJ(cliente.entidades_juridicas[0].cnpj)}
                   </span>
                 </div>
@@ -209,7 +161,7 @@ const CustomerCard: React.FC<CustomerCardProps> = ({ cliente, isSelected, onSele
               {/* CPF do responsável */}
               <div className="flex items-center space-x-1">
                 <CreditCard className="w-2.5 h-2.5 text-gray-600" aria-hidden="true" />
-                <span className={`text-xs ${config.cores.detalhes}`}>
+                <span className="text-xs text-gray-700">
                   CPF Responsável: {formatarCPF(cliente.cpf)}
                 </span>
               </div>
@@ -217,7 +169,7 @@ const CustomerCard: React.FC<CustomerCardProps> = ({ cliente, isSelected, onSele
               {/* Email */}
               <div className="flex items-center space-x-1">
                 <Mail className="w-2.5 h-2.5 text-gray-600" aria-hidden="true" />
-                <span className={`text-xs ${config.cores.detalhes}`}>
+                <span className="text-xs text-gray-700">
                   Email: {cliente.email}
                 </span>
               </div>
@@ -225,12 +177,12 @@ const CustomerCard: React.FC<CustomerCardProps> = ({ cliente, isSelected, onSele
           )}
 
           {/* Para Pessoa Física: CPF e email */}
-          {config.tipo === 'Pessoa Física' && (
+          {displayInfo.tipo === 'Pessoa Física' && (
             <>
               {/* CPF */}
               <div className="flex items-center space-x-1">
                 <CreditCard className="w-2.5 h-2.5 text-gray-600" aria-hidden="true" />
-                <span className={`text-xs ${config.cores.detalhes}`}>
+                <span className="text-xs text-gray-700">
                   CPF: {formatarCPF(cliente.cpf)}
                 </span>
               </div>
@@ -238,7 +190,7 @@ const CustomerCard: React.FC<CustomerCardProps> = ({ cliente, isSelected, onSele
               {/* Email */}
               <div className="flex items-center space-x-1">
                 <Mail className="w-2.5 h-2.5 text-gray-600" aria-hidden="true" />
-                <span className={`text-xs ${config.cores.detalhes}`}>
+                <span className="text-xs text-gray-700">
                   Email: {cliente.email}
                 </span>
               </div>
@@ -709,7 +661,7 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
       <div className="mb-6 flex items-center justify-between">
         <button
           onClick={() => setModalCadastroAberto(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+          className="btn-success flex items-center space-x-2"
         >
           <Plus className="w-4 h-4" />
           <span>Cadastrar Cliente</span>
@@ -722,7 +674,7 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
             placeholder="Buscar cliente..."
             value={searchTerm}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-blue focus:border-transparent w-full"
+            className="input-custom pl-10 pr-4 py-2 w-full"
           />
         </div>
       </div>
@@ -739,7 +691,7 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
         ) : (
           <>
 
-            <div role="radiogroup" aria-label="Lista de clientes disponíveis" className={DESIGN_TOKENS.spacing.gap}>
+            <div role="radiogroup" aria-label="Lista de clientes disponíveis" className="space-y-2">
               {clientes.map((cliente) => (
                 <CustomerCard
                   key={cliente.id}
@@ -774,7 +726,7 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
               {!searchTerm && (
                 <button
                   onClick={() => setModalCadastroAberto(true)}
-                  className="inline-flex items-center px-6 py-3 bg-custom-blue text-white font-medium rounded-lg hover:bg-custom-blue-light transition-colors duration-200 shadow-sm hover:shadow-md"
+                  className="btn-primary inline-flex items-center px-6 py-3"
                 >
                   <Plus className="w-5 h-5 mr-2" />
                   Cadastrar Primeiro Cliente
@@ -791,7 +743,7 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
           <button
             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
-            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition-all duration-200 font-medium text-gray-700 hover:border-gray-400 disabled:cursor-not-allowed"
+            className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Anterior
           </button>
@@ -823,7 +775,7 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
           <button
             onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
-            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition-all duration-200 font-medium text-gray-700 hover:border-gray-400 disabled:cursor-not-allowed"
+            className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Próxima
           </button>
@@ -857,14 +809,14 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
           <div className="flex justify-end space-x-3">
             <button
               onClick={onVoltar}
-              className="px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 shadow-sm hover:shadow-md"
+              className="btn-secondary px-6 py-3 text-sm"
             >
               Cancelar
             </button>
             <button
               onClick={handleProximo}
               disabled={!selectedClienteId}
-              className="px-6 py-3 text-sm font-medium text-white bg-custom-blue rounded-lg hover:bg-custom-blue-light disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md disabled:hover:shadow-sm"
+              className="btn-primary px-6 py-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Próximo Passo
             </button>

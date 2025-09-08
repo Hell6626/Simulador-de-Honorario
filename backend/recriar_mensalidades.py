@@ -137,18 +137,25 @@ def recriar_mensalidades_final():
             if regime_id in faixas_por_regime:
                 for faixa_id, valor_inicial, valor_final, aliquota in faixas_por_regime[regime_id]:
                     if valor_inicial <= 180000:  # Até 180k
-                        mensalidades.append((
-                            tipo_id, regime_id, faixa_id, 800.00,
-                            'Serviços - Simples Nacional - Até 180k'
-                        ))
+                        if tipo_id == 1:
+                            mensalidades.append((
+                                tipo_id, regime_id, faixa_id, 400.00,
+                                'Serviços - Simples Nacional - Até 180k'
+                            ))
+                        else:
+                            mensalidades.append((
+                                tipo_id, regime_id, faixa_id, 500.00,
+                                'Serviços - Simples Nacional - Até 180k'
+                            ))
+                        
                     elif valor_inicial <= 360000:  # Até 360k
                         mensalidades.append((
-                            tipo_id, regime_id, faixa_id, 1200.00,
+                            tipo_id, regime_id, faixa_id, 800.00,
                             'Serviços - Simples Nacional - Até 360k'
                         ))
                     elif valor_inicial <= 720000:  # Até 720k
                         mensalidades.append((
-                            tipo_id, regime_id, faixa_id, 1600.00,
+                            tipo_id, regime_id, faixa_id, 1200.00,
                             'Serviços - Simples Nacional - Até 720k'
                         ))
                     else:  # Acima de 720k - A Combinar

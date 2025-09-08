@@ -2,6 +2,344 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 🎨 SISTEMA DE CORES CUSTOMIZADO */
+@layer base {
+  :root {
+    /* 🎯 CORES PRIMÁRIAS */
+    --color-primary-50: #eff6ff;
+    --color-primary-100: #dbeafe;
+    --color-primary-200: #bfdbfe;
+    --color-primary-300: #93c5fd;
+    --color-primary-400: #60a5fa;
+    --color-primary-500: #3b82f6;
+    --color-primary-600: #2563eb;
+    --color-primary-700: #1d4ed8;
+    --color-primary-800: #1e40af;
+    --color-primary-900: #1e3a8a;
+    --color-primary-950: #172554;
+
+    /* 🎯 CORES SEMÂNTICAS - CLIENTES */
+    --color-cliente-pessoa-fisica-primary: #22c55e;
+    --color-cliente-pessoa-fisica-light: #f0fdf4;
+    --color-cliente-pessoa-fisica-dark: #15803d;
+    --color-cliente-pessoa-fisica-text: #15803d;
+    --color-cliente-pessoa-fisica-border: #86efac;
+
+    --color-cliente-pessoa-juridica-primary: #a855f7;
+    --color-cliente-pessoa-juridica-light: #faf5ff;
+    --color-cliente-pessoa-juridica-dark: #7c3aed;
+    --color-cliente-pessoa-juridica-text: #7c3aed;
+    --color-cliente-pessoa-juridica-border: #d8b4fe;
+
+    /* 🎯 CORES SEMÂNTICAS - STATUS */
+    --color-status-ativo-primary: #22c55e;
+    --color-status-ativo-light: #f0fdf4;
+    --color-status-ativo-dark: #15803d;
+    --color-status-ativo-text: #15803d;
+    --color-status-ativo-border: #86efac;
+
+    --color-status-inativo-primary: #ef4444;
+    --color-status-inativo-light: #fef2f2;
+    --color-status-inativo-dark: #b91c1c;
+    --color-status-inativo-text: #b91c1c;
+    --color-status-inativo-border: #fca5a5;
+
+    --color-status-pendente-primary: #f59e0b;
+    --color-status-pendente-light: #fefce8;
+    --color-status-pendente-dark: #b45309;
+    --color-status-pendente-text: #b45309;
+    --color-status-pendente-border: #fcd34d;
+
+    --color-status-existente-primary: #3b82f6;
+    --color-status-existente-light: #eff6ff;
+    --color-status-existente-dark: #1d4ed8;
+    --color-status-existente-text: #1d4ed8;
+    --color-status-existente-border: #93c5fd;
+
+    /* 🎯 CORES SEMÂNTICAS - PROPOSTAS */
+    --color-proposta-rascunho-primary: #6b7280;
+    --color-proposta-rascunho-light: #f9fafb;
+    --color-proposta-rascunho-dark: #374151;
+    --color-proposta-rascunho-text: #374151;
+    --color-proposta-rascunho-border: #d1d5db;
+
+    --color-proposta-enviada-primary: #3b82f6;
+    --color-proposta-enviada-light: #eff6ff;
+    --color-proposta-enviada-dark: #1d4ed8;
+    --color-proposta-enviada-text: #1d4ed8;
+    --color-proposta-enviada-border: #93c5fd;
+
+    --color-proposta-aprovada-primary: #22c55e;
+    --color-proposta-aprovada-light: #f0fdf4;
+    --color-proposta-aprovada-dark: #15803d;
+    --color-proposta-aprovada-text: #15803d;
+    --color-proposta-aprovada-border: #86efac;
+
+    --color-proposta-rejeitada-primary: #ef4444;
+    --color-proposta-rejeitada-light: #fef2f2;
+    --color-proposta-rejeitada-dark: #b91c1c;
+    --color-proposta-rejeitada-text: #b91c1c;
+    --color-proposta-rejeitada-border: #fca5a5;
+
+    /* 🎯 CORES DE INTERFACE */
+    --color-button-primary-bg: #3b82f6;
+    --color-button-primary-bg-hover: #2563eb;
+    --color-button-primary-text: #ffffff;
+    --color-button-primary-border: #3b82f6;
+
+    --color-button-secondary-bg: #ffffff;
+    --color-button-secondary-bg-hover: #f9fafb;
+    --color-button-secondary-text: #111827;
+    --color-button-secondary-border: #d1d5db;
+
+    --color-input-bg: #ffffff;
+    --color-input-bg-disabled: #f9fafb;
+    --color-input-border: #d1d5db;
+    --color-input-border-focus: #3b82f6;
+    --color-input-border-error: #ef4444;
+    --color-input-text: #111827;
+    --color-input-text-placeholder: #6b7280;
+    --color-input-text-disabled: #9ca3af;
+
+    --color-card-bg: #ffffff;
+    --color-card-border: #e5e7eb;
+    --color-card-border-hover: #d1d5db;
+    --color-card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --color-card-shadow-hover: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
+    --color-modal-overlay: rgba(0, 0, 0, 0.5);
+    --color-modal-bg: #ffffff;
+    --color-modal-border: #e5e7eb;
+    --color-modal-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+
+    /* 🎯 CORES DE ACESSIBILIDADE */
+    --color-focus-ring: #3b82f6;
+    --color-focus-ring-offset: #ffffff;
+    --color-selection-bg: #dbeafe;
+    --color-selection-text: #1e3a8a;
+  }
+}
+
+/* 🎨 COMPONENTES CUSTOMIZADOS */
+@layer components {
+
+  /* Badge de Cliente */
+  .badge-cliente-pessoa-fisica {
+    @apply bg-green-500 text-white px-2.5 py-1.5 rounded-full text-sm font-medium;
+  }
+
+  .badge-cliente-pessoa-juridica {
+    @apply bg-purple-500 text-white px-2.5 py-1.5 rounded-full text-sm font-medium;
+  }
+
+  /* Badge de Status */
+  .badge-status-ativo {
+    @apply bg-green-100 text-green-700 px-2.5 py-1.5 rounded-full text-sm font-medium;
+  }
+
+  .badge-status-inativo {
+    @apply bg-red-100 text-red-700 px-2.5 py-1.5 rounded-full text-sm font-medium;
+  }
+
+  .badge-status-pendente {
+    @apply bg-yellow-100 text-yellow-700 px-2.5 py-1.5 rounded-full text-sm font-medium;
+  }
+
+  .badge-status-existente {
+    @apply bg-blue-100 text-blue-700 px-2.5 py-1.5 rounded-full text-sm font-medium;
+  }
+
+  /* Card de Cliente */
+  .card-cliente {
+    @apply bg-white rounded-lg border border-gray-200 p-3 transition-all duration-300;
+  }
+
+  .card-cliente:hover {
+    @apply border-gray-300 shadow-card-hover;
+  }
+
+  .card-cliente-selected {
+    @apply border-2 shadow-md;
+  }
+
+  .card-cliente-pessoa-fisica-selected {
+    @apply border-green-300 bg-green-50;
+  }
+
+  .card-cliente-pessoa-juridica-selected {
+    @apply border-purple-300 bg-purple-50;
+  }
+
+  /* Botões Customizados */
+  .btn-primary {
+    @apply bg-custom-blue text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:bg-custom-blue-light focus:outline-none focus:ring-2 focus:ring-custom-blue/30 focus:ring-offset-2;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
+  }
+
+  .btn-success {
+    @apply bg-green-500 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2;
+  }
+
+  .btn-danger {
+    @apply bg-red-500 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
+  }
+
+  /* Inputs Customizados */
+  .input-custom {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-custom-blue/30 focus:border-custom-blue transition-all duration-200;
+  }
+
+  .input-custom-error {
+    @apply border-red-500 focus:ring-red-500 focus:border-red-500;
+  }
+
+  .input-custom-disabled {
+    @apply bg-gray-50 text-gray-500 cursor-not-allowed;
+  }
+
+  /* Modais Customizados */
+  .modal-overlay-custom {
+    @apply fixed inset-0 bg-black bg-opacity-50 z-50;
+  }
+
+  .modal-content-custom {
+    @apply bg-white rounded-lg shadow-modal max-w-md mx-auto mt-20 p-6;
+  }
+
+  /* Estados de Foco Customizados */
+  .focus-ring-custom {
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+  }
+
+  /* Animações Customizadas */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+/* 🎨 UTILITÁRIOS CUSTOMIZADOS */
+@layer utilities {
+
+  /* Cores de Texto Semânticas */
+  .text-cliente-pessoa-fisica {
+    color: var(--color-cliente-pessoa-fisica-text);
+  }
+
+  .text-cliente-pessoa-juridica {
+    color: var(--color-cliente-pessoa-juridica-text);
+  }
+
+  .text-status-ativo {
+    color: var(--color-status-ativo-text);
+  }
+
+  .text-status-inativo {
+    color: var(--color-status-inativo-text);
+  }
+
+  .text-status-pendente {
+    color: var(--color-status-pendente-text);
+  }
+
+  .text-status-existente {
+    color: var(--color-status-existente-text);
+  }
+
+  /* Cores de Fundo Semânticas */
+  .bg-cliente-pessoa-fisica {
+    background-color: var(--color-cliente-pessoa-fisica-light);
+  }
+
+  .bg-cliente-pessoa-juridica {
+    background-color: var(--color-cliente-pessoa-juridica-light);
+  }
+
+  .bg-status-ativo {
+    background-color: var(--color-status-ativo-light);
+  }
+
+  .bg-status-inativo {
+    background-color: var(--color-status-inativo-light);
+  }
+
+  .bg-status-pendente {
+    background-color: var(--color-status-pendente-light);
+  }
+
+  .bg-status-existente {
+    background-color: var(--color-status-existente-light);
+  }
+
+  /* Bordas Semânticas */
+  .border-cliente-pessoa-fisica {
+    border-color: var(--color-cliente-pessoa-fisica-border);
+  }
+
+  .border-cliente-pessoa-juridica {
+    border-color: var(--color-cliente-pessoa-juridica-border);
+  }
+
+  .border-status-ativo {
+    border-color: var(--color-status-ativo-border);
+  }
+
+  .border-status-inativo {
+    border-color: var(--color-status-inativo-border);
+  }
+
+  .border-status-pendente {
+    border-color: var(--color-status-pendente-border);
+  }
+
+  .border-status-existente {
+    border-color: var(--color-status-existente-border);
+  }
+
+  /* Sombras Customizadas */
+  .shadow-card {
+    box-shadow: var(--color-card-shadow);
+  }
+
+  .shadow-card-hover {
+    box-shadow: var(--color-card-shadow-hover);
+  }
+
+  .shadow-modal {
+    box-shadow: var(--color-modal-shadow);
+  }
+
+  /* Estados de Hover Semânticos */
+  .hover-cliente-pessoa-fisica:hover {
+    background-color: var(--color-cliente-pessoa-fisica-light);
+    border-color: var(--color-cliente-pessoa-fisica-border);
+  }
+
+  .hover-cliente-pessoa-juridica:hover {
+    background-color: var(--color-cliente-pessoa-juridica-light);
+    border-color: var(--color-cliente-pessoa-juridica-border);
+  }
+
+  /* Estados de Foco Semânticos */
+  .focus-cliente-pessoa-fisica:focus {
+    ring-color: var(--color-cliente-pessoa-fisica-primary);
+  }
+
+  .focus-cliente-pessoa-juridica:focus {
+    ring-color: var(--color-cliente-pessoa-juridica-primary);
+  }
+}
+
 /* Estilos para ocultar scrollbar */
 .scrollbar-hide {
   /* Firefox */
