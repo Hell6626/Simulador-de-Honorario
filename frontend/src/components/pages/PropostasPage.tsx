@@ -28,6 +28,7 @@ interface ConfiguracoesTributarias {
   tipo_atividade_id: number;
   regime_tributario_id: number;
   faixa_faturamento_id: number | null; // ⚠️ Pode ser null se não houver faixas
+  valor_mensalidade?: number; // ⚠️ NOVO: Valor da mensalidade automática
 }
 
 interface ServicoSelecionado {
@@ -82,6 +83,7 @@ interface PropostaCompleta {
   tipo_atividade_id: number;
   regime_tributario_id: number;
   faixa_faturamento_id?: number;
+  valor_mensalidade?: number; // ⚠️ NOVO: Valor da mensalidade automática
 
   // Serviços (Passo 3)
   servicosSelecionados: ServicoSelecionado[];
@@ -130,6 +132,11 @@ interface DadosPropostaCompleta {
     regime_tributario_id: number;
   };
   servicosSelecionados: ServicoSelecionado[];
+  // ✅ CORREÇÃO: Adicionar campos de mensalidade
+  valor_mensalidade?: number;
+  mensalidade_encontrada?: boolean;
+  total_servicos?: number;
+  total_geral?: number;
 }
 
 interface PropostaComDesconto {
@@ -604,7 +611,17 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
   };
 
   // ⚠️ CORRIGIDO: Função onProximo do Passo 3 - Criar proposta como RASCUNHO
-  const handleProximoPasso3 = async (servicos: ServicoSelecionado[]) => {
+  const handleProximoPasso3 = async (dadosCompletos: any) => {
+    // ✅ CORREÇÃO: Extrair serviços do objeto dadosCompletos
+    const servicos = dadosCompletos.servicos || [];
+
+    console.log('🔄 Passo 3 - Dados recebidos:', {
+      dadosCompletos,
+      servicos,
+      tipoServicos: typeof servicos,
+      isArray: Array.isArray(servicos)
+    });
+
     setServicosSelecionados(servicos);
 
     // ⚠️ ATUALIZAR: Estado principal com serviços selecionados
@@ -615,6 +632,17 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
 
     // Preparar dados completos para o Passo 4 usando dados reais
     if (dadosProposta.cliente && dadosProposta.tipoAtividade && dadosProposta.regimeTributario) {
+      // ✅ CORREÇÃO: Calcular valores ANTES de usar nas interfaces
+      const valorServicos = Array.isArray(servicos) ? servicos.reduce((total, servico) => total + servico.subtotal, 0) : 0;
+      const valorMensalidade = dadosProposta.valor_mensalidade || 0;
+      const valorTotal = valorServicos + valorMensalidade;
+
+      console.log('💰 Preparação dos dados - Cálculo do total:', {
+        valorServicos,
+        valorMensalidade,
+        valorTotal
+      });
+
       const dadosCompletos: DadosPropostaCompleta = {
         cliente: {
           id: dadosProposta.cliente.id,
@@ -646,15 +674,23 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
           aliquota: dadosProposta.faixaFaturamento.aliquota,
           regime_tributario_id: dadosProposta.faixaFaturamento.regime_tributario_id
         } : undefined,
-        servicosSelecionados: servicos
+        servicosSelecionados: servicos,
+        // ✅ CORREÇÃO: Incluir dados de mensalidade
+        valor_mensalidade: valorMensalidade,
+        mensalidade_encontrada: valorMensalidade > 0,
+        total_servicos: valorServicos,
+        total_geral: valorTotal
       };
 
       // ⚠️ NOVO: Criar proposta como RASCUNHO no Passo 3
       try {
         console.log('🔄 Criando proposta como RASCUNHO no Passo 3...');
 
-        // Calcular valor total dos serviços
-        const valorTotal = servicos.reduce((total, servico) => total + servico.subtotal, 0);
+        console.log('💰 Criação da proposta - Cálculo do total:', {
+          valorServicos,
+          valorMensalidade,
+          valorTotal
+        });
 
         const dadosPropostaAPI = {
           cliente_id: dadosProposta.cliente.id,
@@ -662,6 +698,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
           regime_tributario_id: dadosProposta.regimeTributario.id,
           faixa_faturamento_id: dadosProposta.faixaFaturamento?.id,
           valor_total: valorTotal,
+          valor_mensalidade: valorMensalidade, // ✅ CORREÇÃO: Incluir mensalidade
           percentual_desconto: 0, // Sem desconto no rascunho
           valor_desconto: 0,
           requer_aprovacao: false,
@@ -733,7 +770,8 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
             faixaFaturamento: faixaEncontrada,
             tipo_atividade_id: dados.tipo_atividade_id,
             regime_tributario_id: dados.regime_tributario_id,
-            faixa_faturamento_id: dados.faixa_faturamento_id || undefined
+            faixa_faturamento_id: dados.faixa_faturamento_id || undefined,
+            valor_mensalidade: dados.valor_mensalidade || 0 // ⚠️ NOVO: Incluir mensalidade
           }));
 
           // ⚠️ CORREÇÃO: Todos os tipos de atividade vão para Passo 3 (seleção de serviços)
@@ -917,6 +955,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
       <Passo3SelecaoServicos
         tipoAtividade={tipoAtividade}
         regimeTributario={dadosProposta.regimeTributario}
+        valorMensalidade={dadosProposta.valor_mensalidade || 0} // ⚠️ NOVO: Passar mensalidade
         onVoltar={handleVoltarPasso3}
         onProximo={handleProximoPasso3}
       />

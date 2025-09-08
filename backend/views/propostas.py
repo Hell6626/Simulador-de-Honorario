@@ -80,8 +80,11 @@ def obter_dados_completos_proposta(proposta_id: int) -> dict:
         regime.codigo if regime else ''
     )
     
-    # ⚠️ VALOR BASE: Serviços + Taxa de abertura
-    valor_base = valor_servicos + taxa_abertura
+    # ⚠️ CALCULAR: Valor da mensalidade automática
+    valor_mensalidade = float(proposta.valor_mensalidade) if proposta.valor_mensalidade else 0.0
+    
+    # ⚠️ VALOR BASE: Serviços + Taxa de abertura + Mensalidade
+    valor_base = valor_servicos + taxa_abertura + valor_mensalidade
     
     # ⚠️ CALCULAR: Desconto real (Base - Valor Final)
     valor_final = float(proposta.valor_total)
@@ -94,6 +97,7 @@ def obter_dados_completos_proposta(proposta_id: int) -> dict:
         'regime_codigo': regime.codigo if regime else '',
         'valor_servicos': valor_servicos,
         'taxa_abertura': taxa_abertura,
+        'valor_mensalidade': valor_mensalidade,
         'valor_base': valor_base,
         'valor_final': valor_final,
         'desconto_valor': desconto_valor,
@@ -167,7 +171,8 @@ def get_proposta(proposta_id: int):
     resposta['resumo_financeiro'] = {
         'valor_servicos': dados_completos['valor_servicos'],
         'taxa_abertura': dados_completos['taxa_abertura'],
-        'valor_base': dados_completos['valor_base'],  # Serviços + Taxa
+        'valor_mensalidade': dados_completos['valor_mensalidade'],
+        'valor_base': dados_completos['valor_base'],  # Serviços + Taxa + Mensalidade
         'valor_final': dados_completos['valor_final'],
         'desconto_valor': dados_completos['desconto_valor'],
         'desconto_percentual': dados_completos['desconto_percentual'],
@@ -183,6 +188,7 @@ def get_proposta(proposta_id: int):
         f"Proposta {proposta_id} consultada - "
         f"Serviços: R$ {dados_completos['valor_servicos']:.2f}, "
         f"Taxa abertura: R$ {dados_completos['taxa_abertura']:.2f}, "
+        f"Mensalidade: R$ {dados_completos['valor_mensalidade']:.2f}, "
         f"Base: R$ {dados_completos['valor_base']:.2f}, "
         f"Final: R$ {dados_completos['valor_final']:.2f}, "
         f"Desconto: R$ {dados_completos['desconto_valor']:.2f}"
@@ -229,6 +235,7 @@ def create_proposta():
         regime_tributario_id=data['regime_tributario_id'],
         faixa_faturamento_id=data.get('faixa_faturamento_id'),
         valor_total=data.get('valor_total', 0),
+        valor_mensalidade=data.get('valor_mensalidade', 0),  # Valor da mensalidade automática
         percentual_desconto=data.get('percentual_desconto', 0),  # Percentual de desconto (0-100)
         data_validade=datetime.fromisoformat(data.get('data_validade')) if data.get('data_validade') else datetime.now() + timedelta(days=30),
         status=data.get('status', 'RASCUNHO'),
@@ -331,6 +338,15 @@ def update_proposta(proposta_id: int):
             'valor_novo': float(data['valor_total'])
         })
         proposta.valor_total = data['valor_total']
+    
+    # Valor mensalidade
+    if 'valor_mensalidade' in data and float(data['valor_mensalidade']) != float(proposta.valor_mensalidade or 0):
+        alteracoes_realizadas.append({
+            'campo': 'valor_mensalidade',
+            'valor_anterior': float(proposta.valor_mensalidade or 0),
+            'valor_novo': float(data['valor_mensalidade'])
+        })
+        proposta.valor_mensalidade = data['valor_mensalidade']
     
     # Percentual de desconto
     if 'percentual_desconto' in data and int(data['percentual_desconto']) != proposta.percentual_desconto:
@@ -463,6 +479,7 @@ def update_proposta(proposta_id: int):
     resposta['resumo_financeiro'] = {
         'valor_servicos': dados_atualizados['valor_servicos'],
         'taxa_abertura': dados_atualizados['taxa_abertura'],
+        'valor_mensalidade': dados_atualizados['valor_mensalidade'],
         'valor_base': dados_atualizados['valor_base'],
         'valor_final': dados_atualizados['valor_final'],
         'desconto_valor': dados_atualizados['desconto_valor'],
@@ -478,6 +495,7 @@ def update_proposta(proposta_id: int):
     current_app.logger.info(
         f"Proposta {proposta_id} atualizada - "
         f"Taxa: R$ {dados_atualizados['taxa_abertura']:.2f}, "
+        f"Mensalidade: R$ {dados_atualizados['valor_mensalidade']:.2f}, "
         f"Base: R$ {dados_atualizados['valor_base']:.2f}, "
         f"Final: R$ {dados_atualizados['valor_final']:.2f}"
     )
@@ -741,6 +759,11 @@ def finalizar_proposta(proposta_id: int):
         if 'valor_total' in data and float(data['valor_total']) != float(proposta.valor_total):
             alteracoes.append(f"valor_total: {proposta.valor_total} -> {data['valor_total']}")
             proposta.valor_total = data['valor_total']
+            
+        # ✅ CORREÇÃO: Processar mensalidade na finalização
+        if 'valor_mensalidade' in data and float(data['valor_mensalidade']) != float(proposta.valor_mensalidade or 0):
+            alteracoes.append(f"valor_mensalidade: {proposta.valor_mensalidade or 0} -> {data['valor_mensalidade']}")
+            proposta.valor_mensalidade = data['valor_mensalidade']
             
         if 'status' in data and data['status'] != proposta.status:
             alteracoes.append(f"status: {proposta.status} -> {data['status']}")

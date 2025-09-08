@@ -32,6 +32,7 @@ interface DadosProposta {
   valor_total: number;
   valor_servicos: number; // NOVO: Soma dos serviços
   valor_desconto: number; // NOVO: Valor do desconto
+  valor_mensalidade: number; // NOVO: Valor da mensalidade automática
 
   // ⚠️ NOVOS CAMPOS: Taxa de abertura e dados financeiros
   taxa_abertura: number;
@@ -66,6 +67,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
     valor_total: 0,
     valor_servicos: 0,
     valor_desconto: 0,
+    valor_mensalidade: 0, // NOVO: Valor da mensalidade automática
     // ⚠️ NOVOS CAMPOS: Taxa de abertura e dados financeiros
     taxa_abertura: 0,
     valor_base: 0,
@@ -142,7 +144,8 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
       const resumo = propostaCompleta.resumo_financeiro || {};
       const valorServicos = resumo.valor_servicos || 0;
       const taxaAbertura = resumo.taxa_abertura || 0;
-      const valorBase = resumo.valor_base || (valorServicos + taxaAbertura);
+      const valorMensalidade = resumo.valor_mensalidade || propostaCompleta.valor_mensalidade || 0;
+      const valorBase = resumo.valor_base || (valorServicos + taxaAbertura + valorMensalidade);
       const valorFinal = resumo.valor_final || propostaCompleta.valor_total;
       const descontoValor = resumo.desconto_valor || 0;
       // ⚠️ CORRIGIDO: Usar o percentual salvo no banco em vez do calculado
@@ -152,6 +155,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
       console.log('💰 Valores financeiros corretos:', {
         valorServicos,
         taxaAbertura,
+        valorMensalidade,
         valorBase,
         valorFinal,
         descontoValor,
@@ -169,6 +173,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
         // ⚠️ VALORES CORRETOS DO BACKEND
         valor_servicos: valorServicos,
         taxa_abertura: taxaAbertura,
+        valor_mensalidade: valorMensalidade,
         valor_base: valorBase,
         valor_total: valorFinal,
 
@@ -236,8 +241,8 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
       taxaAberturaAtual = codigoRegime.toUpperCase() === 'MEI' ? 300 : 1000;
     }
 
-    // ⚠️ VALOR BASE: Serviços + Taxa
-    const valorBaseAtual = valorServicosAtual + taxaAberturaAtual;
+    // ⚠️ VALOR BASE: Serviços + Taxa + Mensalidade
+    const valorBaseAtual = valorServicosAtual + taxaAberturaAtual + dados.valor_mensalidade;
 
     // ⚠️ APLICAR: Desconto ao valor base
     const descontoValor = (valorBaseAtual * dados.percentual_desconto) / 100;
@@ -267,6 +272,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
     console.log('💰 Valores recalculados:', {
       valorServicosAtual,
       taxaAberturaAtual,
+      valorMensalidade: dados.valor_mensalidade,
       valorBaseAtual,
       percentualDesconto: dados.percentual_desconto,
       descontoValor,
@@ -274,7 +280,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
       tipoDesconto
     });
 
-  }, [dados.servicosSelecionados, dados.regime_tributario_id, dados.percentual_desconto, clienteCompleto, regimesTributarios, dados.taxa_abertura_aplicavel]);
+  }, [dados.servicosSelecionados, dados.regime_tributario_id, dados.percentual_desconto, dados.valor_mensalidade, clienteCompleto, regimesTributarios, dados.taxa_abertura_aplicavel]);
 
   // Alterar regime tributário
   const handleRegimeChange = async (regimeId: number) => {
@@ -305,7 +311,8 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
       // ⚠️ CALCULAR: Valor total baseado no desconto
       const valorServicos = dados.servicosSelecionados.reduce((sum, item) => sum + item.subtotal, 0);
       const taxaAbertura = dados.taxa_abertura || 0;
-      const valorBase = valorServicos + taxaAbertura;
+      const valorMensalidade = dados.valor_mensalidade || 0;
+      const valorBase = valorServicos + taxaAbertura + valorMensalidade;
 
       // ⚠️ APLICAR: Desconto ao valor base
       const descontoValor = (valorBase * dados.percentual_desconto) / 100;
@@ -318,6 +325,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
         faixa_faturamento_id: dados.faixa_faturamento_id,
         status: dados.status,
         valor_total: valorTotalFinal, // ⚠️ VALOR RECALCULADO
+        valor_mensalidade: valorMensalidade, // ⚠️ VALOR DA MENSALIDADE
         percentual_desconto: dados.percentual_desconto, // ⚠️ DESCONTO INCLUÍDO
         data_validade: dados.data_validade,
         observacoes: montarObservacoesCompletas(),
@@ -361,6 +369,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
         `Percentual de desconto: ${dados.percentual_desconto.toFixed(1)}%`,
         `Valor do desconto: R$ ${dados.valor_desconto.toFixed(2)}`,
         `Valor dos serviços: R$ ${dados.valor_servicos.toFixed(2)}`,
+        `Valor da mensalidade: R$ ${dados.valor_mensalidade.toFixed(2)}`,
         `Valor final: R$ ${dados.valor_total.toFixed(2)}`,
         `Requer aprovação: ${dados.percentual_desconto > 20 ? 'Sim' : 'Não'}`,
         '--- FIM INFORMAÇÕES DESCONTO ---'
@@ -510,14 +519,22 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
                       </div>
                     )}
 
+                    {/* ⚠️ MENSALIDADE AUTOMÁTICA */}
+                    {dados.valor_mensalidade > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Mensalidade:</span>
+                        <span className="font-medium text-green-600">{formatarMoeda(dados.valor_mensalidade)}</span>
+                      </div>
+                    )}
+
                     <div className="flex justify-between border-t pt-2">
-                      <span className="text-gray-600">Base de cálculo:</span>
-                      <span className="font-medium">{formatarMoeda(dados.valor_base)}</span>
+                      <span className="text-gray-600">Subtotal geral:</span>
+                      <span className="font-medium">{formatarMoeda(dados.valor_servicos + dados.taxa_abertura + dados.valor_mensalidade)}</span>
                     </div>
 
                     <div className="flex justify-between">
                       <span className="text-gray-600">Valor final:</span>
-                      <span className="font-medium text-blue-600">{formatarMoeda(dados.valor_total)}</span>
+                      <span className="font-medium text-blue-600">{formatarMoeda(dados.valor_servicos + dados.taxa_abertura + dados.valor_mensalidade - dados.valor_desconto)}</span>
                     </div>
 
                     {/* ⚠️ DESCONTO REAL */}
@@ -542,6 +559,11 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
                       {dados.taxa_abertura > 0 && (
                         <p className="text-orange-700 mt-1">
                           💡 {dados.taxa_abertura_motivo}
+                        </p>
+                      )}
+                      {dados.valor_mensalidade > 0 && (
+                        <p className="text-green-700 mt-1">
+                          💡 Mensalidade automática: {formatarMoeda(dados.valor_mensalidade)}
                         </p>
                       )}
                     </div>

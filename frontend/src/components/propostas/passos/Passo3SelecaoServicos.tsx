@@ -54,8 +54,16 @@ interface RegimeTributario {
 interface Passo3Props {
   tipoAtividade: TipoAtividade;
   regimeTributario: RegimeTributario; // ⚠️ NOVO: Receber regime do Passo 2
+  valorMensalidade?: number; // ⚠️ NOVO: Valor da mensalidade automática
   onVoltar: () => void;
-  onProximo: (servicos: ServicoSelecionado[]) => void;
+  onProximo: (dados: {
+    servicos: ServicoSelecionado[];
+    valor_mensalidade: number;
+    total_servicos: number;
+    total_geral: number;
+    tipo_atividade: TipoAtividade;
+    regime_tributario: RegimeTributario;
+  }) => void; // ✅ CORREÇÃO: Interface atualizada
   // ⚠️ NOVO: Props para salvamento automático
   dadosSalvos?: any;
   onSalvarProgresso?: (dados: any) => void;
@@ -116,6 +124,7 @@ console.log('5 funcionários:', calcularValorGestaoFuncionarios(5)); // R$ 180,0
 export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
   tipoAtividade,
   regimeTributario, // ⚠️ NOVO: Usar regime
+  valorMensalidade = 0, // ⚠️ NOVO: Valor da mensalidade automática
   onVoltar,
   onProximo,
   dadosSalvos,
@@ -318,10 +327,19 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
     return totais;
   }, [servicosSelecionados, servicosPorCategoria, todosServicos, tipoAtividade?.id, regimeTributario?.id]);
 
-  // Total geral de todos os serviços
+  // ✅ CORREÇÃO: Total geral de todos os serviços + mensalidade
   const totalGeral = useMemo(() => {
-    return Array.from(totaisPorCategoria.values()).reduce((sum, total) => sum + total, 0);
-  }, [totaisPorCategoria]);
+    const totalServicos = Array.from(totaisPorCategoria.values()).reduce((sum, total) => sum + total, 0);
+    const totalComMensalidade = totalServicos + (valorMensalidade || 0);
+
+    console.log('💰 Passo 3 - Cálculo do total:', {
+      totalServicos,
+      valorMensalidade: valorMensalidade || 0,
+      totalComMensalidade
+    });
+
+    return totalComMensalidade;
+  }, [totaisPorCategoria, valorMensalidade]);
 
   // ✅ IMPLEMENTAR: Carregar serviços filtrados pelo regime tributário específico
   const fetchServicosDisponiveis = async () => {
@@ -726,7 +744,18 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
           extras: informacoesExtras.get(item.servico_id) || {}
         }));
 
-      onProximo(servicosParaEnvio);
+      // ✅ CORREÇÃO: Incluir mensalidade nos dados enviados
+      const dadosCompletos = {
+        servicos: servicosParaEnvio,
+        valor_mensalidade: valorMensalidade || 0,
+        total_servicos: Array.from(totaisPorCategoria.values()).reduce((sum, total) => sum + total, 0),
+        total_geral: totalGeral,
+        tipo_atividade: tipoAtividade,
+        regime_tributario: regimeTributario
+      };
+
+      console.log('🚀 Passo 3 - Dados enviados para próximo passo:', dadosCompletos);
+      onProximo(dadosCompletos);
     }
   };
 
@@ -1273,6 +1302,23 @@ export const Passo3SelecaoServicos: React.FC<Passo3Props> = ({
                 </div>
               );
             })}
+
+            {/* ⚠️ NOVO: Mensalidade Automática */}
+            {valorMensalidade > 0 && (
+              <div className="border-t border-gray-200 pt-4 mt-6">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-lg font-medium text-green-700">
+                    Mensalidade Automática:
+                  </span>
+                  <span className="text-xl font-bold text-green-800">
+                    {formatarMoeda(valorMensalidade)}
+                  </span>
+                </div>
+                <div className="text-sm text-green-600">
+                  ✅ Valor calculado automaticamente baseado nas configurações tributárias
+                </div>
+              </div>
+            )}
 
             {/* ⚠️ AJUSTAR: Total com mais espaçamento */}
             <div className="border-t border-gray-300 pt-4 mt-6">

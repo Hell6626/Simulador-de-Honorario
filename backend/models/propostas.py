@@ -21,6 +21,7 @@ class Proposta(db.Model, TimestampMixin, ActiveMixin):
     regime_tributario_id = db.Column(db.Integer, db.ForeignKey('regime_tributario.id'), nullable=False, index=True)
     faixa_faturamento_id = db.Column(db.Integer, db.ForeignKey('faixa_faturamento.id'), nullable=True, index=True)
     valor_total = db.Column(db.Numeric(precision=15, scale=2), nullable=False, default=0)
+    valor_mensalidade = db.Column(db.Numeric(precision=15, scale=2), nullable=True, default=0)  # Valor da mensalidade automática
     percentual_desconto = db.Column(db.Integer, nullable=False, default=0)  # Percentual de desconto (0-100)
     requer_aprovacao = db.Column(db.Boolean, default=False)  # Se requer aprovação gerencial
     aprovada_por = db.Column(db.Integer, db.ForeignKey('funcionario.id'), nullable=True)  # ID do gerente que aprovou
@@ -55,6 +56,7 @@ class Proposta(db.Model, TimestampMixin, ActiveMixin):
             "regime_tributario_id": self.regime_tributario_id,
             "faixa_faturamento_id": self.faixa_faturamento_id,
             "valor_total": float(self.valor_total),
+            "valor_mensalidade": float(self.valor_mensalidade) if self.valor_mensalidade else 0.0,
             "percentual_desconto": self.percentual_desconto,
             "requer_aprovacao": self.requer_aprovacao,
             "aprovada_por": self.aprovada_por,

@@ -335,13 +335,21 @@
                     <td>{{ item.valor_total|currency }}</td>
                 </tr>
                 {% endfor %}
+                {% if proposta.valor_mensalidade and proposta.valor_mensalidade > 0 %}
+                <tr>
+                    <td><strong>Mensalidade Automática</strong></td>
+                    <td>1</td>
+                    <td>{{ proposta.valor_mensalidade|currency }}</td>
+                    <td>{{ 0|currency }}</td>
+                    <td>{{ proposta.valor_mensalidade|currency }}</td>
+                </tr>
+                {% endif %}
                 <tr class="table-subtotal">
-                    <td colspan="3"><strong>Subtotal</strong></td>
+                    <td colspan="4"><strong>Subtotal</strong></td>
                     <td>{{ subtotal|currency }}</td>
                 </tr>
                 <tr class="table-total">
-                    <td colspan="3"><strong>Total</strong></td>
-                    <td>{{ proposta.valor_desconto|currency }}</td>
+                    <td colspan="4"><strong>Total</strong></td>
                     <td>{{ proposta.valor_total|currency }}</td>
                 </tr>
             </tbody>

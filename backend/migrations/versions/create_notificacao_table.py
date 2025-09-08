@@ -1,7 +1,7 @@
 """Create notificacao table
 
 Revision ID: c3d4e5f6g7h8
-Revises: b2c3d4e5f6g7
+Revises: add_percentual_desconto_to_proposta
 Create Date: 2025-01-29 10:01:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'c3d4e5f6g7h8'
-down_revision = 'b2c3d4e5f6g7'
+down_revision = 'add_percentual_desconto_to_proposta'
 branch_labels = None
 depends_on = None
 

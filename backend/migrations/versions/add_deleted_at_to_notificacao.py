@@ -1,7 +1,7 @@
 """Add deleted_at field to notificacao table
 
 Revision ID: add_deleted_at_notificacao
-Revises: c3d4e5f6g7h8_create_notificacao_table
+Revises: c3d4e5f6g7h8
 Create Date: 2025-01-08 15:30:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'add_deleted_at_notificacao'
-down_revision = 'c3d4e5f6g7h8_create_notificacao_table'
+down_revision = 'c3d4e5f6g7h8'
 branch_labels = None
 depends_on = None
 

@@ -44,6 +44,7 @@ interface ConfiguracoesTributarias {
   tipo_atividade_id: number;
   regime_tributario_id: number;
   faixa_faturamento_id: number | null; // ⚠️ Pode ser null se não houver faixas
+  valor_mensalidade?: number; // ⚠️ NOVO: Valor da mensalidade automática
 }
 
 interface Passo2Props {
@@ -74,6 +75,11 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
   const [selectedTipoAtividade, setSelectedTipoAtividade] = useState<number | null>(null);
   const [selectedRegimeTributario, setSelectedRegimeTributario] = useState<number | null>(null);
   const [selectedFaixaFaturamento, setSelectedFaixaFaturamento] = useState<number | null>(null);
+
+  // ⚠️ NOVO: Estados para mensalidade automática
+  const [valorMensalidade, setValorMensalidade] = useState<number>(0);
+  const [loadingMensalidade, setLoadingMensalidade] = useState(false);
+  const [mensalidadeEncontrada, setMensalidadeEncontrada] = useState(false);
 
   const [tiposAtividade, setTiposAtividade] = useState<TipoAtividade[]>([]);
   const [regimesCompativeis, setRegimesCompativeis] = useState<RegimeTributario[]>([]);
@@ -106,6 +112,101 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
     const temFaixaFaturamento = !!selectedFaixaFaturamento;
     return temTipoAtividade && temRegimeTributario && temFaixaFaturamento;
   }, [selectedTipoAtividade, selectedRegimeTributario, selectedFaixaFaturamento, hasFaixasFaturamento]);
+
+  // ⚠️ NOVO: Função para buscar mensalidade automática
+  const buscarMensalidadeAutomatica = async (tipoAtividadeId: number, regimeTributarioId: number, faixaFaturamentoId?: number) => {
+    setLoadingMensalidade(true);
+    setMensalidadeEncontrada(false);
+    setValorMensalidade(0);
+
+    try {
+      const params: any = {
+        tipo_atividade_id: tipoAtividadeId,
+        regime_tributario_id: regimeTributarioId
+      };
+
+      if (faixaFaturamentoId) {
+        params.faixa_faturamento_id = faixaFaturamentoId;
+      }
+
+      console.log('🔍 Buscando mensalidade com parâmetros:', params);
+      const response = await apiService.buscarMensalidadeAutomatica(params);
+
+      // ✅ CORREÇÃO: Debug detalhado da estrutura da resposta
+      console.log('📊 Resposta completa da API:', response);
+      console.log('📊 Tipo da resposta:', typeof response);
+      console.log('📊 response.data:', response?.data);
+      console.log('📊 response.valor_mensalidade:', response?.valor_mensalidade);
+      console.log('📊 response.data?.valor_mensalidade:', response?.data?.valor_mensalidade);
+
+      // ✅ CORREÇÃO: Verificar estrutura correta da resposta
+      let valorMensalidadeEncontrado = null;
+
+      if (response && typeof response === 'object') {
+        // Verificar se o valor está diretamente na resposta
+        if (response.valor_mensalidade !== undefined && response.valor_mensalidade !== null) {
+          valorMensalidadeEncontrado = response.valor_mensalidade;
+          console.log('✅ Valor encontrado diretamente na resposta:', valorMensalidadeEncontrado);
+        }
+        // Verificar se o valor está em response.data
+        else if (response.data && response.data.valor_mensalidade !== undefined && response.data.valor_mensalidade !== null) {
+          valorMensalidadeEncontrado = response.data.valor_mensalidade;
+          console.log('✅ Valor encontrado em response.data:', valorMensalidadeEncontrado);
+        }
+        // Verificar se o valor está em response.mensalidade
+        else if (response.mensalidade !== undefined && response.mensalidade !== null) {
+          valorMensalidadeEncontrado = response.mensalidade;
+          console.log('✅ Valor encontrado em response.mensalidade:', valorMensalidadeEncontrado);
+        }
+      }
+
+      if (valorMensalidadeEncontrado !== null && valorMensalidadeEncontrado > 0) {
+        setValorMensalidade(valorMensalidadeEncontrado);
+        setMensalidadeEncontrada(true);
+        console.log('✅ Mensalidade encontrada e definida:', valorMensalidadeEncontrado);
+      } else {
+        console.log('ℹ️ Nenhuma mensalidade encontrada para esta configuração');
+        // Se não encontrou, pode ser "A Combinar" (valor 0)
+        setValorMensalidade(0);
+        setMensalidadeEncontrada(false);
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar mensalidade automática:', error);
+
+      // ✅ CORREÇÃO: Tratamento de erro melhorado
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      console.error('❌ Detalhes do erro:', {
+        message: errorMessage,
+        tipoAtividadeId,
+        regimeTributarioId,
+        faixaFaturamentoId,
+        error
+      });
+
+      // Para Pessoa Física, não é erro - é esperado
+      const tipoAtividade = tiposAtividade.find(t => t.id === tipoAtividadeId);
+      if (tipoAtividade?.codigo === 'PF') {
+        console.log('ℹ️ Pessoa Física - Valor a combinar');
+        setValorMensalidade(0);
+        setMensalidadeEncontrada(false);
+      } else if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
+        console.log('ℹ️ Configuração não encontrada na tabela - Valor a combinar');
+        setValorMensalidade(0);
+        setMensalidadeEncontrada(false);
+      } else if (errorMessage.includes('500') || errorMessage.includes('Internal Server Error')) {
+        console.log('⚠️ Erro interno do servidor - Valor a combinar');
+        setValorMensalidade(0);
+        setMensalidadeEncontrada(false);
+      } else {
+        // Para outros casos, definir como "A Combinar"
+        console.log('ℹ️ Erro genérico - Valor a combinar');
+        setValorMensalidade(0);
+        setMensalidadeEncontrada(false);
+      }
+    } finally {
+      setLoadingMensalidade(false);
+    }
+  };
 
   // ⚠️ NOVO: Recuperar dados salvos ao montar componente
   useEffect(() => {
@@ -240,6 +341,19 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
       setAbaAtiva(2);
     }
   }, [selectedRegimeTributario, hasFaixasFaturamento, abaAtiva]);
+
+  // ⚠️ NOVO: Buscar mensalidade quando configurações mudarem
+  useEffect(() => {
+    if (selectedTipoAtividade && selectedRegimeTributario) {
+      // Se há faixas e uma foi selecionada, buscar com faixa
+      if (hasFaixasFaturamento && selectedFaixaFaturamento) {
+        buscarMensalidadeAutomatica(selectedTipoAtividade, selectedRegimeTributario, selectedFaixaFaturamento);
+      } else if (!hasFaixasFaturamento) {
+        // Se não há faixas, buscar sem faixa
+        buscarMensalidadeAutomatica(selectedTipoAtividade, selectedRegimeTributario);
+      }
+    }
+  }, [selectedTipoAtividade, selectedRegimeTributario, selectedFaixaFaturamento, hasFaixasFaturamento]);
 
   const carregarTiposAtividade = async () => {
     setLoading(true);
@@ -553,11 +667,20 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
       // ⚠️ NOVO: Salvar antes de prosseguir
       salvarProgresso();
 
-      onProximo({
+      // ✅ CORREÇÃO: Incluir mensalidade completa nos dados
+      const dadosCompletos = {
         tipo_atividade_id: selectedTipoAtividade!,
         regime_tributario_id: selectedRegimeTributario!,
-        faixa_faturamento_id: selectedFaixaFaturamento // Pode ser null
-      });
+        faixa_faturamento_id: selectedFaixaFaturamento, // Pode ser null
+        valor_mensalidade: valorMensalidade, // ✅ Mensalidade calculada
+        mensalidade_encontrada: mensalidadeEncontrada, // ✅ Status da mensalidade
+        tipo_atividade: tiposAtividade.find(t => t.id === selectedTipoAtividade),
+        regime_tributario: regimesCompativeis.find(r => r.id === selectedRegimeTributario),
+        faixa_faturamento: faixasFaturamento.find(f => f.id === selectedFaixaFaturamento)
+      };
+
+      console.log('🚀 Passo 2 - Dados enviados para próximo passo:', dadosCompletos);
+      onProximo(dadosCompletos);
     }
   };
 
@@ -727,6 +850,21 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
         >
           <TrendingUp className="w-4 h-4" />
           <span>Faixa de Faturamento</span>
+        </button>
+        {/* ⚠️ NOVO: Aba de Resumo com Mensalidade */}
+        <button
+          onClick={() => setAbaAtiva(3)}
+          disabled={!podeProximo}
+          className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-colors ${abaAtiva === 3
+            ? 'text-custom-blue border-b-2 border-custom-blue'
+            : podeProximo
+              ? 'text-gray-500 hover:text-gray-700'
+              : 'text-gray-300 cursor-not-allowed'
+            }`}
+          title={!podeProximo ? "Complete as configurações anteriores primeiro" : ""}
+        >
+          <CheckCircle className="w-4 h-4" />
+          <span>Resumo</span>
         </button>
       </div>
 
@@ -905,6 +1043,118 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
             )}
           </div>
         )}
+
+        {/* ⚠️ NOVO: Aba de Resumo com Mensalidade */}
+        {abaAtiva === 3 && (
+          <div className="p-6">
+            <div className="space-y-6">
+              {/* Resumo das Configurações */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Configurações Selecionadas</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Tipo de Atividade:</span>
+                    <span className="font-medium">
+                      {tiposAtividade.find(t => t.id === selectedTipoAtividade)?.nome}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Regime Tributário:</span>
+                    <span className="font-medium">
+                      {regimesCompativeis.find(r => r.id === selectedRegimeTributario)?.nome}
+                    </span>
+                  </div>
+                  {selectedFaixaFaturamento && hasFaixasFaturamento && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Faixa de Faturamento:</span>
+                      <span className="font-medium">
+                        {formatarMoeda(faixasFaturamento.find(f => f.id === selectedFaixaFaturamento)?.valor_inicial || 0)}
+                        {faixasFaturamento.find(f => f.id === selectedFaixaFaturamento)?.valor_final
+                          ? ` até ${formatarMoeda(faixasFaturamento.find(f => f.id === selectedFaixaFaturamento)?.valor_final || 0)}`
+                          : ' ou mais'
+                        }
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ✅ CORREÇÃO: Mensalidade Automática Melhorada */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-medium text-green-900">Mensalidade Automática</h3>
+                  {loadingMensalidade && (
+                    <div className="flex items-center text-green-600">
+                      <div className="animate-spin w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full mr-2"></div>
+                      <span className="text-sm">Buscando...</span>
+                    </div>
+                  )}
+                </div>
+
+                {mensalidadeEncontrada ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-green-700">Valor da Mensalidade:</span>
+                      <span className="text-2xl font-bold text-green-800">
+                        {formatarMoeda(valorMensalidade)}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-sm text-green-600">
+                      <CheckCircle className="w-4 h-4 mr-1" />
+                      <span>Mensalidade calculada automaticamente baseada nas configurações selecionadas</span>
+                    </div>
+                    <div className="text-xs text-green-500 bg-green-100 rounded px-2 py-1">
+                      💡 Este valor será incluído automaticamente no cálculo da proposta
+                    </div>
+                  </div>
+                ) : valorMensalidade === 0 && !loadingMensalidade ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-green-700">Valor da Mensalidade:</span>
+                      <span className="text-2xl font-bold text-green-800">
+                        A Combinar
+                      </span>
+                    </div>
+                    <div className="flex items-center text-sm text-green-600">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      <span>Valor será definido manualmente</span>
+                    </div>
+                    <div className="text-xs text-green-500 bg-green-100 rounded px-2 py-1">
+                      ℹ️ Aplicável para: Pessoa Física, valores acima de R$ 720.000 ou configurações não encontradas
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <div className="text-green-600">
+                      {loadingMensalidade ? (
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full mr-2"></div>
+                          <span>Calculando mensalidade...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center text-gray-500">
+                          <AlertCircle className="w-4 h-4 mr-2" />
+                          <span>Configure as opções anteriores para ver a mensalidade</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Informações Adicionais */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-blue-900 mb-2">ℹ️ Informações Importantes</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• A mensalidade é calculada automaticamente baseada na tabela de valores</li>
+                  <li>• Para valores acima de R$ 720.000, será necessário definir manualmente</li>
+                  <li>• Pessoa Física sempre terá valor "A Combinar"</li>
+                  <li>• Este valor será incluído no cálculo total da proposta</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Botões de Ação Fixos */}
@@ -929,6 +1179,17 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
             {selectedRegimeTributario && !hasFaixasFaturamento && (
               <span className="text-sm text-yellow-600">
                 Sem faixas específicas
+              </span>
+            )}
+            {/* ⚠️ NOVO: Exibir mensalidade no rodapé */}
+            {mensalidadeEncontrada && (
+              <span className="text-sm text-green-600 font-medium">
+                Mensalidade: {formatarMoeda(valorMensalidade)}
+              </span>
+            )}
+            {valorMensalidade === 0 && !loadingMensalidade && podeProximo && (
+              <span className="text-sm text-green-600 font-medium">
+                Mensalidade: A Combinar
               </span>
             )}
 

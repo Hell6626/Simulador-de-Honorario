@@ -205,8 +205,15 @@ class PropostaPDFGenerator:
     def _preparar_dados_template(self, proposta):
         """Prepara dados com debug melhorado"""
         
-        # Calcular subtotal
-        subtotal = sum(float(item.valor_total) for item in proposta.itens if item.ativo)
+        # ✅ CORREÇÃO: Calcular subtotal incluindo mensalidade
+        subtotal_servicos = sum(float(item.valor_total) for item in proposta.itens if item.ativo)
+        valor_mensalidade = float(proposta.valor_mensalidade) if proposta.valor_mensalidade else 0.0
+        subtotal = subtotal_servicos + valor_mensalidade
+        
+        print(f"💰 PDF Generator - Cálculo do subtotal:")
+        print(f"   Serviços: R$ {subtotal_servicos:.2f}")
+        print(f"   Mensalidade: R$ {valor_mensalidade:.2f}")
+        print(f"   Subtotal: R$ {subtotal:.2f}")
         
         # Encontrar logo
         logo_path = self._find_logo_path()
@@ -234,6 +241,8 @@ class PropostaPDFGenerator:
             'empresa': self.empresa,
             'itens': itens_com_servicos,
             'subtotal': subtotal,
+            'subtotal_servicos': subtotal_servicos,
+            'valor_mensalidade': valor_mensalidade,
             'valor_vista': float(proposta.valor_total) * 0.9,
             'logo_path': logo_path
         }

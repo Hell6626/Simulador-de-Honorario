@@ -162,6 +162,7 @@ export interface PropostaParaCriacao {
   regime_tributario_id: number;
   faixa_faturamento_id?: number;
   valor_total: number;
+  valor_mensalidade?: number;  // Valor da mensalidade automática
   percentual_desconto?: number;
   data_validade?: string;
   status?: 'RASCUNHO' | 'PENDENTE' | 'APROVADA' | 'REJEITADA' | 'ENVIADA';
@@ -190,6 +191,7 @@ export interface PropostaResponse {
   regime_tributario_id: number;
   faixa_faturamento_id?: number;
   valor_total: number;
+  valor_mensalidade?: number;  // Valor da mensalidade automática
   data_validade?: string;
   status: string;
   observacoes?: string;

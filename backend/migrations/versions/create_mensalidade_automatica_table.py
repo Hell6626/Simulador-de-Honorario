@@ -1,7 +1,7 @@
 """Create mensalidade_automatica table
 
 Revision ID: create_mensalidade_automatica_table
-Revises: add_percentual_desconto_to_proposta
+Revises: add_deleted_at_notificacao
 Create Date: 2024-12-20 12:00:00.000000
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'create_mensalidade_automatica_table'
-down_revision = 'add_percentual_desconto_to_proposta'
+down_revision = 'add_deleted_at_notificacao'
 branch_labels = None
 depends_on = None
 

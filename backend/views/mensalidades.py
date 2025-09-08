@@ -13,7 +13,7 @@ from views.utils import validate_required_fields
 mensalidades_bp = Blueprint('mensalidades', __name__)
 
 
-@mensalidades_bp.route('/api/mensalidades/buscar', methods=['POST'])
+@mensalidades_bp.route('/buscar', methods=['POST'])
 @jwt_required()
 def buscar_mensalidade():
     """
@@ -23,28 +23,36 @@ def buscar_mensalidade():
     {
         "tipo_atividade_id": int,
         "regime_tributario_id": int,
-        "faixa_faturamento_id": int
+        "faixa_faturamento_id": int (opcional)
     }
     """
     try:
         data = request.get_json()
         
-        # Validação dos dados
-        validation_error = validate_required_fields(data, ['tipo_atividade_id', 'regime_tributario_id', 'faixa_faturamento_id'])
+        # Validação dos dados obrigatórios
+        validation_error = validate_required_fields(data, ['tipo_atividade_id', 'regime_tributario_id'])
         if validation_error:
             return validation_error
         
         tipo_atividade_id = data.get('tipo_atividade_id')
         regime_tributario_id = data.get('regime_tributario_id')
-        faixa_faturamento_id = data.get('faixa_faturamento_id')
+        faixa_faturamento_id = data.get('faixa_faturamento_id')  # Opcional
         
         # Buscar mensalidade automática
-        mensalidade = MensalidadeAutomatica.query.filter_by(
+        query = MensalidadeAutomatica.query.filter_by(
             tipo_atividade_id=tipo_atividade_id,
             regime_tributario_id=regime_tributario_id,
-            faixa_faturamento_id=faixa_faturamento_id,
             ativo=True
-        ).first()
+        )
+        
+        # Se faixa_faturamento_id foi fornecida, incluir na busca
+        if faixa_faturamento_id:
+            query = query.filter_by(faixa_faturamento_id=faixa_faturamento_id)
+        else:
+            # Se não foi fornecida, buscar onde faixa_faturamento_id é NULL
+            query = query.filter(MensalidadeAutomatica.faixa_faturamento_id.is_(None))
+        
+        mensalidade = query.first()
         
         if not mensalidade:
             return jsonify({

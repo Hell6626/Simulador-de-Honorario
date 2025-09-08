@@ -18,12 +18,18 @@ export interface DadosPropostaCompleta {
   regimeTributario: RegimeTributario;
   faixaFaturamento?: FaixaFaturamento;
   servicosSelecionados: ServicoSelecionado[];
+  // ✅ CORREÇÃO: Adicionar campos de mensalidade
+  valor_mensalidade?: number;
+  mensalidade_encontrada?: boolean;
+  total_servicos?: number;
+  total_geral?: number;
 }
 
 export interface ResumoFinanceiro {
   subtotalPorCategoria: Map<string, number>;
   subtotalServicos: number;
   taxaAberturaEmpresa: number;
+  valorMensalidade: number;
   tipoAbertura: string;
   ehMEI: boolean;
   subtotalGeral: number;
@@ -38,6 +44,11 @@ export interface PropostaComDesconto {
   regimeTributario: RegimeTributario;
   faixaFaturamento?: FaixaFaturamento;
   servicosSelecionados: ServicoSelecionado[];
+  // ✅ CORREÇÃO: Adicionar campos de mensalidade
+  valor_mensalidade?: number;
+  mensalidade_encontrada?: boolean;
+  total_servicos?: number;
+  total_geral?: number;
   percentualDesconto: number;
   valorDesconto: number;
   totalFinal: number;

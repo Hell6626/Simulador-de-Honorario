@@ -856,7 +856,7 @@ def inicializar_relacionamentos_servico_regime():
 
 def inicializar_mensalidades_automaticas():
     """
-    Inicializa as mensalidades automáticas baseadas na regra de negócio.
+    Inicializa as mensalidades automáticas baseadas na tabela fornecida.
     """
     print("💰 Inicializando mensalidades automáticas...")
     
@@ -879,9 +879,8 @@ def inicializar_mensalidades_automaticas():
         
         mensalidades = []
         
-        # ✅ REGRA DE NEGÓCIO: Serviços
+        # ✅ TABELA ATUALIZADA: Serviços - Simples Nacional
         if tipo_servicos and regime_simples:
-            # Simples Nacional - Serviços
             for faixa in faixas_simples:
                 if faixa.valor_inicial <= 180000:  # Até 180k
                     mensalidades.append({
@@ -907,17 +906,17 @@ def inicializar_mensalidades_automaticas():
                         'valor_mensalidade': 1600.00,
                         'observacoes': 'Serviços - Simples Nacional - Até 720k'
                     })
-                else:  # Acima de 720k
+                else:  # Acima de 720k - A Combinar
                     mensalidades.append({
                         'tipo_atividade_id': tipo_servicos.id,
                         'regime_tributario_id': regime_simples.id,
                         'faixa_faturamento_id': faixa.id,
-                        'valor_mensalidade': 2000.00,
-                        'observacoes': 'Serviços - Simples Nacional - Acima 720k'
+                        'valor_mensalidade': 0.00,  # A Combinar
+                        'observacoes': 'Serviços - Simples Nacional - Acima 720k (A Combinar)'
                     })
         
+        # ✅ TABELA ATUALIZADA: Serviços - Lucro Presumido
         if tipo_servicos and regime_presumido:
-            # Lucro Presumido - Serviços
             for faixa in faixas_presumido:
                 if faixa.valor_inicial <= 180000:
                     mensalidades.append({
@@ -943,17 +942,17 @@ def inicializar_mensalidades_automaticas():
                         'valor_mensalidade': 1800.00,
                         'observacoes': 'Serviços - Lucro Presumido - Até 720k'
                     })
-                else:
+                else:  # Acima de 720k - A Combinar
                     mensalidades.append({
                         'tipo_atividade_id': tipo_servicos.id,
                         'regime_tributario_id': regime_presumido.id,
                         'faixa_faturamento_id': faixa.id,
-                        'valor_mensalidade': 2200.00,
-                        'observacoes': 'Serviços - Lucro Presumido - Acima 720k'
+                        'valor_mensalidade': 0.00,  # A Combinar
+                        'observacoes': 'Serviços - Lucro Presumido - Acima 720k (A Combinar)'
                     })
         
+        # ✅ TABELA ATUALIZADA: Serviços - Lucro Real
         if tipo_servicos and regime_real:
-            # Lucro Real - Serviços
             for faixa in faixas_real:
                 if faixa.valor_inicial <= 180000:
                     mensalidades.append({
@@ -979,18 +978,17 @@ def inicializar_mensalidades_automaticas():
                         'valor_mensalidade': 2000.00,
                         'observacoes': 'Serviços - Lucro Real - Até 720k'
                     })
-                else:
+                else:  # Acima de 720k - A Combinar
                     mensalidades.append({
                         'tipo_atividade_id': tipo_servicos.id,
                         'regime_tributario_id': regime_real.id,
                         'faixa_faturamento_id': faixa.id,
-                        'valor_mensalidade': 2400.00,
-                        'observacoes': 'Serviços - Lucro Real - Acima 720k'
+                        'valor_mensalidade': 0.00,  # A Combinar
+                        'observacoes': 'Serviços - Lucro Real - Acima 720k (A Combinar)'
                     })
         
-        # ✅ REGRA DE NEGÓCIO: Comércio
+        # ✅ TABELA CORRIGIDA: Comércio - Simples Nacional
         if tipo_comercio and regime_simples:
-            # Simples Nacional - Comércio
             for faixa in faixas_simples:
                 if faixa.valor_inicial <= 180000:
                     mensalidades.append({
@@ -1005,7 +1003,7 @@ def inicializar_mensalidades_automaticas():
                         'tipo_atividade_id': tipo_comercio.id,
                         'regime_tributario_id': regime_simples.id,
                         'faixa_faturamento_id': faixa.id,
-                        'valor_mensalidade': 900.00,
+                        'valor_mensalidade': 1000.00,  # ✅ CORRIGIDO: Era 900, agora 1000
                         'observacoes': 'Comércio - Simples Nacional - Até 360k'
                     })
                 elif faixa.valor_inicial <= 720000:
@@ -1013,49 +1011,65 @@ def inicializar_mensalidades_automaticas():
                         'tipo_atividade_id': tipo_comercio.id,
                         'regime_tributario_id': regime_simples.id,
                         'faixa_faturamento_id': faixa.id,
-                        'valor_mensalidade': 1200.00,
+                        'valor_mensalidade': 1500.00,  # ✅ CORRIGIDO: Era 1200, agora 1500
                         'observacoes': 'Comércio - Simples Nacional - Até 720k'
                     })
-                else:
+                else:  # Acima de 720k - A Combinar
                     mensalidades.append({
                         'tipo_atividade_id': tipo_comercio.id,
                         'regime_tributario_id': regime_simples.id,
                         'faixa_faturamento_id': faixa.id,
-                        'valor_mensalidade': 1500.00,
-                        'observacoes': 'Comércio - Simples Nacional - Acima 720k'
+                        'valor_mensalidade': 0.00,  # A Combinar
+                        'observacoes': 'Comércio - Simples Nacional - Acima 720k (A Combinar)'
                     })
         
-        # ✅ REGRA DE NEGÓCIO: MEI (casos especiais)
+        # ✅ TABELA ATUALIZADA: MEI - Serviços (sem funcionário)
         if tipo_servicos and regime_mei:
             for faixa in faixas_mei:
                 mensalidades.append({
                     'tipo_atividade_id': tipo_servicos.id,
                     'regime_tributario_id': regime_mei.id,
                     'faixa_faturamento_id': faixa.id,
-                    'valor_mensalidade': 300.00,
+                    'valor_mensalidade': 100.00,  # Atualizado conforme tabela
                     'observacoes': 'MEI - Serviços - Sem funcionário'
                 })
         
+        # ✅ TABELA ATUALIZADA: MEI - Comércio (sem funcionário)
         if tipo_comercio and regime_mei:
             for faixa in faixas_mei:
                 mensalidades.append({
                     'tipo_atividade_id': tipo_comercio.id,
                     'regime_tributario_id': regime_mei.id,
                     'faixa_faturamento_id': faixa.id,
-                    'valor_mensalidade': 250.00,
+                    'valor_mensalidade': 100.00,  # Atualizado conforme tabela
                     'observacoes': 'MEI - Comércio - Sem funcionário'
                 })
         
-        # ✅ REGRA DE NEGÓCIO: Pessoa Física
-        if tipo_pf:
-            # Pessoa Física - valores "A Combinar"
-            mensalidades.append({
-                'tipo_atividade_id': tipo_pf.id,
-                'regime_tributario_id': None,  # PF não tem regime específico
-                'faixa_faturamento_id': None,  # PF não tem faixa específica
-                'valor_mensalidade': 0.00,  # Valor será "A Combinar"
-                'observacoes': 'Pessoa Física - Valor a combinar'
-            })
+        # ✅ TABELA ATUALIZADA: MEI - Serviços (com funcionário)
+        if tipo_servicos and regime_mei:
+            for faixa in faixas_mei:
+                mensalidades.append({
+                    'tipo_atividade_id': tipo_servicos.id,
+                    'regime_tributario_id': regime_mei.id,
+                    'faixa_faturamento_id': faixa.id,
+                    'valor_mensalidade': 150.00,  # Com funcionário
+                    'observacoes': 'MEI - Serviços - Com funcionário'
+                })
+        
+        # ✅ TABELA ATUALIZADA: MEI - Comércio (com funcionário)
+        if tipo_comercio and regime_mei:
+            for faixa in faixas_mei:
+                mensalidades.append({
+                    'tipo_atividade_id': tipo_comercio.id,
+                    'regime_tributario_id': regime_mei.id,
+                    'faixa_faturamento_id': faixa.id,
+                    'valor_mensalidade': 150.00,  # Com funcionário
+                    'observacoes': 'MEI - Comércio - Com funcionário'
+                })
+        
+        # ✅ TABELA ATUALIZADA: Pessoa Física - A Combinar
+        # Nota: Pessoa Física não será inserida na tabela mensalidade_automatica
+        # pois não tem regime tributário específico. Será tratada separadamente no frontend.
         
         # Inserir mensalidades no banco
         for mensalidade_data in mensalidades:

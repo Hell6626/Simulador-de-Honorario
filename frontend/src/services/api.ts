@@ -641,10 +641,10 @@ class ApiService {
   }
 
   // Mensalidades Automáticas
-  async buscarMensalidade(configuracao: {
+  async buscarMensalidadeAutomatica(configuracao: {
     tipo_atividade_id: number;
     regime_tributario_id: number;
-    faixa_faturamento_id: number;
+    faixa_faturamento_id?: number; // ⚠️ NOVO: Opcional
   }) {
     return this.request<any>('/mensalidades/buscar', {
       method: 'POST',

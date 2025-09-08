@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { apiService } from '../../../services/api';
 import { PropostaComDesconto, DadosPropostaCompleta } from '../../../types/propostas';
+import { usePropostaCalculations } from '../../../hooks/usePropostaCalculations';
 
 interface Passo4Props {
   dadosProposta: DadosPropostaCompleta;
@@ -35,49 +36,25 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // ✅ NOVO: Estados para mensalidade automática
-  const [mensalidadeAutomatica, setMensalidadeAutomatica] = useState<any>(null);
-  const [loadingMensalidade, setLoadingMensalidade] = useState(false);
+  // ✅ CORREÇÃO: Usar mensalidade dos dados da proposta
+  const valorMensalidade = dadosProposta.valor_mensalidade || 0;
+  const mensalidadeEncontrada = dadosProposta.mensalidade_encontrada || false;
 
-  // Calcular totais
-  const subtotal = dadosProposta.servicosSelecionados.reduce(
-    (total, servico) => total + servico.subtotal, 0
+  console.log('💰 Passo 4 - Dados da mensalidade:', {
+    valorMensalidade,
+    mensalidadeEncontrada,
+    dadosProposta: dadosProposta
+  });
+
+  // ✅ CORREÇÃO: Usar hook de cálculos com mensalidade dos dados
+  const resumoFinanceiro = usePropostaCalculations(
+    dadosProposta,
+    percentualDesconto,
+    todosServicos,
+    valorMensalidade
   );
-  const valorMensalidade = mensalidadeAutomatica?.valor_mensalidade || 0;
-  const subtotalComMensalidade = subtotal + valorMensalidade;
-  const valorDesconto = (subtotalComMensalidade * percentualDesconto) / 100;
-  const totalFinal = subtotalComMensalidade - valorDesconto;
+
   const requerAprovacao = percentualDesconto > 20;
-
-  // ✅ NOVO: Buscar mensalidade automática quando componente carregar
-  useEffect(() => {
-    const buscarMensalidadeAutomatica = async () => {
-      if (!dadosProposta.configuracoesTributarias) return;
-
-      const { tipo_atividade_id, regime_tributario_id, faixa_faturamento_id } = dadosProposta.configuracoesTributarias;
-
-      if (!tipo_atividade_id || !regime_tributario_id || !faixa_faturamento_id) return;
-
-      setLoadingMensalidade(true);
-      try {
-        const response = await apiService.buscarMensalidade({
-          tipo_atividade_id,
-          regime_tributario_id,
-          faixa_faturamento_id
-        });
-
-        if (response.success && response.data) {
-          setMensalidadeAutomatica(response.data);
-        }
-      } catch (error) {
-        console.log('Mensalidade automática não encontrada para esta configuração');
-      } finally {
-        setLoadingMensalidade(false);
-      }
-    };
-
-    buscarMensalidadeAutomatica();
-  }, [dadosProposta.configuracoesTributarias]);
 
   const handleAvancar = async () => {
     if (requerAprovacao && !observacoes.trim()) {
@@ -101,9 +78,9 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
 
       // Atualizar proposta existente
       const dadosAtualizacao = {
-        valor_total: totalFinal,
+        valor_total: resumoFinanceiro.totalFinal,
         percentual_desconto: percentualDesconto,
-        valor_desconto: valorDesconto,
+        valor_desconto: resumoFinanceiro.valorDesconto,
         valor_mensalidade: valorMensalidade,
         requer_aprovacao: requerAprovacao,
         observacoes: observacoes.trim() || null,
@@ -117,8 +94,8 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
       const dadosComDesconto: PropostaComDesconto = {
         ...dadosProposta,
         percentualDesconto,
-        valorDesconto,
-        totalFinal,
+        valorDesconto: resumoFinanceiro.valorDesconto,
+        totalFinal: resumoFinanceiro.totalFinal,
         requerAprovacao,
         observacoes: observacoes.trim() || undefined,
         propostaId,
@@ -238,8 +215,8 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
         </div>
       </div>
 
-      {/* ✅ NOVO: MENSALIDADE AUTOMÁTICA - Card */}
-      {mensalidadeAutomatica && (
+      {/* ✅ CORREÇÃO: MENSALIDADE AUTOMÁTICA - Card */}
+      {(valorMensalidade > 0 || mensalidadeEncontrada) && (
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg shadow-sm border border-green-200">
           <div className="p-6">
             <div className="flex items-center mb-4">
@@ -249,7 +226,7 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Mensalidade Automática</h3>
                 <p className="text-sm text-gray-600">
-                  {mensalidadeAutomatica.tipo_atividade?.nome} - {mensalidadeAutomatica.regime_tributario?.nome}
+                  {dadosProposta.tipoAtividade?.nome} - {dadosProposta.regimeTributario?.nome}
                 </p>
               </div>
             </div>
@@ -257,24 +234,24 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-700">Tipo de Atividade</p>
-                <p className="text-gray-900">{mensalidadeAutomatica.tipo_atividade?.nome}</p>
+                <p className="text-gray-900">{dadosProposta.tipoAtividade?.nome}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700">Regime Tributário</p>
-                <p className="text-gray-900">{mensalidadeAutomatica.regime_tributario?.nome}</p>
+                <p className="text-gray-900">{dadosProposta.regimeTributario?.nome}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700">Valor Mensal</p>
                 <p className="text-lg font-semibold text-green-600">
-                  {mensalidadeAutomatica.valor_mensalidade === 0 ? 'A Combinar' : formatarMoeda(mensalidadeAutomatica.valor_mensalidade)}
+                  {valorMensalidade === 0 ? 'A Combinar' : formatarMoeda(valorMensalidade)}
                 </p>
               </div>
             </div>
 
-            {mensalidadeAutomatica.observacoes && (
-              <div className="mt-4 p-3 bg-green-100 rounded-lg">
-                <p className="text-sm text-green-800">
-                  <strong>Observação:</strong> {mensalidadeAutomatica.observacoes}
+            {valorMensalidade === 0 && (
+              <div className="mt-4 p-3 bg-yellow-100 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  <strong>Observação:</strong> Valor será definido manualmente (Pessoa Física ou valores acima de R$ 720.000)
                 </p>
               </div>
             )}
@@ -346,7 +323,7 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
               Valor do Desconto
             </label>
             <p className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
-              -{formatarMoeda(valorDesconto)}
+              -{formatarMoeda(resumoFinanceiro.valorDesconto)}
             </p>
           </div>
 
@@ -367,17 +344,17 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
           <div>
             <p className="text-custom-blue-light text-sm">Total da Proposta</p>
             <p className="text-3xl font-bold">
-              {formatarMoeda(totalFinal)}
+              {formatarMoeda(resumoFinanceiro.totalFinal)}
             </p>
-            {valorDesconto > 0 && (
+            {resumoFinanceiro.valorDesconto > 0 && (
               <p className="text-custom-blue-light text-sm">
-                Subtotal: {formatarMoeda(subtotalComMensalidade)}
+                Subtotal: {formatarMoeda(resumoFinanceiro.subtotalGeral)}
                 (-{percentualDesconto}%)
               </p>
             )}
             {valorMensalidade > 0 && (
               <p className="text-custom-blue-light text-sm">
-                Serviços: {formatarMoeda(subtotal)} + Mensalidade: {formatarMoeda(valorMensalidade)}
+                Serviços: {formatarMoeda(resumoFinanceiro.subtotalServicos)} + Mensalidade: {formatarMoeda(valorMensalidade)}
               </p>
             )}
           </div>
@@ -423,7 +400,7 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
           <div className="text-right">
             <p className="text-sm text-gray-600">Total da Proposta</p>
             <p className="text-xl font-bold text-gray-900">
-              {formatarMoeda(totalFinal)}
+              {formatarMoeda(resumoFinanceiro.totalFinal)}
             </p>
           </div>
           <button
