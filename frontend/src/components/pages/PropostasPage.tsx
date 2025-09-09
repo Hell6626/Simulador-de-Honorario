@@ -18,6 +18,7 @@ import { ModalExclusaoProposta } from '../modals/ModalExclusaoProposta';
 import { ModalEdicaoCompleta } from '../modals/ModalEdicaoCompleta';
 import { HistoricoLogs } from '../propostas/HistoricoLogs';
 import { PropostaPDFViewer } from '../propostas/PropostaPDFViewer';
+import { useToast } from '../../contexts/ToastContext';
 import { Proposta, PropostaResponse } from '../../types';
 import { usePropostaDataReset } from '../../hooks/usePropostaDataReset';
 import { useAuth } from '../../context/AuthContext';
@@ -209,6 +210,9 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
 
   // ✅ NOVO: Hook para autenticação
   const { user } = useAuth();
+
+  // ✅ NOVO: Hook para notificações toast
+  const { showSuccess, showError, showWarning } = useToast();
 
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [filteredPropostas, setFilteredPropostas] = useState<Proposta[]>([]);
@@ -573,7 +577,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
         }
 
         // Mostrar erro para o usuário
-        alert(`❌ ${errorMessage}`);
+        showError('Erro ao Carregar Dados', errorMessage);
 
         // Se for erro de rede, permitir continuar com dados básicos
         if (shouldProceed) {
@@ -732,11 +736,11 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
         console.log('Indo para Passo 4 - Revisão da Proposta com dados reais');
       } catch (error) {
         console.error('❌ Erro ao criar proposta como rascunho:', error);
-        alert('Erro ao criar proposta: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+        showError('Erro ao Criar Proposta', 'Erro ao criar proposta: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
       }
     } else {
       console.error('Dados incompletos para Passo 4:', dadosProposta);
-      alert('Erro: Dados incompletos para prosseguir');
+      showError('Dados Incompletos', 'Erro: Dados incompletos para prosseguir');
     }
   };
 
@@ -784,7 +788,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
           console.log('Indo para Passo 3 - Seleção de Serviços');
         } else {
           console.error('Dados não encontrados');
-          alert('Erro: Dados não encontrados');
+          showError('Dados Não Encontrados', 'Erro: Dados não encontrados');
         }
       } catch (error) {
         console.error('Erro ao buscar dados completos:', error);
@@ -879,7 +883,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
       await fetchPropostas(currentPage, searchTerm);
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
-      alert('Erro ao gerar PDF: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+      showError('Erro ao Gerar PDF', 'Erro ao gerar PDF: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
     } finally {
       setGerandoPDF(null);
     }
@@ -902,7 +906,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Erro ao baixar PDF:', error);
-      alert('Erro ao baixar PDF: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+      showError('Erro ao Baixar PDF', 'Erro ao baixar PDF: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
     }
   };
 
@@ -930,9 +934,9 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
 
       // Mostrar mensagem de sucesso com informações adicionais
       if (response.notificacao_enviada) {
-        alert('Proposta excluída com sucesso! Uma notificação foi enviada ao funcionário responsável.');
+        showSuccess('Proposta Excluída', 'Proposta excluída com sucesso! Uma notificação foi enviada ao funcionário responsável.');
       } else {
-        alert('Proposta excluída com sucesso!');
+        showSuccess('Proposta Excluída', 'Proposta excluída com sucesso!');
       }
 
       await fetchPropostas(currentPage, searchTerm);

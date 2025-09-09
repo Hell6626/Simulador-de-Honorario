@@ -18,6 +18,7 @@ import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { ModalCadastroCliente } from '../../modals/ModalCadastroCliente';
 import { Cliente, DataValidator } from '../../../types';
 import { formatarCPF, formatarCNPJ } from '../../../utils/formatters';
+import { useToast } from '../../../contexts/ToastContext';
 import { usePropostaDataReset } from '../../../hooks/usePropostaDataReset';
 // 🎨 NOVO: Importações do sistema de cores padronizado
 import {
@@ -221,6 +222,9 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
 }) => {
   // ✅ NOVO: Hook para reset automático de dados
   const { limparDadosPasso } = usePropostaDataReset();
+
+  // ✅ NOVO: Hook para notificações toast
+  const { showSuccess, showError, showWarning } = useToast();
 
   const [selectedClienteId, setSelectedClienteId] = useState<number | null>(null);
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -526,14 +530,14 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
 
   const handleProximo = () => {
     if (!selectedClienteId) {
-      alert('❌ Selecione um cliente para continuar');
+      showWarning('Cliente Não Selecionado', 'Selecione um cliente para continuar');
       return;
     }
 
     // ✅ VALIDAR: Cliente selecionado antes de prosseguir
     const clienteSelecionado = clientes.find(c => c.id === selectedClienteId);
     if (!clienteSelecionado) {
-      alert('❌ Cliente selecionado não encontrado. Recarregue a página.');
+      showError('Cliente Não Encontrado', 'Cliente selecionado não encontrado. Recarregue a página.');
       return;
     }
 
@@ -542,8 +546,8 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
     const validacao = DataValidator.validateCliente(clienteValidado);
 
     if (!validacao.isValid) {
-      const mensagemErro = `❌ Dados do cliente incompletos:\n${validacao.errors.join('\n')}`;
-      alert(mensagemErro);
+      const mensagemErro = `Dados do cliente incompletos:\n${validacao.errors.join('\n')}`;
+      showError('Dados Incompletos', mensagemErro);
       return;
     }
 
@@ -568,7 +572,7 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
     setModalCadastroAberto(false);
 
     // Mostrar mensagem de sucesso
-    alert('Cliente cadastrado com sucesso!');
+    showSuccess('Cliente Cadastrado', 'Cliente cadastrado com sucesso!');
   };
 
   // ✅ NOVO: Função para abrir modal de edição

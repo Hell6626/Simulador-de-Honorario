@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastProvider } from './contexts/ToastContext';
 import { LoginPage } from './components/pages/LoginPage';
 import { DashboardPage } from './components/pages/DashboardPage';
 import { ClientesPage } from './components/pages/ClientesPage';
@@ -166,7 +167,9 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
     </AuthProvider>
   );
 }

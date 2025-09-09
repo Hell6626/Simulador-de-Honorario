@@ -4,6 +4,8 @@ export { StatusFilter } from './StatusFilter';
 export { StatusSalvamento } from './StatusSalvamento';
 export { StatusSelector } from './StatusSelector';
 export { InfoCard } from './InfoCard';
+export { default as ToastNotification } from './ToastNotification';
+export { default as ClienteDisplay } from './ClienteDisplay';
 
 // 🎨 Sistema de Cores - Componentes Badge
 export {

@@ -445,17 +445,17 @@ def update_proposta(proposta_id: int):
     if regenerar_pdf and verificar_mudancas_significativas(alteracoes_realizadas):
         try:
             # Excluir PDF antigo se existir
-            if proposta.caminho_pdf:
+            if proposta.pdf_caminho:
                 import os
-                pdf_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'pdfs', proposta.caminho_pdf)
+                pdf_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'pdfs', proposta.pdf_caminho)
                 if os.path.exists(pdf_path):
                     os.remove(pdf_path)
                     current_app.logger.info(f"PDF antigo excluído: {pdf_path}")
             
             # Limpar campos de PDF no banco
-            proposta.caminho_pdf = None
-            proposta.nome_arquivo_pdf = None
-            proposta.data_geracao_pdf = None
+            proposta.pdf_caminho = None
+            proposta.pdf_gerado = False
+            proposta.pdf_data_geracao = None
             
             # Gerar novo PDF
             from services.pdf_generator import PDFGenerator
@@ -463,9 +463,9 @@ def update_proposta(proposta_id: int):
             pdf_path = pdf_generator.gerar_proposta_pdf(proposta.id)
             
             if pdf_path:
-                proposta.caminho_pdf = os.path.basename(pdf_path)
-                proposta.nome_arquivo_pdf = f"proposta_{proposta.numero}.pdf"
-                proposta.data_geracao_pdf = datetime.utcnow()
+                proposta.pdf_caminho = os.path.basename(pdf_path)
+                proposta.pdf_gerado = True
+                proposta.pdf_data_geracao = datetime.utcnow()
                 pdf_regenerado = True
                 
                 current_app.logger.info(f"PDF regenerado automaticamente: {pdf_path}")
@@ -914,77 +914,129 @@ def rejeitar_proposta(proposta_id: int):
 @handle_api_errors
 def delete_proposta(proposta_id: int):
     """Soft delete de uma proposta - marca como inativa"""
-    proposta = Proposta.query.get_or_404(proposta_id)
-    funcionario_id = int(get_jwt_identity())
+    try:
+        # 1. Carregar proposta com verificação de existência
+        proposta = Proposta.query.get_or_404(proposta_id)
+        if not proposta:
+            raise ValueError('Proposta não encontrada')
+        
+        # 2. Verificar funcionário atual
+        funcionario_id = int(get_jwt_identity())
+        funcionario = Funcionario.query.get(funcionario_id)
+        if not funcionario or not funcionario.ativo:
+            raise ValueError('Funcionário não encontrado ou inativo')
 
-    # Verificar se funcionário existe e está ativo
-    funcionario = Funcionario.query.get(funcionario_id)
-    if not funcionario or not funcionario.ativo:
-        raise ValueError('Funcionário não encontrado')
-
-    # Obter dados da requisição
-    data = request.get_json() or {}
-    observacao = data.get('observacao', '').strip()
-    
-    # Verificar se é proposta de outro funcionário
-    is_propria_proposta = proposta.funcionario_responsavel_id == funcionario_id
-    
-    # Se não é própria proposta, observação é obrigatória
-    if not is_propria_proposta and not observacao:
-        raise ValueError('Observação é obrigatória para exclusão de proposta de outro funcionário')
-
-    # Excluir PDF vinculado se existir
-    pdf_excluido = False
-    if proposta.caminho_pdf:
+        # 3. Obter dados da requisição com tratamento seguro de JSON
+        observacao = ''
         try:
-            import os
-            pdf_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'pdfs', proposta.caminho_pdf)
-            if os.path.exists(pdf_path):
-                os.remove(pdf_path)
-                pdf_excluido = True
-                current_app.logger.info(f"PDF excluído: {pdf_path}")
+            data = request.get_json() or {}
+            observacao = data.get('observacao', '').strip()
+        except Exception as e:
+            current_app.logger.warning(f"Erro ao processar JSON da requisição: {str(e)}")
+            # Continuar com observação vazia se não conseguir processar JSON
+        
+        # 4. Verificar se é proposta de outro funcionário
+        is_propria_proposta = proposta.funcionario_responsavel_id == funcionario_id
+        
+        # 5. Validação de observação para proposta de outro funcionário
+        if not is_propria_proposta and not observacao:
+            raise ValueError('Observação é obrigatória para exclusão de proposta de outro funcionário')
+
+        # 6. Excluir PDF vinculado com verificação segura de campos
+        pdf_excluido = False
+        try:
+            # Verificar campos de PDF disponíveis
+            pdf_caminho = None
+            if hasattr(proposta, 'pdf_caminho') and proposta.pdf_caminho:
+                pdf_caminho = proposta.pdf_caminho
+            elif hasattr(proposta, 'caminho_pdf') and proposta.caminho_pdf:
+                pdf_caminho = proposta.caminho_pdf
+            
+            if pdf_caminho:
+                import os
+                pdf_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'pdfs', pdf_caminho)
+                if os.path.exists(pdf_path):
+                    os.remove(pdf_path)
+                    pdf_excluido = True
+                    current_app.logger.info(f"PDF excluído: {pdf_path}")
+                else:
+                    current_app.logger.warning(f"PDF não encontrado no caminho: {pdf_path}")
         except Exception as e:
             current_app.logger.warning(f"Erro ao excluir PDF: {str(e)}")
-    
-    # Limpar campos de PDF no banco
-    if pdf_excluido:
-        proposta.caminho_pdf = None
-        proposta.nome_arquivo_pdf = None
-        proposta.data_geracao_pdf = None
-
-    # Soft delete - marcar como inativa
-    proposta.ativo = False
-    db.session.commit()
-
-    # Criar notificação se não for própria proposta
-    notificacao_enviada = False
-    if not is_propria_proposta and proposta.funcionario_responsavel_id:
+        
+        # 7. Limpar campos de PDF no banco (compatibilidade)
         try:
-            from models.notificacoes import Notificacao
-            Notificacao.criar_notificacao_exclusao_proposta(
-                proposta=proposta,
-                de_funcionario_id=funcionario_id,
-                observacao=observacao
-            )
-            notificacao_enviada = True
+            if hasattr(proposta, 'pdf_caminho'):
+                proposta.pdf_caminho = None
+            if hasattr(proposta, 'caminho_pdf'):
+                proposta.caminho_pdf = None
+            if hasattr(proposta, 'pdf_gerado'):
+                proposta.pdf_gerado = False
+            if hasattr(proposta, 'pdf_data_geracao'):
+                proposta.pdf_data_geracao = None
+            if hasattr(proposta, 'data_geracao_pdf'):
+                proposta.data_geracao_pdf = None
         except Exception as e:
-            current_app.logger.warning(f"Erro ao criar notificação: {str(e)}")
+            current_app.logger.warning(f"Erro ao limpar campos de PDF: {str(e)}")
 
-    # Log detalhado
-    responsavel_nome = "própria" if is_propria_proposta else f"de {proposta.funcionario_responsavel.nome if proposta.funcionario_responsavel else 'N/A'}"
-    current_app.logger.info(
-        f"Proposta marcada como inativa: #{proposta.numero} "
-        f"(ID: {proposta.id}, Funcionário: {funcionario.nome}, "
-        f"Proposta: {responsavel_nome}, PDF excluído: {pdf_excluido}, "
-        f"Notificação enviada: {notificacao_enviada})"
-    )
-    
-    return jsonify({
-        'message': 'Proposta excluída com sucesso',
-        'pdf_excluido': pdf_excluido,
-        'notificacao_enviada': notificacao_enviada,
-        'is_propria_proposta': is_propria_proposta
-    })
+        # 8. Soft delete - marcar como inativa
+        proposta.ativo = False
+        
+        # 9. Commit das alterações
+        db.session.commit()
+        current_app.logger.info(f"Proposta {proposta_id} marcada como inativa")
+
+        # 10. Criar notificação se não for própria proposta
+        notificacao_enviada = False
+        if not is_propria_proposta and proposta.funcionario_responsavel_id:
+            try:
+                from models.notificacoes import Notificacao
+                Notificacao.criar_notificacao_exclusao_proposta(
+                    proposta=proposta,
+                    de_funcionario_id=funcionario_id,
+                    observacao=observacao
+                )
+                notificacao_enviada = True
+                current_app.logger.info(f"Notificação de exclusão criada para funcionário {proposta.funcionario_responsavel_id}")
+            except Exception as e:
+                current_app.logger.error(f"Erro ao criar notificação: {str(e)}")
+
+        # 11. Log detalhado com verificação segura
+        try:
+            funcionario_responsavel = None
+            if proposta.funcionario_responsavel_id:
+                funcionario_responsavel = Funcionario.query.get(proposta.funcionario_responsavel_id)
+            
+            responsavel_nome = "própria" if is_propria_proposta else f"de {funcionario_responsavel.nome if funcionario_responsavel else 'N/A'}"
+        except Exception as e:
+            current_app.logger.warning(f"Erro ao carregar funcionário responsável: {str(e)}")
+            responsavel_nome = "própria" if is_propria_proposta else "de funcionário desconhecido"
+            
+        current_app.logger.info(
+            f"Proposta marcada como inativa: #{proposta.numero} "
+            f"(ID: {proposta.id}, Funcionário: {funcionario.nome}, "
+            f"Proposta: {responsavel_nome}, PDF excluído: {pdf_excluido}, "
+            f"Notificação enviada: {notificacao_enviada})"
+        )
+        
+        return jsonify({
+            'message': 'Proposta excluída com sucesso',
+            'pdf_excluido': pdf_excluido,
+            'notificacao_enviada': notificacao_enviada,
+            'is_propria_proposta': is_propria_proposta
+        })
+        
+    except ValueError as ve:
+        # Erros de validação - retornar 400
+        current_app.logger.warning(f"Erro de validação ao excluir proposta {proposta_id}: {str(ve)}")
+        db.session.rollback()
+        return jsonify({'error': str(ve)}), 400
+        
+    except Exception as e:
+        # Erros gerais - retornar 500
+        current_app.logger.error(f"Erro interno ao excluir proposta {proposta_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': 'Erro interno do servidor'}), 500
 
 
 def processar_itens_proposta(proposta: Proposta, novos_itens: list, alteracoes_realizadas: list) -> bool:

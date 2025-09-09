@@ -18,6 +18,7 @@ import {
 import { apiService } from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { Cliente } from '../../../types';
+import { useToast } from '../../../contexts/ToastContext';
 
 // Interfaces TypeScript
 interface TipoAtividade {
@@ -143,6 +144,7 @@ export const Passo5FinalizacaoProposta: React.FC<Passo5Props> = ({
     onVoltar,
     onNovaProposta
 }) => {
+    const { showSuccess, showError } = useToast();
     const [gerandoPDF, setGerandoPDF] = useState(false);
     const [todosServicos, setTodosServicos] = useState<Servico[]>([]);
     const [loading, setLoading] = useState(true);
@@ -181,14 +183,14 @@ export const Passo5FinalizacaoProposta: React.FC<Passo5Props> = ({
             console.log('✅ PDF gerado com sucesso:', response);
 
             // Mostrar sucesso
-            alert('PDF gerado com sucesso! O arquivo foi salvo no servidor.');
+            showSuccess('PDF Gerado', 'PDF gerado com sucesso! O arquivo foi salvo no servidor.');
 
             // Opcional: abrir PDF em nova aba
             // window.open(`/api/propostas/${proposta.id}/pdf`, '_blank');
 
         } catch (error) {
             console.error('❌ Erro ao gerar PDF:', error);
-            alert('Erro ao gerar PDF: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+            showError('Erro ao Gerar PDF', 'Erro ao gerar PDF: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
         } finally {
             setGerandoPDF(false);
         }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, User, MapPin, Building, Check, AlertCircle } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { Cliente } from '../../types';
+import { useToast } from '../../contexts/ToastContext';
 
 interface ClienteForm {
   nome: string;
@@ -141,6 +142,7 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
   onClienteCadastrado,
   clienteParaEditar
 }) => {
+  const { showError } = useToast();
   const [abaAtiva, setAbaAtiva] = useState(0); // 0: Cliente, 1: Endereço, 2: Empresa
   const [formData, setFormData] = useState<ClienteCompleto>({
     cliente: { nome: '', cpf: '', email: '', abertura_empresa: false },
@@ -397,7 +399,7 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
 
       // Mostrar mensagem de erro mais específica
       const mensagemErro = error.message || 'Erro desconhecido';
-      alert(`Erro ao ${clienteParaEditar ? 'atualizar' : 'cadastrar'} cliente: ${mensagemErro}`);
+      showError('Erro ao Cadastrar Cliente', `Erro ao ${clienteParaEditar ? 'atualizar' : 'cadastrar'} cliente: ${mensagemErro}`);
     } finally {
       setLoading(false);
     }

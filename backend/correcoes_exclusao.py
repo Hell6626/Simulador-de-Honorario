@@ -284,8 +284,8 @@ def corrigir_exclusao_propostas(cursor):
     # Verificar propostas com PDF gerado
     cursor.execute("""
         SELECT COUNT(*) as total_propostas,
-               COUNT(CASE WHEN caminho_pdf IS NOT NULL THEN 1 END) as com_pdf,
-               COUNT(CASE WHEN caminho_pdf IS NULL THEN 1 END) as sem_pdf
+               COUNT(CASE WHEN pdf_caminho IS NOT NULL THEN 1 END) as com_pdf,
+               COUNT(CASE WHEN pdf_caminho IS NULL THEN 1 END) as sem_pdf
         FROM proposta
         WHERE ativo = 1
     """)

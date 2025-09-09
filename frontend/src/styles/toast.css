@@ -1,0 +1,248 @@
+/* 🎨 Estilos para Sistema de Notificações Toast */
+
+/* Container principal das notificações */
+.toast-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 24rem;
+    pointer-events: none;
+}
+
+/* Animação de entrada */
+@keyframes toast-slide-in {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Animação de saída */
+@keyframes toast-slide-out {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Classe para animação de entrada */
+.toast-enter {
+    animation: toast-slide-in 0.3s ease-out;
+}
+
+/* Classe para animação de saída */
+.toast-exit {
+    animation: toast-slide-out 0.3s ease-in;
+}
+
+/* Estilos para diferentes tipos de toast */
+.toast-success {
+    background-color: #f0fdf4;
+    border-left-color: #22c55e;
+    color: #166534;
+}
+
+.toast-error {
+    background-color: #fef2f2;
+    border-left-color: #ef4444;
+    color: #991b1b;
+}
+
+.toast-warning {
+    background-color: #fffbeb;
+    border-left-color: #f59e0b;
+    color: #92400e;
+}
+
+.toast-info {
+    background-color: #eff6ff;
+    border-left-color: #3b82f6;
+    color: #1e40af;
+}
+
+/* Responsividade */
+@media (max-width: 640px) {
+    .toast-container {
+        top: 0.5rem;
+        right: 0.5rem;
+        left: 0.5rem;
+        max-width: none;
+    }
+}
+
+/* Acessibilidade */
+.toast-notification:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Melhorias de performance */
+.toast-notification {
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+}
+
+/* Estilos para botões de ação */
+.toast-action-button {
+    transition: all 0.2s ease-in-out;
+}
+
+.toast-action-button:hover {
+    text-decoration: none;
+    opacity: 0.8;
+}
+
+.toast-action-button:focus {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+/* Estilos para botão de fechar */
+.toast-close-button {
+    transition: all 0.2s ease-in-out;
+}
+
+.toast-close-button:hover {
+    opacity: 0.7;
+    transform: scale(1.1);
+}
+
+.toast-close-button:focus {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+/* Estilos para ícones */
+.toast-icon {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+/* Estilos para conteúdo */
+.toast-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.toast-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.toast-message {
+    opacity: 0.9;
+    line-height: 1.4;
+}
+
+/* Estilos para loading spinner */
+.toast-loading {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Estilos para progress bar (opcional) */
+.toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background-color: currentColor;
+    opacity: 0.3;
+    transition: width linear;
+}
+
+/* Estilos para notificações empilhadas */
+.toast-stacked {
+    margin-bottom: 0.5rem;
+}
+
+.toast-stacked:last-child {
+    margin-bottom: 0;
+}
+
+/* Estilos para notificações com sombra */
+.toast-shadow {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Estilos para notificações com borda */
+.toast-bordered {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Estilos para notificações compactas */
+.toast-compact {
+    padding: 0.75rem;
+}
+
+.toast-compact .toast-title {
+    font-size: 0.875rem;
+    margin-bottom: 0.125rem;
+}
+
+.toast-compact .toast-message {
+    font-size: 0.75rem;
+}
+
+/* Estilos para notificações grandes */
+.toast-large {
+    padding: 1.5rem;
+    max-width: 32rem;
+}
+
+.toast-large .toast-title {
+    font-size: 1.125rem;
+    margin-bottom: 0.5rem;
+}
+
+.toast-large .toast-message {
+    font-size: 1rem;
+}
+
+/* Estilos para modo escuro (opcional) */
+@media (prefers-color-scheme: dark) {
+    .toast-success {
+        background-color: #064e3b;
+        color: #a7f3d0;
+    }
+
+    .toast-error {
+        background-color: #7f1d1d;
+        color: #fecaca;
+    }
+
+    .toast-warning {
+        background-color: #78350f;
+        color: #fde68a;
+    }
+
+    .toast-info {
+        background-color: #1e3a8a;
+        color: #bfdbfe;
+    }
+}

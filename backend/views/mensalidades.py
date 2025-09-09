@@ -23,7 +23,8 @@ def buscar_mensalidade():
     {
         "tipo_atividade_id": int,
         "regime_tributario_id": int,
-        "faixa_faturamento_id": int (opcional)
+        "faixa_faturamento_id": int (opcional),
+        "faturamento_anual": float (opcional - para busca automática de faixa)
     }
     """
     try:
@@ -37,6 +38,25 @@ def buscar_mensalidade():
         tipo_atividade_id = data.get('tipo_atividade_id')
         regime_tributario_id = data.get('regime_tributario_id')
         faixa_faturamento_id = data.get('faixa_faturamento_id')  # Opcional
+        faturamento_anual = data.get('faturamento_anual')  # Opcional
+        
+        # Se faturamento_anual foi fornecido, buscar faixa automaticamente
+        if faturamento_anual and not faixa_faturamento_id:
+            faixa = FaixaFaturamento.query.filter(
+                FaixaFaturamento.valor_minimo <= faturamento_anual,
+                FaixaFaturamento.valor_maximo >= faturamento_anual
+            ).first()
+            
+            if faixa:
+                faixa_faturamento_id = faixa.id
+            else:
+                # Se não encontrou faixa específica, buscar a maior faixa disponível
+                faixa = FaixaFaturamento.query.filter(
+                    FaixaFaturamento.valor_minimo <= faturamento_anual
+                ).order_by(FaixaFaturamento.valor_minimo.desc()).first()
+                
+                if faixa:
+                    faixa_faturamento_id = faixa.id
         
         # Buscar mensalidade automática
         query = MensalidadeAutomatica.query.filter_by(
@@ -61,10 +81,29 @@ def buscar_mensalidade():
                 'data': None
             }), 404
         
+        # Preparar resposta com informações adicionais
+        mensalidade_data = mensalidade.to_json()
+        
+        # Adicionar informações sobre "A combinar"
+        if mensalidade.valor_mensal == 0:
+            mensalidade_data['a_combinar'] = True
+            mensalidade_data['mensagem'] = 'Valor a combinar - entre em contato para negociação'
+        else:
+            mensalidade_data['a_combinar'] = False
+            mensalidade_data['mensagem'] = 'Valor automático encontrado'
+        
+        # Adicionar informações da faixa de faturamento
+        if mensalidade.faixa_faturamento:
+            mensalidade_data['faixa_info'] = {
+                'descricao': mensalidade.faixa_faturamento.descricao,
+                'valor_minimo': mensalidade.faixa_faturamento.valor_minimo,
+                'valor_maximo': mensalidade.faixa_faturamento.valor_maximo
+            }
+        
         return jsonify({
             'success': True,
             'message': 'Mensalidade automática encontrada',
-            'data': mensalidade.to_json()
+            'data': mensalidade_data
         })
         
     except Exception as e:
@@ -210,5 +249,138 @@ def calcular_total_com_mensalidade():
         return jsonify({
             'success': False,
             'message': f'Erro ao calcular total: {str(e)}',
+            'data': None
+        }), 500
+
+
+@mensalidades_bp.route('/configuracoes-validas', methods=['GET'])
+@jwt_required()
+def listar_configuracoes_validas():
+    """
+    Lista todas as configurações válidas de mensalidades automáticas.
+    Útil para popular dropdowns e validar combinações.
+    """
+    try:
+        # Buscar todas as mensalidades ativas com relacionamentos
+        mensalidades = MensalidadeAutomatica.query.join(RegimeTributario).join(TipoAtividade).join(FaixaFaturamento).filter(
+            MensalidadeAutomatica.ativo == True
+        ).all()
+        
+        # Agrupar por regime tributário
+        configuracoes = {}
+        for mensalidade in mensalidades:
+            regime_codigo = mensalidade.regime_tributario.codigo
+            regime_nome = mensalidade.regime_tributario.nome
+            
+            if regime_codigo not in configuracoes:
+                configuracoes[regime_codigo] = {
+                    'regime_id': mensalidade.regime_tributario.id,
+                    'regime_codigo': regime_codigo,
+                    'regime_nome': regime_nome,
+                    'tipos_atividade': {}
+                }
+            
+            tipo_codigo = mensalidade.tipo_atividade.codigo
+            tipo_nome = mensalidade.tipo_atividade.nome
+            
+            if tipo_codigo not in configuracoes[regime_codigo]['tipos_atividade']:
+                configuracoes[regime_codigo]['tipos_atividade'][tipo_codigo] = {
+                    'tipo_id': mensalidade.tipo_atividade.id,
+                    'tipo_codigo': tipo_codigo,
+                    'tipo_nome': tipo_nome,
+                    'faixas_faturamento': []
+                }
+            
+            # Adicionar faixa de faturamento
+            faixa_info = {
+                'faixa_id': mensalidade.faixa_faturamento.id,
+                'descricao': mensalidade.faixa_faturamento.descricao,
+                'valor_minimo': mensalidade.faixa_faturamento.valor_minimo,
+                'valor_maximo': mensalidade.faixa_faturamento.valor_maximo,
+                'valor_mensal': mensalidade.valor_mensal,
+                'a_combinar': mensalidade.valor_mensal == 0
+            }
+            
+            configuracoes[regime_codigo]['tipos_atividade'][tipo_codigo]['faixas_faturamento'].append(faixa_info)
+        
+        # Ordenar faixas por valor mínimo
+        for regime in configuracoes.values():
+            for tipo in regime['tipos_atividade'].values():
+                tipo['faixas_faturamento'].sort(key=lambda x: x['valor_minimo'])
+        
+        return jsonify({
+            'success': True,
+            'message': 'Configurações válidas encontradas',
+            'data': {
+                'configuracoes': list(configuracoes.values()),
+                'total_regimes': len(configuracoes),
+                'total_mensalidades': len(mensalidades)
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao listar configurações: {str(e)}',
+            'data': None
+        }), 500
+
+
+@mensalidades_bp.route('/validar-combinacao', methods=['POST'])
+@jwt_required()
+def validar_combinacao():
+    """
+    Valida se uma combinação de regime + tipo + faixa é válida.
+    
+    Body:
+    {
+        "regime_tributario_id": int,
+        "tipo_atividade_id": int,
+        "faixa_faturamento_id": int
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        # Validação dos dados obrigatórios
+        validation_error = validate_required_fields(data, ['regime_tributario_id', 'tipo_atividade_id', 'faixa_faturamento_id'])
+        if validation_error:
+            return validation_error
+        
+        regime_id = data.get('regime_tributario_id')
+        tipo_id = data.get('tipo_atividade_id')
+        faixa_id = data.get('faixa_faturamento_id')
+        
+        # Buscar mensalidade
+        mensalidade = MensalidadeAutomatica.query.filter_by(
+            regime_tributario_id=regime_id,
+            tipo_atividade_id=tipo_id,
+            faixa_faturamento_id=faixa_id,
+            ativo=True
+        ).first()
+        
+        if not mensalidade:
+            return jsonify({
+                'success': False,
+                'message': 'Combinação inválida - mensalidade não encontrada',
+                'data': {
+                    'valida': False,
+                    'mensalidade': None
+                }
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'message': 'Combinação válida',
+            'data': {
+                'valida': True,
+                'mensalidade': mensalidade.to_json()
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao validar combinação: {str(e)}',
             'data': None
         }), 500

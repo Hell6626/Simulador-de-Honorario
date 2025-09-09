@@ -1,0 +1,167 @@
+/* Estilos para o componente ClienteDisplay */
+
+.cliente-display {
+    background: #ffffff;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 16px 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.cliente-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f8f9fa;
+}
+
+.cliente-nome-empresa,
+.cliente-nome {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.cliente-tipo-badge {
+    background: #2E3746;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cliente-dados-empresa,
+.cliente-dados-pessoais,
+.cliente-dados-responsavel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.cliente-dados-responsavel {
+    background: #f8f9fa;
+    padding: 16px;
+    border-radius: 6px;
+    border-left: 4px solid #2E3746;
+}
+
+.cliente-subtitulo {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 12px 0;
+    grid-column: 1 / -1;
+}
+
+.cliente-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.cliente-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cliente-valor {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #2c3e50;
+    word-break: break-word;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .cliente-display {
+        padding: 16px;
+        margin: 12px 0;
+    }
+
+    .cliente-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .cliente-dados-empresa,
+    .cliente-dados-pessoais,
+    .cliente-dados-responsavel {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .cliente-nome-empresa,
+    .cliente-nome {
+        font-size: 1.1rem;
+    }
+}
+
+/* Estados especiais */
+.cliente-display.compact {
+    padding: 12px;
+    margin: 8px 0;
+}
+
+.cliente-display.compact .cliente-header {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+}
+
+.cliente-display.compact .cliente-dados-empresa,
+.cliente-display.compact .cliente-dados-pessoais,
+.cliente-display.compact .cliente-dados-responsavel {
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.cliente-display.compact .cliente-dados-responsavel {
+    padding: 12px;
+}
+
+/* Hover effects */
+.cliente-display:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transition: box-shadow 0.2s ease;
+}
+
+/* Loading state */
+.cliente-display.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.cliente-display.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #2E3746;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}

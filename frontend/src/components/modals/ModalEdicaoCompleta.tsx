@@ -7,6 +7,7 @@ import { apiService } from '../../services/api';
 import { PropostaResponse } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
 import { getStatusConfig, STATUS_COLORS } from '../../utils/statusColors';
+import { useToast } from '../../contexts/ToastContext';
 
 interface ModalEdicaoCompletaProps {
   proposta: PropostaResponse | null;
@@ -50,6 +51,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
   onClose,
   onSaved
 }) => {
+  const { showSuccess, showError } = useToast();
   const [abaSelecionada, setAbaSelecionada] = useState('configuracoes');
   const [loading, setLoading] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -221,7 +223,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
         }
       }
 
-      alert(errorMessage);
+      showError('Erro na Validação', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -365,9 +367,9 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
 
       // Mostrar feedback sobre regeneração de PDF
       if (valorMensalidade > 0) {
-        alert('Proposta atualizada com sucesso! O PDF será regenerado automaticamente com a nova mensalidade.');
+        showSuccess('Proposta Atualizada', 'Proposta atualizada com sucesso! O PDF será regenerado automaticamente com a nova mensalidade.');
       } else {
-        alert('Proposta atualizada com sucesso!');
+        showSuccess('Proposta Atualizada', 'Proposta atualizada com sucesso!');
       }
 
       onSaved();
@@ -375,7 +377,7 @@ export const ModalEdicaoCompleta: React.FC<ModalEdicaoCompletaProps> = ({
 
     } catch (error) {
       console.error('❌ Erro ao salvar proposta:', error);
-      alert('Erro ao salvar alterações. Tente novamente.');
+      showError('Erro ao Salvar', 'Erro ao salvar alterações. Tente novamente.');
     } finally {
       setSalvando(false);
       setRegenerandoPDF(false);

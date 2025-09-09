@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
-import { LoadingSpinner } from '../../common/LoadingSpinner';
+import { LoadingSpinner, ClienteDisplay } from '../../common';
 import { apiService } from '../../../services/api';
 import { PropostaComDesconto, DadosPropostaCompleta } from '../../../types/propostas';
 import { usePropostaCalculations } from '../../../hooks/usePropostaCalculations';
+import '../../../styles/cliente-display.css';
 
 interface Passo4Props {
   dadosProposta: DadosPropostaCompleta;
@@ -148,7 +149,7 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
       {/* ✅ DADOS DA PROPOSTA - Layout em grid como Passo 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* Card do Cliente */}
+        {/* Card do Cliente - Usando ClienteDisplay */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center mb-4">
             <div className="w-10 h-10 bg-custom-blue-light rounded-lg flex items-center justify-center mr-3">
@@ -157,27 +158,20 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
             <h3 className="text-lg font-semibold text-gray-900">Cliente</h3>
           </div>
 
-          <div className="space-y-3">
-            <div>
-              <p className="text-sm font-medium text-gray-700">Nome</p>
-              <p className="text-gray-900">{dadosProposta.cliente.nome}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-700">CPF/CNPJ</p>
-              <p className="text-gray-900">{dadosProposta.cliente.cpf}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-700">Email</p>
-              <p className="text-gray-900">{dadosProposta.cliente.email}</p>
-            </div>
-            <div className="pt-2">
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${dadosProposta.cliente.abertura_empresa
-                ? 'bg-orange-100 text-orange-800'
-                : 'bg-green-100 text-green-800'
-                }`}>
-                {dadosProposta.cliente.abertura_empresa ? 'Abertura de Empresa' : 'Cliente Existente'}
-              </span>
-            </div>
+          <ClienteDisplay
+            cliente={dadosProposta.cliente}
+            showDetails={true}
+            className="compact"
+          />
+
+          {/* Badge de status adicional */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${dadosProposta.cliente.abertura_empresa
+              ? 'bg-orange-100 text-orange-800'
+              : 'bg-green-100 text-green-800'
+              }`}>
+              {dadosProposta.cliente.abertura_empresa ? 'Abertura de Empresa' : 'Cliente Existente'}
+            </span>
           </div>
         </div>
 
@@ -208,7 +202,15 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
             {dadosProposta.faixaFaturamento && (
               <div>
                 <p className="text-sm font-medium text-gray-700">Faixa de Faturamento</p>
-                <p className="text-gray-900">{dadosProposta.faixaFaturamento.nome}</p>
+                <p className="text-gray-900">
+                  {dadosProposta.faixaFaturamento.nome}
+                  {dadosProposta.faixaFaturamento.valor_inicial !== undefined &&
+                    dadosProposta.faixaFaturamento.valor_final !== undefined && (
+                      <span className="text-sm text-gray-500 ml-2">
+                        (R$ {dadosProposta.faixaFaturamento.valor_inicial.toLocaleString('pt-BR')} - R$ {dadosProposta.faixaFaturamento.valor_final.toLocaleString('pt-BR')})
+                      </span>
+                    )}
+                </p>
               </div>
             )}
           </div>
