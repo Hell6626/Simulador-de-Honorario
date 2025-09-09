@@ -234,9 +234,12 @@ class PropostaPDFGenerator:
             }
             itens_com_servicos.append(item_data)
         
+        # ✅ CORREÇÃO: Preparar dados do cliente para PDF
+        cliente_data = self._preparar_dados_cliente(proposta.cliente)
+        
         template_data = {
             'data_atual': datetime.now().strftime('%d/%m/%Y'),
-            'cliente': proposta.cliente,
+            'cliente': cliente_data,
             'proposta': proposta,
             'empresa': self.empresa,
             'itens': itens_com_servicos,
@@ -249,6 +252,56 @@ class PropostaPDFGenerator:
         
         
         return template_data
+    
+    def _preparar_dados_cliente(self, cliente):
+        """Prepara dados do cliente para o PDF - se for empresa, usa nome da empresa"""
+        try:
+            # ✅ CORREÇÃO: Se for Pessoa Jurídica, usar nome da empresa
+            if hasattr(cliente, 'entidades_juridicas') and cliente.entidades_juridicas:
+                # Verificar se tem entidades jurídicas ativas
+                entidades_ativas = [ej for ej in cliente.entidades_juridicas if ej.ativo]
+                if entidades_ativas:
+                    # Usar nome da primeira entidade jurídica (empresa)
+                    nome_empresa = entidades_ativas[0].nome
+                    print(f"🏢 PDF Generator - Cliente PJ detectado: {cliente.nome} -> Empresa: {nome_empresa}")
+                    
+                    # Retornar dados do cliente com nome da empresa
+                    return {
+                        'id': cliente.id,
+                        'nome': nome_empresa,  # ✅ Nome da empresa
+                        'cpf': cliente.cpf,
+                        'email': cliente.email,
+                        'abertura_empresa': cliente.abertura_empresa,
+                        'ativo': cliente.ativo,
+                        'created_at': cliente.created_at,
+                        'updated_at': cliente.updated_at,
+                        'tipo_cliente': 'PJ',
+                        'is_pessoa_juridica': True,
+                        'entidades_juridicas': cliente.entidades_juridicas,
+                        'enderecos': cliente.enderecos
+                    }
+            
+            # ✅ Se for Pessoa Física, usar nome do cliente
+            print(f"👤 PDF Generator - Cliente PF: {cliente.nome}")
+            return {
+                'id': cliente.id,
+                'nome': cliente.nome,  # ✅ Nome do cliente
+                'cpf': cliente.cpf,
+                'email': cliente.email,
+                'abertura_empresa': cliente.abertura_empresa,
+                'ativo': cliente.ativo,
+                'created_at': cliente.created_at,
+                'updated_at': cliente.updated_at,
+                'tipo_cliente': 'PF',
+                'is_pessoa_juridica': False,
+                'entidades_juridicas': cliente.entidades_juridicas or [],
+                'enderecos': cliente.enderecos or []
+            }
+            
+        except Exception as e:
+            print(f"❌ Erro ao preparar dados do cliente: {e}")
+            # Fallback: retornar dados originais
+            return cliente
     
     def _gerar_pdf_from_html(self, html_content: str, output_path: str):
         """Gera PDF usando APENAS o CSS do HTML"""
