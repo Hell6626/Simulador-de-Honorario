@@ -128,6 +128,14 @@ class FaixaFaturamento(db.Model, TimestampMixin, ActiveMixin):
                 "nome": self.regime_tributario.nome
             }
         
+        # Gerar descrição baseada nos valores
+        descricao = f"De {float(self.valor_inicial):,.2f}"
+        if self.valor_final:
+            descricao += f" até {float(self.valor_final):,.2f}"
+        else:
+            descricao += " ou mais"
+        descricao += f" (Alíquota: {float(self.aliquota):.2f}%)"
+        
         return {
             "id": self.id,
             "regime_tributario_id": self.regime_tributario_id,
@@ -135,6 +143,7 @@ class FaixaFaturamento(db.Model, TimestampMixin, ActiveMixin):
             "valor_inicial": float(self.valor_inicial) if self.valor_inicial else 0.0,
             "valor_final": float(self.valor_final) if self.valor_final else None,
             "aliquota": float(self.aliquota) if self.aliquota else 0.0,
+            "descricao": descricao,  # ✅ CORREÇÃO: Adicionado campo descricao
             "ativo": self.ativo,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
@@ -200,6 +209,7 @@ class MensalidadeAutomatica(db.Model, TimestampMixin, ActiveMixin):
             "faixa_faturamento_id": self.faixa_faturamento_id,
             "faixa_faturamento": faixa_faturamento_info,
             "valor_mensalidade": float(self.valor_mensalidade) if self.valor_mensalidade else 0.0,
+            "valor_mensal": float(self.valor_mensalidade) if self.valor_mensalidade else 0.0,  # ✅ CORREÇÃO: Adicionado campo valor_mensal
             "observacoes": self.observacoes,
             "ativo": self.ativo,
             "created_at": self.created_at.isoformat() if self.created_at else None,

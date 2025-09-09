@@ -43,8 +43,8 @@ def buscar_mensalidade():
         # Se faturamento_anual foi fornecido, buscar faixa automaticamente
         if faturamento_anual and not faixa_faturamento_id:
             faixa = FaixaFaturamento.query.filter(
-                FaixaFaturamento.valor_minimo <= faturamento_anual,
-                FaixaFaturamento.valor_maximo >= faturamento_anual
+                FaixaFaturamento.valor_inicial <= faturamento_anual,
+                FaixaFaturamento.valor_final >= faturamento_anual
             ).first()
             
             if faixa:
@@ -52,8 +52,8 @@ def buscar_mensalidade():
             else:
                 # Se não encontrou faixa específica, buscar a maior faixa disponível
                 faixa = FaixaFaturamento.query.filter(
-                    FaixaFaturamento.valor_minimo <= faturamento_anual
-                ).order_by(FaixaFaturamento.valor_minimo.desc()).first()
+                    FaixaFaturamento.valor_inicial <= faturamento_anual
+                ).order_by(FaixaFaturamento.valor_inicial.desc()).first()
                 
                 if faixa:
                     faixa_faturamento_id = faixa.id
@@ -85,7 +85,7 @@ def buscar_mensalidade():
         mensalidade_data = mensalidade.to_json()
         
         # Adicionar informações sobre "A combinar"
-        if mensalidade.valor_mensal == 0:
+        if mensalidade.valor_mensalidade == 0:
             mensalidade_data['a_combinar'] = True
             mensalidade_data['mensagem'] = 'Valor a combinar - entre em contato para negociação'
         else:
@@ -94,10 +94,11 @@ def buscar_mensalidade():
         
         # Adicionar informações da faixa de faturamento
         if mensalidade.faixa_faturamento:
+            faixa_json = mensalidade.faixa_faturamento.to_json()
             mensalidade_data['faixa_info'] = {
-                'descricao': mensalidade.faixa_faturamento.descricao,
-                'valor_minimo': mensalidade.faixa_faturamento.valor_minimo,
-                'valor_maximo': mensalidade.faixa_faturamento.valor_maximo
+                'descricao': faixa_json.get('descricao', 'N/A'),
+                'valor_inicial': faixa_json.get('valor_inicial', 0),
+                'valor_final': faixa_json.get('valor_final', None)
             }
         
         return jsonify({
@@ -114,7 +115,7 @@ def buscar_mensalidade():
         }), 500
 
 
-@mensalidades_bp.route('/api/mensalidades/buscar-por-proposta/<int:proposta_id>', methods=['GET'])
+@mensalidades_bp.route('/buscar-por-proposta/<int:proposta_id>', methods=['GET'])
 @jwt_required()
 def buscar_mensalidade_por_proposta(proposta_id):
     """
@@ -167,7 +168,7 @@ def buscar_mensalidade_por_proposta(proposta_id):
         }), 500
 
 
-@mensalidades_bp.route('/api/mensalidades/listar', methods=['GET'])
+@mensalidades_bp.route('/listar', methods=['GET'])
 @jwt_required()
 def listar_mensalidades():
     """
@@ -190,7 +191,7 @@ def listar_mensalidades():
         }), 500
 
 
-@mensalidades_bp.route('/api/mensalidades/calcular-total', methods=['POST'])
+@mensalidades_bp.route('/calcular-total', methods=['POST'])
 @jwt_required()
 def calcular_total_com_mensalidade():
     """
@@ -292,21 +293,22 @@ def listar_configuracoes_validas():
                 }
             
             # Adicionar faixa de faturamento
+            faixa_json = mensalidade.faixa_faturamento.to_json()
             faixa_info = {
                 'faixa_id': mensalidade.faixa_faturamento.id,
-                'descricao': mensalidade.faixa_faturamento.descricao,
-                'valor_minimo': mensalidade.faixa_faturamento.valor_minimo,
-                'valor_maximo': mensalidade.faixa_faturamento.valor_maximo,
-                'valor_mensal': mensalidade.valor_mensal,
-                'a_combinar': mensalidade.valor_mensal == 0
+                'descricao': faixa_json.get('descricao', 'N/A'),
+                'valor_inicial': faixa_json.get('valor_inicial', 0),
+                'valor_final': faixa_json.get('valor_final', None),
+                'valor_mensalidade': mensalidade.valor_mensalidade,
+                'a_combinar': mensalidade.valor_mensalidade == 0
             }
             
             configuracoes[regime_codigo]['tipos_atividade'][tipo_codigo]['faixas_faturamento'].append(faixa_info)
         
-        # Ordenar faixas por valor mínimo
+        # Ordenar faixas por valor inicial
         for regime in configuracoes.values():
             for tipo in regime['tipos_atividade'].values():
-                tipo['faixas_faturamento'].sort(key=lambda x: x['valor_minimo'])
+                tipo['faixas_faturamento'].sort(key=lambda x: x['valor_inicial'])
         
         return jsonify({
             'success': True,
@@ -322,6 +324,77 @@ def listar_configuracoes_validas():
         return jsonify({
             'success': False,
             'message': f'Erro ao listar configurações: {str(e)}',
+            'data': None
+        }), 500
+
+
+@mensalidades_bp.route('/debug', methods=['GET'])
+@jwt_required()
+def debug_mensalidades():
+    """
+    Endpoint de debug para verificar o estado do sistema de mensalidades.
+    """
+    try:
+        # Contar mensalidades por status
+        total_mensalidades = MensalidadeAutomatica.query.count()
+        mensalidades_ativas = MensalidadeAutomatica.query.filter_by(ativo=True).count()
+        mensalidades_inativas = MensalidadeAutomatica.query.filter_by(ativo=False).count()
+        
+        # Contar por regime tributário
+        regimes_stats = {}
+        for regime in RegimeTributario.query.all():
+            count = MensalidadeAutomatica.query.filter_by(
+                regime_tributario_id=regime.id, 
+                ativo=True
+            ).count()
+            regimes_stats[regime.nome] = count
+        
+        # Contar por tipo de atividade
+        tipos_stats = {}
+        for tipo in TipoAtividade.query.all():
+            count = MensalidadeAutomatica.query.filter_by(
+                tipo_atividade_id=tipo.id, 
+                ativo=True
+            ).count()
+            tipos_stats[tipo.nome] = count
+        
+        # Exemplo de busca
+        exemplo_busca = None
+        if total_mensalidades > 0:
+            primeira_mensalidade = MensalidadeAutomatica.query.filter_by(ativo=True).first()
+            if primeira_mensalidade:
+                exemplo_busca = {
+                    'tipo_atividade_id': primeira_mensalidade.tipo_atividade_id,
+                    'regime_tributario_id': primeira_mensalidade.regime_tributario_id,
+                    'faixa_faturamento_id': primeira_mensalidade.faixa_faturamento_id,
+                    'valor_mensalidade': float(primeira_mensalidade.valor_mensalidade)
+                }
+        
+        return jsonify({
+            'success': True,
+            'message': 'Debug do sistema de mensalidades',
+            'data': {
+                'total_mensalidades': total_mensalidades,
+                'mensalidades_ativas': mensalidades_ativas,
+                'mensalidades_inativas': mensalidades_inativas,
+                'regimes_tributarios': regimes_stats,
+                'tipos_atividade': tipos_stats,
+                'exemplo_busca': exemplo_busca,
+                'endpoints_disponiveis': [
+                    '/api/mensalidades/buscar',
+                    '/api/mensalidades/listar',
+                    '/api/mensalidades/calcular-total',
+                    '/api/mensalidades/configuracoes-validas',
+                    '/api/mensalidades/validar-combinacao',
+                    '/api/mensalidades/debug'
+                ]
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro no debug: {str(e)}',
             'data': None
         }), 500
 

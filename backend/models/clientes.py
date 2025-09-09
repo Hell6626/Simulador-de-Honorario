@@ -16,6 +16,7 @@ class Cliente(db.Model, TimestampMixin, ActiveMixin):
     nome = db.Column(db.String(100), nullable=False, index=True)
     cpf = db.Column(db.String(14), nullable=False, unique=True, index=True)
     email = db.Column(db.String(150), nullable=True)
+    # telefone = db.Column(db.String(20), nullable=True)  # Temporariamente comentado para evitar erro de migração
     abertura_empresa = db.Column(db.Boolean, default=False, nullable=False)
     
     # Relacionamentos
@@ -32,10 +33,14 @@ class Cliente(db.Model, TimestampMixin, ActiveMixin):
             "nome": self.nome,
             "cpf": self.cpf,
             "email": self.email,
+            # "telefone": self.telefone,  # Temporariamente comentado
             "abertura_empresa": self.abertura_empresa,
             "ativo": self.ativo,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            # ✅ NOVO: Detecção PJ/PF no backend
+            "tipo_cliente": self._detectar_tipo_cliente(),
+            "is_pessoa_juridica": self._is_pessoa_juridica()
         }
     
     def to_json_completo(self):
@@ -44,13 +49,31 @@ class Cliente(db.Model, TimestampMixin, ActiveMixin):
             "nome": self.nome,
             "cpf": self.cpf,
             "email": self.email,
+            # "telefone": self.telefone,  # Temporariamente comentado
             "abertura_empresa": self.abertura_empresa,
             "ativo": self.ativo,
-            "enderecos": [endereco.to_json() for endereco in self.enderecos],
-            "entidades_juridicas": [ej.to_json() for ej in self.entidades_juridicas],
+            "enderecos": [endereco.to_json() for endereco in self.enderecos if endereco.ativo],
+            "entidades_juridicas": [ej.to_json() for ej in self.entidades_juridicas if ej.ativo],
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            # ✅ NOVO: Detecção PJ/PF no backend
+            "tipo_cliente": self._detectar_tipo_cliente(),
+            "is_pessoa_juridica": self._is_pessoa_juridica()
         }
+    
+    def _detectar_tipo_cliente(self):
+        """Detecta se o cliente é Pessoa Física ou Jurídica"""
+        # Verificar se tem entidades jurídicas ativas
+        if hasattr(self, 'entidades_juridicas') and self.entidades_juridicas:
+            entidades_ativas = [ej for ej in self.entidades_juridicas if ej.ativo]
+            if entidades_ativas:
+                return 'PJ'
+        
+        return 'PF'
+    
+    def _is_pessoa_juridica(self):
+        """Retorna True se o cliente é Pessoa Jurídica"""
+        return self._detectar_tipo_cliente() == 'PJ'
 
 
 class Endereco(db.Model, TimestampMixin, ActiveMixin):
@@ -92,7 +115,7 @@ class EntidadeJuridica(db.Model, TimestampMixin, ActiveMixin):
     
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False, index=True)
-    cnpj = db.Column(db.String(18), nullable=True, unique=True, index=True)  # Mudado para nullable=True
+    cnpj = db.Column(db.String(18), nullable=True, unique=True, index=True)
     tipo = db.Column(db.String(50), nullable=False)
     cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id'), nullable=False, index=True)
     endereco_id = db.Column(db.Integer, db.ForeignKey('endereco.id'), nullable=True, index=True)

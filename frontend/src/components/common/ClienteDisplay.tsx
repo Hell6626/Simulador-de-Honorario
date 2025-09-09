@@ -1,119 +1,138 @@
 import React from 'react';
 import { Cliente } from '../../types';
+import {
+    formatarCliente,
+    getTipoCliente,
+    debugCliente
+} from '../../utils/formatters';
 
 interface ClienteDisplayProps {
     cliente: Cliente;
     showDetails?: boolean;
     className?: string;
+    showDebug?: boolean;
 }
 
 const ClienteDisplay: React.FC<ClienteDisplayProps> = ({
     cliente,
     showDetails = true,
-    className = ''
+    className = '',
+    showDebug = false
 }) => {
-    // Verificar se é cliente PJ (tem entidades jurídicas)
-    const isPessoaJuridica = cliente.entidades_juridicas && cliente.entidades_juridicas.length > 0;
+    // Debug do cliente se habilitado
+    if (showDebug) {
+        debugCliente(cliente, 'ClienteDisplay');
+    }
 
-    // Dados da empresa (primeira entidade jurídica)
-    const empresa = isPessoaJuridica ? cliente.entidades_juridicas[0] : null;
+    // Formatar dados do cliente usando utilitários
+    const dadosFormatados = formatarCliente(cliente);
+    const tipo = getTipoCliente(cliente);
+    const isPJ = tipo === 'PJ';
 
-    // Formatar CPF/CNPJ
-    const formatarDocumento = (documento: string, tipo: 'CPF' | 'CNPJ') => {
-        if (!documento) return '';
-
-        if (tipo === 'CPF') {
-            return documento.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-        } else {
-            return documento.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    // ✅ NOVO: Debug adicional para verificar detecção
+    console.log('🔍 DEBUG ClienteDisplay - Detecção:', {
+        tipo,
+        isPJ,
+        backendDetection: {
+            tipo_cliente: cliente?.tipo_cliente,
+            is_pessoa_juridica: cliente?.is_pessoa_juridica
+        },
+        frontendDetection: {
+            entidades_juridicas: cliente?.entidades_juridicas?.length || 0
         }
-    };
+    });
 
     return (
-        <div className={`cliente-display ${className}`}>
-            {isPessoaJuridica && empresa ? (
+        <div className={`bg-white rounded-lg border border-gray-200 p-4 ${className}`}>
+            {isPJ && dadosFormatados.empresa ? (
                 // Exibição para Pessoa Jurídica
-                <div className="cliente-pj">
-                    <div className="cliente-header">
-                        <h3 className="cliente-nome-empresa">{empresa.razao_social}</h3>
-                        <span className="cliente-tipo-badge">Pessoa Jurídica</span>
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900">{dadosFormatados.empresa.razaoSocial}</h3>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            Pessoa Jurídica
+                        </span>
                     </div>
 
-                    <div className="cliente-dados-empresa">
-                        <div className="cliente-campo">
-                            <span className="cliente-label">CNPJ:</span>
-                            <span className="cliente-valor">{formatarDocumento(empresa.cnpj, 'CNPJ')}</span>
+                    <div className="space-y-2">
+                        <div className="flex justify-between">
+                            <span className="text-sm font-medium text-gray-700">CNPJ:</span>
+                            <span className="text-sm text-gray-900">{dadosFormatados.empresa.cnpjFormatado}</span>
                         </div>
 
-                        {empresa.nome_fantasia && (
-                            <div className="cliente-campo">
-                                <span className="cliente-label">Nome Fantasia:</span>
-                                <span className="cliente-valor">{empresa.nome_fantasia}</span>
+                        {dadosFormatados.empresa.nomeFantasia && (
+                            <div className="flex justify-between">
+                                <span className="text-sm font-medium text-gray-700">Nome Fantasia:</span>
+                                <span className="text-sm text-gray-900">{dadosFormatados.empresa.nomeFantasia}</span>
                             </div>
                         )}
 
-                        {empresa.inscricao_estadual && (
-                            <div className="cliente-campo">
-                                <span className="cliente-label">Inscrição Estadual:</span>
-                                <span className="cliente-valor">{empresa.inscricao_estadual}</span>
+                        {dadosFormatados.empresa.inscricaoEstadual && (
+                            <div className="flex justify-between">
+                                <span className="text-sm font-medium text-gray-700">Inscrição Estadual:</span>
+                                <span className="text-sm text-gray-900">{dadosFormatados.empresa.inscricaoEstadual}</span>
                             </div>
                         )}
                     </div>
 
-                    {showDetails && (
-                        <div className="cliente-dados-responsavel">
-                            <h4 className="cliente-subtitulo">Responsável Legal</h4>
-                            <div className="cliente-campo">
-                                <span className="cliente-label">Nome:</span>
-                                <span className="cliente-valor">{cliente.nome}</span>
-                            </div>
-
-                            <div className="cliente-campo">
-                                <span className="cliente-label">CPF:</span>
-                                <span className="cliente-valor">{formatarDocumento(cliente.cpf, 'CPF')}</span>
-                            </div>
-
-                            {cliente.email && (
-                                <div className="cliente-campo">
-                                    <span className="cliente-label">Email:</span>
-                                    <span className="cliente-valor">{cliente.email}</span>
+                    {showDetails && dadosFormatados.responsavel && (
+                        <div className="pt-4 border-t border-gray-200">
+                            <h4 className="text-sm font-semibold text-gray-900 mb-2">Responsável Legal</h4>
+                            <div className="space-y-2">
+                                <div className="flex justify-between">
+                                    <span className="text-sm font-medium text-gray-700">Nome:</span>
+                                    <span className="text-sm text-gray-900">{dadosFormatados.responsavel.nome}</span>
                                 </div>
-                            )}
 
-                            {cliente.telefone && (
-                                <div className="cliente-campo">
-                                    <span className="cliente-label">Telefone:</span>
-                                    <span className="cliente-valor">{cliente.telefone}</span>
+                                <div className="flex justify-between">
+                                    <span className="text-sm font-medium text-gray-700">CPF:</span>
+                                    <span className="text-sm text-gray-900">{dadosFormatados.responsavel.cpfFormatado}</span>
                                 </div>
-                            )}
+
+                                {dadosFormatados.responsavel.email && (
+                                    <div className="flex justify-between">
+                                        <span className="text-sm font-medium text-gray-700">Email:</span>
+                                        <span className="text-sm text-gray-900">{dadosFormatados.responsavel.email}</span>
+                                    </div>
+                                )}
+
+                                {dadosFormatados.responsavel.telefone && (
+                                    <div className="flex justify-between">
+                                        <span className="text-sm font-medium text-gray-700">Telefone:</span>
+                                        <span className="text-sm text-gray-900">{dadosFormatados.responsavel.telefone}</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
             ) : (
                 // Exibição para Pessoa Física
-                <div className="cliente-pf">
-                    <div className="cliente-header">
-                        <h3 className="cliente-nome">{cliente.nome}</h3>
-                        <span className="cliente-tipo-badge">Pessoa Física</span>
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900">{dadosFormatados.nome}</h3>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Pessoa Física
+                        </span>
                     </div>
 
-                    <div className="cliente-dados-pessoais">
-                        <div className="cliente-campo">
-                            <span className="cliente-label">CPF:</span>
-                            <span className="cliente-valor">{formatarDocumento(cliente.cpf, 'CPF')}</span>
+                    <div className="space-y-2">
+                        <div className="flex justify-between">
+                            <span className="text-sm font-medium text-gray-700">CPF:</span>
+                            <span className="text-sm text-gray-900">{dadosFormatados.documentoFormatado}</span>
                         </div>
 
-                        {cliente.email && (
-                            <div className="cliente-campo">
-                                <span className="cliente-label">Email:</span>
-                                <span className="cliente-valor">{cliente.email}</span>
+                        {dadosFormatados.email && (
+                            <div className="flex justify-between">
+                                <span className="text-sm font-medium text-gray-700">Email:</span>
+                                <span className="text-sm text-gray-900">{dadosFormatados.email}</span>
                             </div>
                         )}
 
-                        {cliente.telefone && (
-                            <div className="cliente-campo">
-                                <span className="cliente-label">Telefone:</span>
-                                <span className="cliente-valor">{cliente.telefone}</span>
+                        {dadosFormatados.telefone && (
+                            <div className="flex justify-between">
+                                <span className="text-sm font-medium text-gray-700">Telefone:</span>
+                                <span className="text-sm text-gray-900">{dadosFormatados.telefone}</span>
                             </div>
                         )}
                     </div>

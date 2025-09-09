@@ -83,6 +83,7 @@ def create_cliente():
             nome=(data['nome'] or '').strip(),
             cpf=(data['cpf'] or '').strip(),
             email=(data.get('email') or '').strip().lower() or None,
+            # telefone=(data.get('telefone') or '').strip() or None,  # Temporariamente comentado
             abertura_empresa=bool(data.get('abertura_empresa', False)),
             ativo=data.get('ativo', True)
         )
@@ -184,7 +185,7 @@ def update_cliente(cliente_id: int):
     try:
         # === ETAPA 1: ATUALIZAR CLIENTE ===
         current_app.logger.info("ETAPA 1: Atualizando dados do cliente")
-        for field in ['nome', 'email', 'abertura_empresa', 'ativo']:
+        for field in ['nome', 'email', 'telefone', 'abertura_empresa', 'ativo']:
             if field in data:
                 value = data[field]
                 if field == 'email' and value:

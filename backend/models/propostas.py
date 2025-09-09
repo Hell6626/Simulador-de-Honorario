@@ -47,6 +47,25 @@ class Proposta(db.Model, TimestampMixin, ActiveMixin):
         return f'<Proposta {self.numero}>'
     
     def to_json(self):
+        # ✅ SIMPLIFICADO: Cliente básico sem campos problemáticos
+        cliente_data = None
+        if hasattr(self, 'cliente') and self.cliente:
+            cliente_data = {
+                "id": self.cliente.id,
+                "nome": self.cliente.nome,
+                "cpf": self.cliente.cpf,
+                "email": self.cliente.email,
+                "abertura_empresa": self.cliente.abertura_empresa,
+                "ativo": self.cliente.ativo,
+                "created_at": self.cliente.created_at.isoformat() if self.cliente.created_at else None,
+                "updated_at": self.cliente.updated_at.isoformat() if self.cliente.updated_at else None,
+                # ✅ SIMPLIFICADO: Entidades jurídicas básicas
+                "entidades_juridicas": [ej.to_json() for ej in self.cliente.entidades_juridicas if ej.ativo] if hasattr(self.cliente, 'entidades_juridicas') else [],
+                # ✅ SIMPLIFICADO: Detecção PJ/PF básica
+                "tipo_cliente": self._detectar_tipo_cliente(),
+                "is_pessoa_juridica": self._is_pessoa_juridica()
+            }
+        
         return {
             "id": self.id,
             "numero": self.numero,
@@ -68,25 +87,37 @@ class Proposta(db.Model, TimestampMixin, ActiveMixin):
             "ativo": self.ativo,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            # ⚠️ INCLUIR: Relacionamentos com cliente e funcionário
-            "cliente": {
-                "id": self.cliente.id,
-                "nome": self.cliente.nome,
-                "cpf": self.cliente.cpf,
-                "email": self.cliente.email
-            } if hasattr(self, 'cliente') and self.cliente else None,
+            # ✅ MELHORADO: Cliente com detecção PJ/PF
+            "cliente": cliente_data,
             "funcionario_responsavel": {
                 "id": self.funcionario_responsavel.id,
                 "nome": self.funcionario_responsavel.nome,
                 "email": self.funcionario_responsavel.email
             } if hasattr(self, 'funcionario_responsavel') and self.funcionario_responsavel else None,
-            # ⚠️ INCLUIR: Itens da proposta
+            # Itens da proposta
             "itens": [item.to_json() for item in self.itens if item.ativo] if hasattr(self, 'itens') else [],
             # Campos de PDF
             "pdf_gerado": self.pdf_gerado,
             "pdf_caminho": self.pdf_caminho,
             "pdf_data_geracao": self.pdf_data_geracao.isoformat() if self.pdf_data_geracao else None
         }
+    
+    def _detectar_tipo_cliente(self):
+        """Detecta se o cliente é Pessoa Física ou Jurídica"""
+        if not hasattr(self, 'cliente') or not self.cliente:
+            return 'PF'
+        
+        # Verificar se tem entidades jurídicas ativas
+        if hasattr(self.cliente, 'entidades_juridicas') and self.cliente.entidades_juridicas:
+            entidades_ativas = [ej for ej in self.cliente.entidades_juridicas if ej.ativo]
+            if entidades_ativas:
+                return 'PJ'
+        
+        return 'PF'
+    
+    def _is_pessoa_juridica(self):
+        """Retorna True se o cliente é Pessoa Jurídica"""
+        return self._detectar_tipo_cliente() == 'PJ'
     
     def calcular_requer_aprovacao(self):
         """Verifica se a proposta requer aprovação gerencial"""

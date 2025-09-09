@@ -131,3 +131,78 @@ export const detectarTipoDocumento = (documento: string): 'CPF' | 'CNPJ' | 'INVA
   if (documentoLimpo.length === 14) return 'CNPJ';
   return 'INVALIDO';
 };
+
+// ✅ MELHORADO: Funções de formatação para clientes com detecção robusta
+export const formatarCliente = (cliente: any) => {
+  // Debug da estrutura do cliente
+  console.log('🔍 DEBUG formatarCliente - Estrutura do cliente:', {
+    cliente,
+    tipo_cliente: cliente?.tipo_cliente,
+    is_pessoa_juridica: cliente?.is_pessoa_juridica,
+    entidades_juridicas: cliente?.entidades_juridicas,
+    hasEntidades: !!(cliente?.entidades_juridicas && cliente.entidades_juridicas.length > 0)
+  });
+
+  // ✅ NOVO: Priorizar detecção do backend, com fallback para frontend
+  const isPJ = cliente?.is_pessoa_juridica === true ||
+    (cliente?.tipo_cliente === 'PJ') ||
+    (cliente?.entidades_juridicas && Array.isArray(cliente.entidades_juridicas) && cliente.entidades_juridicas.length > 0);
+
+  const empresa = isPJ ? cliente.entidades_juridicas?.[0] : null;
+
+  console.log('🔍 DEBUG formatarCliente - Análise:', {
+    isPJ,
+    empresa,
+    empresaFields: empresa ? Object.keys(empresa) : 'N/A',
+    backendDetection: {
+      tipo_cliente: cliente?.tipo_cliente,
+      is_pessoa_juridica: cliente?.is_pessoa_juridica
+    }
+  });
+
+  return {
+    nome: cliente?.nome || '',
+    cpf: cliente?.cpf || '',
+    email: cliente?.email || '',
+    telefone: cliente?.telefone || '',
+    documentoFormatado: formatarCPF(cliente?.cpf || ''),
+    empresa: empresa ? {
+      razaoSocial: empresa?.nome || empresa?.razao_social || empresa?.razaoSocial || '',
+      cnpj: empresa?.cnpj || '',
+      cnpjFormatado: formatarCNPJ(empresa?.cnpj || ''),
+      nomeFantasia: empresa?.nome_fantasia || empresa?.nomeFantasia || '',
+      inscricaoEstadual: empresa?.inscricao_estadual || empresa?.inscricaoEstadual || ''
+    } : null,
+    responsavel: isPJ ? {
+      nome: cliente?.nome || '',
+      cpf: cliente?.cpf || '',
+      cpfFormatado: formatarCPF(cliente?.cpf || ''),
+      email: cliente?.email || '',
+      telefone: cliente?.telefone || ''
+    } : null
+  };
+};
+
+export const getTipoCliente = (cliente: any): 'PF' | 'PJ' => {
+  // ✅ NOVO: Priorizar detecção do backend, com fallback para frontend
+  if (cliente?.tipo_cliente === 'PJ' || cliente?.is_pessoa_juridica === true) {
+    return 'PJ';
+  }
+
+  if (cliente?.tipo_cliente === 'PF' || cliente?.is_pessoa_juridica === false) {
+    return 'PF';
+  }
+
+  // Fallback para detecção frontend
+  return (cliente?.entidades_juridicas && cliente.entidades_juridicas.length > 0) ? 'PJ' : 'PF';
+};
+
+export const debugCliente = (cliente: any, contexto: string = '') => {
+  console.log(`🔍 DEBUG CLIENTE ${contexto}:`, {
+    nome: cliente.nome,
+    cpf: cliente.cpf,
+    entidades_juridicas: cliente.entidades_juridicas,
+    isPJ: getTipoCliente(cliente) === 'PJ',
+    empresa: cliente.entidades_juridicas?.[0]
+  });
+};

@@ -8,6 +8,7 @@ interface ClienteForm {
   nome: string;
   cpf: string;
   email?: string;
+  telefone?: string;
   abertura_empresa: boolean;
 }
 
@@ -145,7 +146,7 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
   const { showError } = useToast();
   const [abaAtiva, setAbaAtiva] = useState(0); // 0: Cliente, 1: Endereço, 2: Empresa
   const [formData, setFormData] = useState<ClienteCompleto>({
-    cliente: { nome: '', cpf: '', email: '', abertura_empresa: false },
+    cliente: { nome: '', cpf: '', email: '', telefone: '', abertura_empresa: false },
     endereco: null,
     empresa: null
   });
@@ -156,7 +157,7 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
   useEffect(() => {
     if (!isOpen) {
       setFormData({
-        cliente: { nome: '', cpf: '', email: '', abertura_empresa: false },
+        cliente: { nome: '', cpf: '', email: '', telefone: '', abertura_empresa: false },
         endereco: null,
         empresa: null
       });
@@ -220,7 +221,7 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
     } else if (isOpen) {
       // Reset form para novo cliente
       setFormData({
-        cliente: { nome: '', cpf: '', email: '', abertura_empresa: false },
+        cliente: { nome: '', cpf: '', email: '', telefone: '', abertura_empresa: false },
         endereco: null,
         empresa: null
       });
@@ -356,6 +357,7 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
         nome: formData.cliente.nome,
         cpf: formData.cliente.cpf.replace(/\D/g, ''),
         email: formData.cliente.email || null,
+        telefone: formData.cliente.telefone || null,
         abertura_empresa: formData.cliente.abertura_empresa,
         endereco: formData.endereco && formData.endereco.rua ? {
           rua: formData.endereco.rua,
@@ -570,6 +572,19 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
                     {errors.cliente.email}
                   </p>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Telefone
+                </label>
+                <input
+                  type="tel"
+                  value={formData.cliente.telefone || ''}
+                  onChange={(e) => handleInputChange('cliente', 'telefone', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="(11) 99999-9999"
+                />
               </div>
 
               <div className="flex items-center">

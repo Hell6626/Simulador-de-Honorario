@@ -80,6 +80,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
   const [valorMensalidade, setValorMensalidade] = useState<number>(0);
   const [loadingMensalidade, setLoadingMensalidade] = useState(false);
   const [mensalidadeEncontrada, setMensalidadeEncontrada] = useState(false);
+  const [erroMensalidade, setErroMensalidade] = useState<string | null>(null);
 
   const [tiposAtividade, setTiposAtividade] = useState<TipoAtividade[]>([]);
   const [regimesCompativeis, setRegimesCompativeis] = useState<RegimeTributario[]>([]);
@@ -118,6 +119,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
     setLoadingMensalidade(true);
     setMensalidadeEncontrada(false);
     setValorMensalidade(0);
+    setErroMensalidade(null); // ✅ Limpar erros anteriores
 
     try {
       const params: any = {
@@ -189,19 +191,23 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
         console.log('ℹ️ Pessoa Física - Valor a combinar');
         setValorMensalidade(0);
         setMensalidadeEncontrada(false);
+        setErroMensalidade(null); // Não é erro para PF
       } else if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
         console.log('ℹ️ Configuração não encontrada na tabela - Valor a combinar');
         setValorMensalidade(0);
         setMensalidadeEncontrada(false);
+        setErroMensalidade('Configuração não encontrada - Valor será definido manualmente');
       } else if (errorMessage.includes('500') || errorMessage.includes('Internal Server Error')) {
         console.log('⚠️ Erro interno do servidor - Valor a combinar');
         setValorMensalidade(0);
         setMensalidadeEncontrada(false);
+        setErroMensalidade('Erro interno do servidor - Valor será definido manualmente');
       } else {
         // Para outros casos, definir como "A Combinar"
         console.log('ℹ️ Erro genérico - Valor a combinar');
         setValorMensalidade(0);
         setMensalidadeEncontrada(false);
+        setErroMensalidade('Erro ao buscar mensalidade - Valor será definido manualmente');
       }
     } finally {
       setLoadingMensalidade(false);
@@ -680,6 +686,12 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
       };
 
       console.log('🚀 Passo 2 - Dados enviados para próximo passo:', dadosCompletos);
+      console.log('🔍 Debug Faixa Faturamento:', {
+        selectedFaixaFaturamento,
+        faixasFaturamento: faixasFaturamento.length,
+        faixaEncontrada: faixasFaturamento.find(f => f.id === selectedFaixaFaturamento),
+        todasFaixas: faixasFaturamento
+      });
       onProximo(dadosCompletos);
     }
   };
@@ -1119,6 +1131,20 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
                       <AlertCircle className="w-4 h-4 mr-1" />
                       <span>Valor será definido manualmente</span>
                     </div>
+
+                    {/* ✅ NOVO: Exibição de erro se houver */}
+                    {erroMensalidade && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <div className="flex items-center text-sm text-yellow-700">
+                          <AlertCircle className="w-4 h-4 mr-2" />
+                          <span className="font-medium">Aviso:</span>
+                        </div>
+                        <p className="text-sm text-yellow-600 mt-1 ml-6">
+                          {erroMensalidade}
+                        </p>
+                      </div>
+                    )}
+
                     <div className="text-xs text-green-500 bg-green-100 rounded px-2 py-1">
                       ℹ️ Aplicável para: Pessoa Física, valores acima de R$ 720.000 ou configurações não encontradas
                     </div>

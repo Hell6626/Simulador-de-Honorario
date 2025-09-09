@@ -36,6 +36,7 @@ export interface Cliente {
   nome: string;
   cpf: string;
   email: string;
+  telefone?: string;
   abertura_empresa: boolean;
   ativo: boolean;
   created_at: string;
