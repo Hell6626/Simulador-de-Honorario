@@ -226,10 +226,17 @@ class PropostaPDFGenerator:
             servico = Servico.query.get(item.servico_id) if MODELS_AVAILABLE else None
             
             
+            # ✅ CORREÇÃO: Calcular desconto baseado no percentual da proposta
+            valor_unitario = float(item.valor_unitario)
+            valor_total_sem_desconto = valor_unitario * float(item.quantidade)
+            percentual_desconto = float(proposta.percentual_desconto) if proposta.percentual_desconto else 0.0
+            valor_desconto = valor_total_sem_desconto * (percentual_desconto / 100.0)
+            
             item_data = {
                 'servico': servico or {'nome': f'Serviço {item.id}', 'descricao': None},
                 'quantidade': item.quantidade,
-                'valor_unitario': float(item.valor_unitario),
+                'valor_unitario': valor_unitario,
+                'valor_desconto': valor_desconto,  # ✅ CORREÇÃO: Desconto calculado
                 'valor_total': float(item.valor_total)
             }
             itens_com_servicos.append(item_data)

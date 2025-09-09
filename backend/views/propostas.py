@@ -439,7 +439,7 @@ def update_proposta(proposta_id: int):
         itens_alterados = processar_itens_proposta(proposta, data['itens'], alteracoes_realizadas)
     
     # ⚠️ REGENERAÇÃO DE PDF: Verificar se deve regenerar PDF automaticamente
-    regenerar_pdf = data.get('regenerar_pdf', False)
+    regenerar_pdf = data.get('regenerar_pdf', True)  # ✅ CORREÇÃO: Padrão True para regeneração automática
     pdf_regenerado = False
     
     if regenerar_pdf and verificar_mudancas_significativas(alteracoes_realizadas):
@@ -458,9 +458,8 @@ def update_proposta(proposta_id: int):
             proposta.pdf_data_geracao = None
             
             # Gerar novo PDF
-            from services.pdf_generator import PDFGenerator
-            pdf_generator = PDFGenerator()
-            pdf_path = pdf_generator.gerar_proposta_pdf(proposta.id)
+            from services.pdf_generator import pdf_generator
+            pdf_path = pdf_generator.gerar_pdf_proposta(proposta.id)
             
             if pdf_path:
                 proposta.pdf_caminho = os.path.basename(pdf_path)
@@ -1088,7 +1087,7 @@ def processar_itens_proposta(proposta: Proposta, novos_itens: list, alteracoes_r
     # ⚠️ REGISTRAR: Alteração dos itens
     if itens_criados:
         alteracoes_realizadas.append({
-            'campo': 'itens_proposta',
+            'campo': 'itens',  # ✅ CORREÇÃO: Campo deve ser 'itens' para ser detectado
             'detalhes': {
                 'total_itens_antigos': len(itens_atuais),
                 'total_itens_novos': len(itens_criados),
