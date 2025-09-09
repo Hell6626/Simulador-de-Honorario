@@ -255,13 +255,40 @@ export const getCardClasses = (isSelected: boolean = false, hoverable: boolean =
 
 /**
  * Determina o tipo de cliente e retorna configuração de cores
+ * ✅ CORREÇÃO: Melhorada detecção de Pessoa Jurídica considerando todos os casos
  */
 export const getClienteConfig = (cliente: any): { tipo: ClienteType; cores: ColorConfig } => {
-    const temEntidadesJuridicas = cliente.entidades_juridicas && cliente.entidades_juridicas.length > 0;
-    const isPessoaJuridica = temEntidadesJuridicas || cliente.abertura_empresa;
+    // ✅ CORREÇÃO: Verificações mais robustas para detectar Pessoa Jurídica
+    const temEntidadesJuridicas = cliente.entidades_juridicas &&
+        Array.isArray(cliente.entidades_juridicas) &&
+        cliente.entidades_juridicas.length > 0;
+
+    const temAberturaEmpresa = cliente.abertura_empresa === true ||
+        cliente.abertura_empresa === 'true' ||
+        cliente.abertura_empresa === 1;
+
+    // ✅ CORREÇÃO: Verificar se o backend já detectou como PJ
+    const backendDetectouPJ = cliente.tipo_cliente === 'PJ' ||
+        cliente.is_pessoa_juridica === true;
+
+    // ✅ CORREÇÃO: Pessoa Jurídica se tiver entidades jurídicas OU abertura de empresa OU backend detectou PJ
+    const isPessoaJuridica = temEntidadesJuridicas || temAberturaEmpresa || backendDetectouPJ;
 
     const tipo: ClienteType = isPessoaJuridica ? 'pessoaJuridica' : 'pessoaFisica';
     const config = SEMANTIC_COLORS.cliente[tipo];
+
+    // ✅ DEBUG: Log para verificar detecção
+    console.log('🔍 getClienteConfig Debug:', {
+        clienteId: cliente.id,
+        clienteNome: cliente.nome,
+        temEntidadesJuridicas,
+        temAberturaEmpresa,
+        backendDetectouPJ,
+        tipo_cliente: cliente.tipo_cliente,
+        is_pessoa_juridica: cliente.is_pessoa_juridica,
+        isPessoaJuridica,
+        tipoFinal: tipo
+    });
 
     return {
         tipo,

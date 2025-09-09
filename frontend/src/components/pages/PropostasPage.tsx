@@ -653,11 +653,19 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
 
       const dadosCompletos: DadosPropostaCompleta = {
         cliente: {
+          // ✅ CORREÇÃO: Incluir TODOS os dados do cliente, incluindo entidades jurídicas e detecção do backend
+          ...dadosProposta.cliente,
+          // Garantir que os campos essenciais existam
           id: dadosProposta.cliente.id,
           nome: dadosProposta.cliente.nome,
           cpf: dadosProposta.cliente.cpf,
           email: dadosProposta.cliente.email,
-          abertura_empresa: dadosProposta.cliente.abertura_empresa
+          abertura_empresa: dadosProposta.cliente.abertura_empresa,
+          // ✅ NOVO: Incluir campos de detecção do backend
+          tipo_cliente: dadosProposta.cliente.tipo_cliente,
+          is_pessoa_juridica: dadosProposta.cliente.is_pessoa_juridica,
+          // ✅ NOVO: Incluir entidades jurídicas
+          entidades_juridicas: dadosProposta.cliente.entidades_juridicas || []
         },
         tipoAtividade: {
           id: dadosProposta.tipoAtividade.id,

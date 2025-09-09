@@ -151,13 +151,17 @@ export const formatarCliente = (cliente: any) => {
   const empresa = isPJ ? cliente.entidades_juridicas?.[0] : null;
 
   console.log('🔍 DEBUG formatarCliente - Análise:', {
+    clienteId: cliente?.id,
+    clienteNome: cliente?.nome,
     isPJ,
     empresa,
     empresaFields: empresa ? Object.keys(empresa) : 'N/A',
     backendDetection: {
       tipo_cliente: cliente?.tipo_cliente,
       is_pessoa_juridica: cliente?.is_pessoa_juridica
-    }
+    },
+    entidades_juridicas: cliente?.entidades_juridicas,
+    dadosCompletos: cliente
   });
 
   return {

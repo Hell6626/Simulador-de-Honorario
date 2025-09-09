@@ -41,6 +41,9 @@ export interface Cliente {
   ativo: boolean;
   created_at: string;
   updated_at: string;
+  // ✅ NOVO: Campos de detecção do backend
+  tipo_cliente?: string;
+  is_pessoa_juridica?: boolean;
   enderecos?: Array<{
     id: number;
     rua: string;

@@ -31,15 +31,39 @@ import { getClienteConfig, getClienteCssClasses } from '../../../utils/colorUtil
 
 // 🎨 NOVO: Sistema de cores padronizado usando funções utilitárias
 const getClienteDisplayInfo = (cliente: Cliente) => {
+  // ✅ CORREÇÃO: Debug mais detalhado para análise
+  console.log('🔍 getClienteDisplayInfo Debug - Cliente:', {
+    id: cliente.id,
+    nome: cliente.nome,
+    cpf: cliente.cpf,
+    abertura_empresa: cliente.abertura_empresa,
+    entidades_juridicas: cliente.entidades_juridicas ? {
+      count: cliente.entidades_juridicas.length,
+      first: cliente.entidades_juridicas[0] || null
+    } : null,
+    rawData: cliente
+  });
+
   const config = getClienteConfig(cliente);
   const cssClasses = getClienteCssClasses(cliente);
 
-  return {
+  const result = {
     tipo: config.tipo === 'pessoaFisica' ? 'Pessoa Física' : 'Pessoa Jurídica',
     tipoEnum: config.tipo,
     cssClasses,
     icon: config.tipo === 'pessoaFisica' ? User : Building2
   };
+
+  // ✅ DEBUG: Log do resultado final
+  console.log('🔍 getClienteDisplayInfo Result:', {
+    clienteId: cliente.id,
+    clienteNome: cliente.nome,
+    tipoFinal: result.tipo,
+    tipoEnum: result.tipoEnum,
+    icon: result.icon.name
+  });
+
+  return result;
 };
 
 // ✅ NOVO: Componente CustomerCard modular e reutilizável
@@ -128,10 +152,21 @@ const CustomerCard: React.FC<CustomerCardProps> = ({ cliente, isSelected, onSele
         <div className="flex items-center space-x-1 mb-1">
           <displayInfo.icon className="w-3 h-3 text-gray-600" aria-hidden="true" />
           <h3 id={`cliente-${cliente.id}-name`} className="text-sm font-semibold text-gray-900">
-            {displayInfo.tipo === 'Pessoa Jurídica' && cliente.entidades_juridicas && cliente.entidades_juridicas.length > 0
-              ? cliente.entidades_juridicas[0].nome
-              : cliente.nome
-            }
+            {(() => {
+              // ✅ CORREÇÃO: Lógica melhorada para exibição do nome da empresa
+              if (displayInfo.tipo === 'Pessoa Jurídica') {
+                // Prioridade 1: Primeira entidade jurídica (se existir)
+                if (cliente.entidades_juridicas && cliente.entidades_juridicas.length > 0) {
+                  return cliente.entidades_juridicas[0].nome;
+                }
+
+                // Prioridade 2: Nome do cliente (fallback)
+                return cliente.nome;
+              }
+
+              // Para Pessoa Física, sempre o nome do cliente
+              return cliente.nome;
+            })()}
           </h3>
         </div>
 
@@ -150,14 +185,21 @@ const CustomerCard: React.FC<CustomerCardProps> = ({ cliente, isSelected, onSele
           {displayInfo.tipo === 'Pessoa Jurídica' && (
             <>
               {/* CNPJ da empresa */}
-              {cliente.entidades_juridicas && cliente.entidades_juridicas.length > 0 && (
-                <div className="flex items-center space-x-1">
-                  <span className="text-gray-600 font-bold text-xs">#</span>
-                  <span className="text-xs text-gray-700">
-                    CNPJ: {formatarCNPJ(cliente.entidades_juridicas[0].cnpj)}
-                  </span>
-                </div>
-              )}
+              {(() => {
+                // ✅ CORREÇÃO: Buscar CNPJ da primeira entidade jurídica
+                if (cliente.entidades_juridicas && cliente.entidades_juridicas.length > 0) {
+                  const cnpj = cliente.entidades_juridicas[0].cnpj;
+                  return (
+                    <div className="flex items-center space-x-1">
+                      <span className="text-gray-600 font-bold text-xs">#</span>
+                      <span className="text-xs text-gray-700">
+                        CNPJ: {formatarCNPJ(cnpj)}
+                      </span>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
               {/* CPF do responsável */}
               <div className="flex items-center space-x-1">
@@ -371,16 +413,63 @@ export const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
 
       const clientesData = response.items || [];
 
+      // ✅ DEBUG: Verificar dados brutos da API
+      console.log('🔍 DEBUG Passo1 - Dados brutos da API:', {
+        response,
+        clientesData,
+        totalClientes: clientesData.length
+      });
+
+      // ✅ DEBUG: Verificar cliente ADILSON nos dados brutos
+      const clienteAdilsonBruto = clientesData.find((c: any) => c.nome && c.nome.includes('ADILSON'));
+      if (clienteAdilsonBruto) {
+        console.log('🔍 DEBUG Passo1 - Cliente ADILSON dados brutos:', {
+          id: clienteAdilsonBruto.id,
+          nome: clienteAdilsonBruto.nome,
+          tipo_cliente: clienteAdilsonBruto.tipo_cliente,
+          is_pessoa_juridica: clienteAdilsonBruto.is_pessoa_juridica,
+          entidades_juridicas: clienteAdilsonBruto.entidades_juridicas,
+          dadosBrutos: clienteAdilsonBruto
+        });
+      }
+
       // ✅ VALIDAÇÃO: Garantir que os dados estão completos
-      const clientesValidados = clientesData.map((cliente: any) => ({
-        ...cliente,
-        // Garantir que entidades_juridicas sempre existe como array
-        entidades_juridicas: cliente.entidades_juridicas || [],
-        // Garantir que enderecos sempre existe como array
-        enderecos: cliente.enderecos || []
-      }));
+      const clientesValidados = clientesData.map((cliente: any) => {
+        // ✅ DEBUG: Verificar dados do cliente ADILSON
+        if (cliente.nome && cliente.nome.includes('ADILSON')) {
+          console.log('🔍 DEBUG Passo1 - Cliente ADILSON encontrado:', {
+            id: cliente.id,
+            nome: cliente.nome,
+            tipo_cliente: cliente.tipo_cliente,
+            is_pessoa_juridica: cliente.is_pessoa_juridica,
+            entidades_juridicas: cliente.entidades_juridicas,
+            dadosOriginais: cliente
+          });
+        }
+
+        return {
+          ...cliente,
+          // Garantir que entidades_juridicas sempre existe como array
+          entidades_juridicas: cliente.entidades_juridicas || [],
+          // Garantir que enderecos sempre existe como array
+          enderecos: cliente.enderecos || []
+        };
+      });
 
       console.log(`✅ ${clientesValidados.length} clientes carregados com dados completos`);
+
+      // ✅ DEBUG: Verificar se cliente ADILSON tem dados corretos após validação
+      const clienteAdilson = clientesValidados.find((c: any) => c.nome && c.nome.includes('ADILSON'));
+      if (clienteAdilson) {
+        console.log('🔍 DEBUG Passo1 - Cliente ADILSON após validação:', {
+          id: clienteAdilson.id,
+          nome: clienteAdilson.nome,
+          tipo_cliente: clienteAdilson.tipo_cliente,
+          is_pessoa_juridica: clienteAdilson.is_pessoa_juridica,
+          entidades_juridicas: clienteAdilson.entidades_juridicas,
+          dadosCompletos: clienteAdilson
+        });
+      }
 
       setClientes(clientesValidados);
       setTotalPages(response.pages || 1);

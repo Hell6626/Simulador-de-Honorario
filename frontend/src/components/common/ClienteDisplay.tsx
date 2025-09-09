@@ -31,6 +31,8 @@ const ClienteDisplay: React.FC<ClienteDisplayProps> = ({
 
     // ✅ NOVO: Debug adicional para verificar detecção
     console.log('🔍 DEBUG ClienteDisplay - Detecção:', {
+        clienteId: cliente?.id,
+        clienteNome: cliente?.nome,
         tipo,
         isPJ,
         backendDetection: {
@@ -38,8 +40,10 @@ const ClienteDisplay: React.FC<ClienteDisplayProps> = ({
             is_pessoa_juridica: cliente?.is_pessoa_juridica
         },
         frontendDetection: {
-            entidades_juridicas: cliente?.entidades_juridicas?.length || 0
-        }
+            entidades_juridicas: cliente?.entidades_juridicas?.length || 0,
+            entidades_juridicas_data: cliente?.entidades_juridicas
+        },
+        dadosCompletos: cliente
     });
 
     return (
