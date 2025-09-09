@@ -75,11 +75,20 @@ def buscar_mensalidade():
         mensalidade = query.first()
         
         if not mensalidade:
+            # ✅ CORREÇÃO: Retornar mensalidade "A Combinar" em vez de erro 404
             return jsonify({
-                'success': False,
-                'message': 'Mensalidade automática não encontrada para esta configuração',
-                'data': None
-            }), 404
+                'success': True,
+                'message': 'Mensalidade automática não encontrada - Valor a combinar',
+                'data': {
+                    'id': None,
+                    'valor_mensalidade': 0,
+                    'a_combinar': True,
+                    'mensagem': 'Valor a combinar - entre em contato para negociação',
+                    'tipo_atividade_id': tipo_atividade_id,
+                    'regime_tributario_id': regime_tributario_id,
+                    'faixa_faturamento_id': faixa_faturamento_id
+                }
+            }), 200
         
         # Preparar resposta com informações adicionais
         mensalidade_data = mensalidade.to_json()

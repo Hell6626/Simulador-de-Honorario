@@ -86,6 +86,7 @@ interface PropostaCompleta {
   regime_tributario_id: number;
   faixa_faturamento_id?: number;
   valor_mensalidade?: number; // ⚠️ NOVO: Valor da mensalidade automática
+  mensalidade_encontrada?: boolean; // ✅ CORREÇÃO: Status da mensalidade
 
   // Serviços (Passo 3)
   servicosSelecionados: ServicoSelecionado[];
@@ -693,7 +694,7 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
         servicosSelecionados: servicos,
         // ✅ CORREÇÃO: Incluir dados de mensalidade
         valor_mensalidade: valorMensalidade,
-        mensalidade_encontrada: valorMensalidade > 0,
+        mensalidade_encontrada: dadosProposta.mensalidade_encontrada || false, // ✅ CORREÇÃO: Usar status real da mensalidade
         total_servicos: valorServicos,
         total_geral: valorTotal
       };
@@ -787,7 +788,8 @@ export const PropostasPage: React.FC<PropostasPageProps> = ({ openModalOnLoad = 
             tipo_atividade_id: dados.tipo_atividade_id,
             regime_tributario_id: dados.regime_tributario_id,
             faixa_faturamento_id: dados.faixa_faturamento_id || undefined,
-            valor_mensalidade: dados.valor_mensalidade || 0 // ⚠️ NOVO: Incluir mensalidade
+            valor_mensalidade: dados.valor_mensalidade || 0, // ⚠️ NOVO: Incluir mensalidade
+            mensalidade_encontrada: dados.mensalidade_encontrada || false // ✅ CORREÇÃO: Incluir status da mensalidade
           }));
 
           // ⚠️ CORREÇÃO: Todos os tipos de atividade vão para Passo 3 (seleção de serviços)

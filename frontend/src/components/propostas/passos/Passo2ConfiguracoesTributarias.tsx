@@ -143,29 +143,39 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
 
       // ✅ CORREÇÃO: Verificar estrutura correta da resposta
       let valorMensalidadeEncontrado = null;
+      let aCombinar = false;
 
       if (response && typeof response === 'object') {
         // Verificar se o valor está diretamente na resposta
         if (response.valor_mensalidade !== undefined && response.valor_mensalidade !== null) {
           valorMensalidadeEncontrado = response.valor_mensalidade;
-          console.log('✅ Valor encontrado diretamente na resposta:', valorMensalidadeEncontrado);
+          aCombinar = response.a_combinar || false;
+          console.log('✅ Valor encontrado diretamente na resposta:', valorMensalidadeEncontrado, 'a_combinar:', aCombinar);
         }
         // Verificar se o valor está em response.data
         else if (response.data && response.data.valor_mensalidade !== undefined && response.data.valor_mensalidade !== null) {
           valorMensalidadeEncontrado = response.data.valor_mensalidade;
-          console.log('✅ Valor encontrado em response.data:', valorMensalidadeEncontrado);
+          aCombinar = response.data.a_combinar || false;
+          console.log('✅ Valor encontrado em response.data:', valorMensalidadeEncontrado, 'a_combinar:', aCombinar);
         }
         // Verificar se o valor está em response.mensalidade
         else if (response.mensalidade !== undefined && response.mensalidade !== null) {
           valorMensalidadeEncontrado = response.mensalidade;
-          console.log('✅ Valor encontrado em response.mensalidade:', valorMensalidadeEncontrado);
+          aCombinar = response.a_combinar || false;
+          console.log('✅ Valor encontrado em response.mensalidade:', valorMensalidadeEncontrado, 'a_combinar:', aCombinar);
         }
       }
 
-      if (valorMensalidadeEncontrado !== null && valorMensalidadeEncontrado > 0) {
+      // ✅ CORREÇÃO: Tratar "A Combinar" corretamente
+      if (valorMensalidadeEncontrado !== null) {
         setValorMensalidade(valorMensalidadeEncontrado);
-        setMensalidadeEncontrada(true);
-        console.log('✅ Mensalidade encontrada e definida:', valorMensalidadeEncontrado);
+        setMensalidadeEncontrada(true); // Sempre true quando recebe resposta válida
+        if (aCombinar || valorMensalidadeEncontrado === 0) {
+          console.log('✅ Mensalidade "A Combinar" definida:', valorMensalidadeEncontrado);
+          setErroMensalidade(null); // Limpar erro para "A Combinar"
+        } else {
+          console.log('✅ Mensalidade automática encontrada:', valorMensalidadeEncontrado);
+        }
       } else {
         console.log('ℹ️ Nenhuma mensalidade encontrada para esta configuração');
         // Se não encontrou, pode ser "A Combinar" (valor 0)
@@ -185,28 +195,28 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
         error
       });
 
-      // Para Pessoa Física, não é erro - é esperado
+      // ✅ CORREÇÃO: Para todos os casos de erro, tratar como "A Combinar" com mensalidadeEncontrada = true
       const tipoAtividade = tiposAtividade.find(t => t.id === tipoAtividadeId);
       if (tipoAtividade?.codigo === 'PF') {
         console.log('ℹ️ Pessoa Física - Valor a combinar');
         setValorMensalidade(0);
-        setMensalidadeEncontrada(false);
+        setMensalidadeEncontrada(true); // ✅ CORREÇÃO: true para mostrar card "A Combinar"
         setErroMensalidade(null); // Não é erro para PF
       } else if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
         console.log('ℹ️ Configuração não encontrada na tabela - Valor a combinar');
         setValorMensalidade(0);
-        setMensalidadeEncontrada(false);
+        setMensalidadeEncontrada(true); // ✅ CORREÇÃO: true para mostrar card "A Combinar"
         setErroMensalidade('Configuração não encontrada - Valor será definido manualmente');
       } else if (errorMessage.includes('500') || errorMessage.includes('Internal Server Error')) {
         console.log('⚠️ Erro interno do servidor - Valor a combinar');
         setValorMensalidade(0);
-        setMensalidadeEncontrada(false);
+        setMensalidadeEncontrada(true); // ✅ CORREÇÃO: true para mostrar card "A Combinar"
         setErroMensalidade('Erro interno do servidor - Valor será definido manualmente');
       } else {
         // Para outros casos, definir como "A Combinar"
         console.log('ℹ️ Erro genérico - Valor a combinar');
         setValorMensalidade(0);
-        setMensalidadeEncontrada(false);
+        setMensalidadeEncontrada(true); // ✅ CORREÇÃO: true para mostrar card "A Combinar"
         setErroMensalidade('Erro ao buscar mensalidade - Valor será definido manualmente');
       }
     } finally {
@@ -229,6 +239,16 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
       if (dadosSalvos.abaAtiva !== undefined) {
         setAbaAtiva(dadosSalvos.abaAtiva);
       }
+      // ✅ CORREÇÃO: Recuperar dados da mensalidade
+      if (dadosSalvos.valorMensalidade !== undefined) {
+        setValorMensalidade(dadosSalvos.valorMensalidade);
+      }
+      if (dadosSalvos.mensalidadeEncontrada !== undefined) {
+        setMensalidadeEncontrada(dadosSalvos.mensalidadeEncontrada);
+      }
+      if (dadosSalvos.erroMensalidade !== undefined) {
+        setErroMensalidade(dadosSalvos.erroMensalidade);
+      }
     }
 
     // Recuperar do localStorage como fallback
@@ -240,6 +260,10 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
         if (dados.regimeTributarioId) setSelectedRegimeTributario(dados.regimeTributarioId);
         if (dados.faixaFaturamentoId) setSelectedFaixaFaturamento(dados.faixaFaturamentoId);
         if (dados.abaAtiva !== undefined) setAbaAtiva(dados.abaAtiva);
+        // ✅ CORREÇÃO: Recuperar dados da mensalidade do backup
+        if (dados.valorMensalidade !== undefined) setValorMensalidade(dados.valorMensalidade);
+        if (dados.mensalidadeEncontrada !== undefined) setMensalidadeEncontrada(dados.mensalidadeEncontrada);
+        if (dados.erroMensalidade !== undefined) setErroMensalidade(dados.erroMensalidade);
       } catch (error) {
         console.warn('Erro ao recuperar backup do Passo 2:', error);
       }
@@ -261,11 +285,19 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
         regimeTributarioId: selectedRegimeTributario,
         faixaFaturamentoId: selectedFaixaFaturamento,
         abaAtiva,
+        // ✅ CORREÇÃO: Incluir dados da mensalidade no salvamento
+        valorMensalidade,
+        mensalidadeEncontrada,
+        erroMensalidade,
         timestamp: new Date().toISOString(),
         dadosCompletos: {
           tipoAtividade: tiposAtividade.find(t => t.id === selectedTipoAtividade),
           regimeTributario: regimesCompativeis.find(r => r.id === selectedRegimeTributario),
-          faixaFaturamento: faixasFaturamento.find(f => f.id === selectedFaixaFaturamento)
+          faixaFaturamento: faixasFaturamento.find(f => f.id === selectedFaixaFaturamento),
+          // ✅ CORREÇÃO: Incluir dados da mensalidade nos dados completos
+          valorMensalidade,
+          mensalidadeEncontrada,
+          erroMensalidade
         }
       };
 
@@ -286,7 +318,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
     } finally {
       setSalvando(false);
     }
-  }, [selectedTipoAtividade, selectedRegimeTributario, selectedFaixaFaturamento, abaAtiva, clienteId, tiposAtividade, regimesCompativeis, faixasFaturamento, onSalvarProgresso]);
+  }, [selectedTipoAtividade, selectedRegimeTributario, selectedFaixaFaturamento, abaAtiva, clienteId, tiposAtividade, regimesCompativeis, faixasFaturamento, valorMensalidade, mensalidadeEncontrada, erroMensalidade, onSalvarProgresso]);
 
   // ⚠️ NOVO: Salvamento automático quando dados mudam
   useEffect(() => {
@@ -294,7 +326,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
       const timeoutId = setTimeout(salvarProgresso, 1500); // Debounce de 1.5 segundos
       return () => clearTimeout(timeoutId);
     }
-  }, [selectedTipoAtividade, selectedRegimeTributario, selectedFaixaFaturamento, salvarProgresso]);
+  }, [selectedTipoAtividade, selectedRegimeTributario, selectedFaixaFaturamento, valorMensalidade, mensalidadeEncontrada, salvarProgresso]);
 
   // ⚠️ NOVO: Limpar backup ao sair
   useEffect(() => {
@@ -1103,7 +1135,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
                   )}
                 </div>
 
-                {mensalidadeEncontrada ? (
+                {mensalidadeEncontrada && valorMensalidade > 0 ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-green-700">Valor da Mensalidade:</span>
@@ -1119,7 +1151,7 @@ export const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
                       💡 Este valor será incluído automaticamente no cálculo da proposta
                     </div>
                   </div>
-                ) : valorMensalidade === 0 && !loadingMensalidade ? (
+                ) : mensalidadeEncontrada && valorMensalidade === 0 ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-green-700">Valor da Mensalidade:</span>
