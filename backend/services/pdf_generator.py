@@ -159,33 +159,36 @@ class PropostaPDFGenerator:
                 continue
             servico = Servico.query.get(item.servico_id) if MODELS_AVAILABLE else None
             
-            # ✅ CORREÇÃO: Calcular desconto baseado no percentual da proposta
+            # ✅ CORREÇÃO: Usar valor_total do item (já calculado pelo frontend)
             valor_unitario = float(item.valor_unitario)
+            valor_total_item = float(item.valor_total)  # ✅ Usar valor já calculado
+            
+            # ✅ CORREÇÃO: Calcular desconto baseado no valor original
             valor_total_sem_desconto = valor_unitario * float(item.quantidade)
             percentual_desconto = float(proposta.percentual_desconto) if proposta.percentual_desconto else 0.0
             valor_desconto = valor_total_sem_desconto * (percentual_desconto / 100.0)
-            valor_total_com_desconto = valor_total_sem_desconto - valor_desconto
             
-            # ✅ CORREÇÃO: Somar ao subtotal dos serviços (com desconto aplicado)
-            subtotal_servicos += valor_total_com_desconto
+            # ✅ CORREÇÃO: Somar ao subtotal dos serviços (usar valor do item)
+            subtotal_servicos += valor_total_item
             
             item_data = {
                 'servico': servico or {'nome': f'Serviço {item.id}', 'descricao': None},
                 'quantidade': item.quantidade,
                 'valor_unitario': valor_unitario,
-                'valor_desconto': valor_desconto,  # ✅ CORREÇÃO: Desconto calculado
-                'valor_total': valor_total_com_desconto  # ✅ CORREÇÃO: Valor com desconto aplicado
+                'valor_desconto': valor_desconto,  # ✅ Desconto calculado
+                'valor_total': valor_total_item  # ✅ Valor do item (já calculado)
             }
             itens_com_servicos.append(item_data)
         
-        # ✅ CORREÇÃO: Calcular subtotal incluindo mensalidade (após aplicar desconto)
+        # ✅ CORREÇÃO: Usar valores exatos do banco de dados
         valor_mensalidade = float(proposta.valor_mensalidade) if proposta.valor_mensalidade else 0.0
-        subtotal = subtotal_servicos + valor_mensalidade
+        valor_total_banco = float(proposta.valor_total)  # Valor final do banco
         
-        print(f"💰 PDF Generator - Cálculo do subtotal:")
-        print(f"   Serviços (com desconto): R$ {subtotal_servicos:.2f}")
+        print(f"💰 PDF Generator - Valores sincronizados:")
+        print(f"   Serviços (itens): R$ {subtotal_servicos:.2f}")
         print(f"   Mensalidade: R$ {valor_mensalidade:.2f}")
-        print(f"   Subtotal: R$ {subtotal:.2f}")
+        print(f"   Valor total banco: R$ {valor_total_banco:.2f}")
+        print(f"   ✅ Ordem dos fatores corrigida!")
         
         # ✅ NOVOS DADOS - Informações completas
         cliente_completo = self._preparar_dados_cliente_completos(proposta.cliente)
@@ -219,10 +222,10 @@ class PropostaPDFGenerator:
             'proposta': proposta_completa,  # ✅ Dados completos
             'empresa': empresa_completa,  # ✅ Dados completos
             'itens': itens_com_servicos,
-            'subtotal': subtotal,
+            'subtotal': valor_total_banco,  # ✅ Usar valor exato do banco
             'subtotal_servicos': subtotal_servicos,
             'valor_mensalidade': valor_mensalidade,
-            'valor_vista': float(proposta.valor_total) * 0.9,
+            'valor_vista': valor_total_banco * 0.9,  # ✅ Usar valor exato do banco
             'logo_path': logo_path,
             
             # NOVOS DADOS

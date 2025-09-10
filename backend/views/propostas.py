@@ -442,6 +442,21 @@ def update_proposta(proposta_id: int):
     regenerar_pdf = data.get('regenerar_pdf', True)  # ✅ CORREÇÃO: Padrão True para regeneração automática
     pdf_regenerado = False
     
+    # ⚠️ SALVAR: Alterações no banco PRIMEIRO
+    try:
+        db.session.commit()
+        current_app.logger.info(f"Proposta {proposta_id} salva com sucesso")
+        
+        # ⚠️ CRIAR: Logs das alterações
+        if alteracoes_realizadas:
+            criar_logs_alteracoes(proposta.id, funcionario_id, alteracoes_realizadas)
+            current_app.logger.info(f"Criados {len(alteracoes_realizadas)} logs de alteração")
+    except Exception as e:
+        current_app.logger.error(f"Erro ao salvar proposta: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': 'Erro interno do servidor'}), 500
+    
+    # ⚠️ REGENERAR: PDF DEPOIS do commit (para usar valores atualizados)
     if regenerar_pdf and verificar_mudancas_significativas(alteracoes_realizadas):
         try:
             # Excluir PDF antigo se existir
@@ -452,15 +467,18 @@ def update_proposta(proposta_id: int):
                 # Construir caminho na pasta uploads (mesmo padrão do gerador PDF)
                 pdf_path = os.path.join(os.getcwd(), 'uploads', 'pdfs', nome_arquivo)
                 if os.path.exists(pdf_path):
-                    os.remove(pdf_path)
-                    current_app.logger.info(f"PDF antigo excluído: {nome_arquivo}")
+                    try:
+                        os.remove(pdf_path)
+                        current_app.logger.info(f"PDF antigo excluído: {nome_arquivo}")
+                    except Exception as e:
+                        current_app.logger.warning(f"Erro ao excluir PDF antigo: {e}")
             
             # Limpar campos de PDF no banco
             proposta.pdf_caminho = None
             proposta.pdf_gerado = False
             proposta.pdf_data_geracao = None
             
-            # Gerar novo PDF
+            # Gerar novo PDF (agora com valores atualizados)
             from services.pdf_generator import pdf_generator
             pdf_path = pdf_generator.gerar_pdf_proposta(proposta.id)
             
@@ -470,20 +488,17 @@ def update_proposta(proposta_id: int):
                 proposta.pdf_data_geracao = datetime.utcnow()
                 pdf_regenerado = True
                 
-                current_app.logger.info(f"PDF regenerado automaticamente: {pdf_path}")
+                # Verificar se o arquivo foi realmente criado
+                if os.path.exists(pdf_path):
+                    current_app.logger.info(f"PDF regenerado automaticamente: {pdf_path}")
+                else:
+                    current_app.logger.error(f"PDF não foi criado: {pdf_path}")
+                
+                # ✅ CORREÇÃO: Commit apenas os campos do PDF
+                db.session.commit()
                 
         except Exception as e:
             current_app.logger.warning(f"Erro ao regenerar PDF automaticamente: {str(e)}")
-    
-    # ⚠️ SALVAR: Alterações no banco
-    try:
-        db.session.commit()
-        current_app.logger.info(f"Proposta {proposta_id} salva com sucesso")
-        
-        # ⚠️ CRIAR: Logs das alterações
-        if alteracoes_realizadas:
-            criar_logs_alteracoes(proposta.id, funcionario_id, alteracoes_realizadas)
-            current_app.logger.info(f"Criados {len(alteracoes_realizadas)} logs de alteração")
         
         # ⚠️ LOG: Especial para finalização
         if data.get('status') == 'REALIZADA':
@@ -494,10 +509,6 @@ def update_proposta(proposta_id: int):
                 f'Proposta finalizada com valor total de R$ {float(proposta.valor_total):.2f}'
             )
     
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"Erro ao salvar proposta {proposta_id}: {str(e)}")
-        raise e
     
     # ⚠️ RETORNAR: Proposta atualizada com cálculos corretos
     dados_atualizados = obter_dados_completos_proposta(proposta_id)
