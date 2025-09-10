@@ -129,8 +129,7 @@ class PropostaPDFGenerator:
                 html_content = template.render(**template_data)
                 
                 # Gerar PDF a partir do HTML
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                nome_arquivo = f"proposta_{proposta.numero}_{timestamp}.pdf"
+                nome_arquivo = f"{proposta.numero}.pdf"
                 caminho_arquivo = os.path.join(self.upload_dir, nome_arquivo)
                 
                 # Usar weasyprint para gerar PDF

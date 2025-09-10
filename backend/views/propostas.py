@@ -447,11 +447,13 @@ def update_proposta(proposta_id: int):
             # Excluir PDF antigo se existir
             if proposta.pdf_caminho:
                 import os
-                # pdf_caminho contém o caminho completo do arquivo
-                pdf_path = proposta.pdf_caminho
+                # Extrair nome do arquivo do caminho completo
+                nome_arquivo = os.path.basename(proposta.pdf_caminho)
+                # Construir caminho na pasta uploads (mesmo padrão do gerador PDF)
+                pdf_path = os.path.join(os.getcwd(), 'uploads', 'pdfs', nome_arquivo)
                 if os.path.exists(pdf_path):
                     os.remove(pdf_path)
-                    current_app.logger.info(f"PDF antigo excluído: {os.path.basename(pdf_path)}")
+                    current_app.logger.info(f"PDF antigo excluído: {nome_arquivo}")
             
             # Limpar campos de PDF no banco
             proposta.pdf_caminho = None
@@ -954,14 +956,16 @@ def delete_proposta(proposta_id: int):
             
             if pdf_caminho:
                 import os
-                # pdf_caminho contém o caminho completo do arquivo
-                pdf_path = pdf_caminho
+                # Extrair nome do arquivo do caminho completo
+                nome_arquivo = os.path.basename(pdf_caminho)
+                # Construir caminho na pasta uploads (mesmo padrão do gerador PDF)
+                pdf_path = os.path.join(os.getcwd(), 'uploads', 'pdfs', nome_arquivo)
                 if os.path.exists(pdf_path):
                     os.remove(pdf_path)
                     pdf_excluido = True
-                    current_app.logger.info(f"PDF excluído com sucesso: {os.path.basename(pdf_caminho)}")
+                    current_app.logger.info(f"PDF excluído com sucesso: {nome_arquivo}")
                 else:
-                    current_app.logger.warning(f"PDF não encontrado: {pdf_caminho}")
+                    current_app.logger.warning(f"PDF não encontrado: {nome_arquivo}")
         except Exception as e:
             current_app.logger.warning(f"Erro ao excluir PDF: {str(e)}")
         
@@ -1240,9 +1244,11 @@ def excluir_pdf_proposta(proposta_id: int):
             return jsonify({'error': 'PDF não foi gerado para esta proposta'}), 404
         
         # Excluir arquivo físico
-        if os.path.exists(proposta.pdf_caminho):
-            os.remove(proposta.pdf_caminho)
-            current_app.logger.info(f"Arquivo PDF excluído: {proposta.pdf_caminho}")
+        nome_arquivo = os.path.basename(proposta.pdf_caminho)
+        pdf_path = os.path.join(os.getcwd(), 'uploads', 'pdfs', nome_arquivo)
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
+            current_app.logger.info(f"Arquivo PDF excluído: {nome_arquivo}")
         
         # Limpar campos da proposta
         proposta.pdf_gerado = False
