@@ -661,6 +661,12 @@ def atualizar_itens_proposta(proposta: Proposta, novos_itens: list, alteracoes_r
     
     return False
 
+def formatar_timestamp_legivel(dt=None):
+    """Formata timestamp para formato legível em português"""
+    if dt is None:
+        dt = datetime.now()
+    return dt.strftime('%d/%m/%Y às %H:%M:%S')
+
 def criar_logs_alteracoes(proposta_id: int, funcionario_id: int, alteracoes: list):
     """Cria logs detalhados das alterações realizadas"""
     
@@ -668,7 +674,7 @@ def criar_logs_alteracoes(proposta_id: int, funcionario_id: int, alteracoes: lis
     detalhes_gerais = {
         'total_alteracoes': len(alteracoes),
         'campos_alterados': [alt['campo'] for alt in alteracoes],
-        'timestamp': datetime.now().isoformat()
+        'timestamp': formatar_timestamp_legivel()
     }
     
     log_geral = PropostaLog(
@@ -1159,7 +1165,7 @@ def gerar_pdf_proposta(proposta_id: int):
             return jsonify({
                 'message': 'PDF gerado com sucesso',
                 'pdf_caminho': caminho_pdf,
-                'pdf_data_geracao': datetime.now().isoformat(),
+                'pdf_data_geracao': formatar_timestamp_legivel(),
                 'temporario': True
             })
         else:
