@@ -1,0 +1,203 @@
+---
+globs: backend/templates/modelo_pdf.html,backend/services/pdf_generator.py
+description: Regras para otimização de informações no PDF mantendo layout e CSS
+---
+
+# Regras de Otimização do PDF
+
+## Princípios Fundamentais
+- **Máxima Informação**: O PDF deve mostrar o máximo possível de informações relevantes
+- **Layout Preservado**: Manter o CSS e estrutura visual já estabelecidos
+- **Seções Permitidas**: Adicionar novas seções é permitido desde que não afete consideravelmente o layout
+- **Responsividade**: O conteúdo deve se adaptar ao espaço disponível sem quebrar o design
+
+## Estrutura Atual do PDF
+
+### Seções Existentes (NÃO MODIFICAR)
+1. **Header**: Logo + Data + Título + Cliente (altura fixa: 200px)
+2. **Intro Box**: Texto de apresentação (background: #f0eeea)
+3. **Sobre Nós**: Descrição da empresa
+4. **Serviços**: Lista numerada com descrições detalhadas
+5. **Orçamento**: Tabela com valores e totais
+6. **Detalhes Adicionais**: Previsão de entrega + Opções de pagamento
+
+### CSS Estabelecido (NÃO MODIFICAR)
+- Font-family: Arial, sans-serif
+- Font-size base: 12px
+- Cores principais: #f0eeea (fundo), #333 (texto), #000 (títulos)
+- Layout: max-width 800px, padding 20px
+- Header: altura fixa 200px com flex layout
+
+## Regras para Adição de Informações
+
+### ✅ PERMITIDO - Adicionar Informações
+1. **Dados do Cliente**: CPF/CNPJ, endereço completo, telefone, email
+2. **Detalhes da Proposta**: Número, data de criação, status, observações
+3. **Informações Tributárias**: Regime tributário, faixa de faturamento
+4. **Dados da Empresa**: Informações completas da empresa prestadora
+5. **Condições Especiais**: Termos e condições, validade da proposta
+6. **Contatos**: Telefone, email, site da empresa
+7. **Mensalidades**: Detalhes sobre mensalidade automática se aplicável
+
+### ✅ PERMITIDO - Novas Seções
+1. **Informações do Cliente**: Seção dedicada com dados completos
+2. **Condições Comerciais**: Termos, validade, condições especiais
+3. **Contatos e Suporte**: Informações de contato da empresa
+4. **Observações**: Campo para observações adicionais
+5. **Assinaturas**: Espaço para assinaturas (se necessário)
+
+### ❌ PROIBIDO - Modificações
+1. **CSS Principal**: Não alterar cores, fontes, tamanhos base
+2. **Layout Header**: Não modificar altura (200px) ou estrutura flex
+3. **Estrutura da Tabela**: Manter colunas e formatação existente
+4. **Seções Core**: Não remover ou modificar drasticamente seções existentes
+
+## Implementação de Novas Seções
+
+### Padrão de CSS para Novas Seções
+```css
+.nova-secao {
+    margin-bottom: 15px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.nova-secao-titulo {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #000;
+    font-size: 12px;
+}
+
+.nova-secao-conteudo {
+    line-height: 1.4;
+    color: #333;
+    font-size: 11px;
+}
+```
+
+### Estrutura HTML para Novas Seções
+```html
+<div class="nova-secao">
+    <div class="nova-secao-titulo">Título da Seção</div>
+    <div class="nova-secao-conteudo">
+        Conteúdo da seção...
+    </div>
+</div>
+```
+
+## Otimização de Espaço
+
+### Técnicas Permitidas
+1. **Compactação de Texto**: Usar line-height menor (1.3) em seções secundárias
+2. **Agrupamento**: Agrupar informações relacionadas
+3. **Uso de Abreviações**: Usar abreviações quando apropriado
+4. **Layout em Colunas**: Usar display flex para informações lado a lado
+5. **Tabelas Compactas**: Usar tabelas para dados estruturados
+
+### Exemplo de Layout em Colunas
+```css
+.info-duas-colunas {
+    display: flex;
+    gap: 20px;
+}
+
+.info-coluna {
+    flex: 1;
+    font-size: 11px;
+}
+```
+
+## Dados Prioritários para Inclusão
+
+### Alta Prioridade
+1. **Dados Completos do Cliente**: Nome, CPF/CNPJ, endereço, telefone, email
+2. **Informações da Proposta**: Número, data, validade, status
+3. **Contatos da Empresa**: Telefone, email, site, endereço completo
+4. **Condições Comerciais**: Formas de pagamento, prazos, termos
+
+### Média Prioridade
+1. **Informações Tributárias**: Regime, faixa de faturamento
+2. **Observações**: Campo para observações adicionais
+3. **Histórico**: Data de criação, última modificação
+4. **Responsável**: Nome do responsável pela proposta
+
+### Baixa Prioridade
+1. **Metadados**: IDs internos, timestamps
+2. **Informações Técnicas**: Versão do sistema, configurações
+3. **Logs**: Histórico de alterações
+
+## Validação de Mudanças
+
+### Checklist Antes de Implementar
+- [ ] A nova informação é relevante para o cliente?
+- [ ] O layout atual não será quebrado?
+- [ ] O CSS segue os padrões estabelecidos?
+- [ ] A seção se integra bem com o conteúdo existente?
+- [ ] O espaço disponível é suficiente?
+- [ ] A informação não duplica conteúdo existente?
+
+### Testes Obrigatórios
+1. **Renderização**: Testar geração do PDF
+2. **Layout**: Verificar se não quebra o design
+3. **Conteúdo**: Validar se todas as informações aparecem
+4. **Responsividade**: Testar com diferentes quantidades de dados
+5. **Performance**: Verificar tempo de geração do PDF
+
+## Exemplos de Implementação
+
+### Seção de Informações do Cliente
+```html
+<div class="section-title">Informações do Cliente</div>
+<div class="info-duas-colunas">
+    <div class="info-coluna">
+        <div class="nova-secao">
+            <div class="nova-secao-titulo">Dados Pessoais</div>
+            <div class="nova-secao-conteudo">
+                <strong>Nome:</strong> {{ cliente.nome }}<br>
+                <strong>CPF:</strong> {{ cliente.cpf }}<br>
+                <strong>Email:</strong> {{ cliente.email }}
+            </div>
+        </div>
+    </div>
+    <div class="info-coluna">
+        <div class="nova-secao">
+            <div class="nova-secao-titulo">Endereço</div>
+            <div class="nova-secao-conteudo">
+                {{ cliente.endereco_completo }}
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+### Seção de Condições Comerciais
+```html
+<div class="section-title">Condições Comerciais</div>
+<div class="nova-secao">
+    <div class="nova-secao-titulo">Validade da Proposta</div>
+    <div class="nova-secao-conteudo">
+        Esta proposta é válida por <strong>30 dias</strong> a partir da data de emissão.
+    </div>
+</div>
+<div class="nova-secao">
+    <div class="nova-secao-titulo">Termos e Condições</div>
+    <div class="nova-secao-conteudo">
+        Os serviços serão executados conforme especificado, respeitando os prazos acordados.
+    </div>
+</div>
+```
+
+## Manutenção e Evolução
+
+### Processo de Atualização
+1. **Análise**: Identificar informações faltantes
+2. **Design**: Criar layout que se integre ao existente
+3. **Implementação**: Adicionar seção seguindo padrões
+4. **Teste**: Validar renderização e layout
+5. **Documentação**: Atualizar esta regra se necessário
+
+### Versionamento
+- Manter histórico de mudanças no PDF
+- Documentar novas seções adicionadas
+- Registrar problemas encontrados e soluções

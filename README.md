@@ -71,6 +71,35 @@ O backend estará disponível em: `http://localhost:5000`
 
 O frontend estará disponível em: `http://localhost:5173` ou `http://192.168.2.109:5173`
 
+## 🌐 Acesso em Rede Local
+
+Para disponibilizar o sistema para acesso em rede local:
+
+### Inicialização Rápida
+```bash
+# Windows - Execute o script automático:
+start-network.bat
+
+# Ou inicialização manual:
+# Terminal 1 - Backend:
+cd backend && python main.py
+
+# Terminal 2 - Frontend:
+cd frontend && npm run dev
+```
+
+### URLs de Acesso
+- **Local:** `http://localhost:5173`
+- **Rede:** `http://[SEU-IP]:5173` (substitua pelo seu IP local)
+
+### Configuração de Firewall
+```bash
+# Windows - Configure automaticamente:
+configure-firewall.bat
+```
+
+**Importante:** Esta configuração é apenas para desenvolvimento e rede local. Para produção, use HTTPS e configurações de segurança adequadas.
+
 ## 🔐 Credenciais de Acesso
 
 **Usuário Administrador:**
@@ -173,6 +202,30 @@ DATABASE_URL=postgresql://user:password@localhost/dbname
    - Catálogo de serviços
    - Preços e descrições
    - Categorização
+
+5. **Sistema de Mensalidade Automática**
+   - Cálculo automático baseado na configuração tributária
+   - Suporte a diferentes regimes (Simples Nacional, Lucro Presumido, Lucro Real)
+   - Valores diferenciados por faixa de faturamento
+   - Integração automática no Passo 4 da criação de propostas
+
+6. **Gerador de PDF**
+   - Geração automática de propostas em PDF
+   - Layout profissional e responsivo
+   - Logo da empresa integrada
+   - Fallback inteligente para dados temporários
+
+7. **Sistema de Chat**
+   - Chat integrado com IA
+   - Histórico de conversas
+   - Respostas inteligentes baseadas em palavras-chave
+   - Autenticação JWT obrigatória
+
+8. **Gestão de Cargos (Administradores)**
+   - Cadastro e gerenciamento de cargos
+   - Código automático gerado
+   - Vinculação automática à empresa
+   - Controle de acesso por permissão de administrador
 
 ## 🎯 Próximos Passos
 

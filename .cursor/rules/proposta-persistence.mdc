@@ -1,0 +1,454 @@
+---
+globs: frontend/src/components/propostas/passos/*.tsx,frontend/src/hooks/usePropostaDataReset.ts,frontend/src/store/PropostaStore.tsx
+description: Regras para persistência de proposta durante todo o processo de criação
+---
+
+# Regras de Persistência de Proposta
+
+## Objetivo
+Garantir que o usuário sempre trabalhe com a mesma proposta durante todo o processo de criação, evitando duplicatas e mantendo a consistência dos dados.
+
+## Princípios Fundamentais
+
+### ✅ REGRA PRINCIPAL
+**NUNCA criar nova proposta se já existe uma em andamento**
+
+- Se o usuário voltar para modificar algo, deve continuar trabalhando na mesma proposta
+- Evitar duplicatas de propostas no sistema
+- Manter consistência dos dados durante todo o processo
+- Preservar o estado da proposta entre os passos
+
+## Estratégia de Persistência
+
+### 1. Identificação de Proposta em Andamento
+```typescript
+// Verificar se já existe proposta em andamento
+const verificarPropostaEmAndamento = (): string | null => {
+  const propostaId = localStorage.getItem('proposta_em_andamento_id');
+  const timestamp = localStorage.getItem('proposta_em_andamento_timestamp');
+  
+  if (propostaId && timestamp) {
+    const dataCriacao = new Date(timestamp);
+    const agora = new Date();
+    const diferencaHoras = (agora.getTime() - dataCriacao.getTime()) / (1000 * 60 * 60);
+    
+    // Proposta válida por 24 horas
+    if (diferencaHoras < 24) {
+      return propostaId;
+    }
+  }
+  
+  return null;
+};
+```
+
+### 2. Criação de Nova Proposta
+```typescript
+// Criar nova proposta apenas se não existir uma em andamento
+const criarNovaProposta = async (): Promise<string> => {
+  const propostaExistente = verificarPropostaEmAndamento();
+  
+  if (propostaExistente) {
+    console.log(`🔄 Continuando proposta existente: ${propostaExistente}`);
+    return propostaExistente;
+  }
+  
+  // Criar nova proposta apenas se necessário
+  const novaProposta = await apiService.criarProposta({
+    status: 'RASCUNHO',
+    data_criacao: new Date().toISOString()
+  });
+  
+  // Marcar como proposta em andamento
+  localStorage.setItem('proposta_em_andamento_id', novaProposta.id);
+  localStorage.setItem('proposta_em_andamento_timestamp', new Date().toISOString());
+  
+  console.log(`✅ Nova proposta criada: ${novaProposta.id}`);
+  return novaProposta.id;
+};
+```
+
+### 3. Persistência Entre Passos
+```typescript
+// Salvar progresso de cada passo
+const salvarProgressoPasso = (passo: number, dados: any) => {
+  const propostaId = verificarPropostaEmAndamento();
+  
+  if (!propostaId) {
+    throw new Error('Nenhuma proposta em andamento encontrada');
+  }
+  
+  const dadosCompletos = {
+    proposta_id: propostaId,
+    passo: passo,
+    dados: dados,
+    timestamp: new Date().toISOString(),
+    versao: '1.0'
+  };
+  
+  // Salvar no localStorage
+  localStorage.setItem(`proposta_passo${passo}_backup`, JSON.stringify(dadosCompletos));
+  
+  // Salvar no backend se necessário
+  apiService.salvarProgressoProposta(propostaId, passo, dados);
+  
+  console.log(`💾 Progresso do passo ${passo} salvo para proposta ${propostaId}`);
+};
+```
+
+## Implementação nos Passos
+
+### Passo 1 - Seleção de Cliente
+```typescript
+// Passo1SelecionarCliente.tsx
+const Passo1SelecionarCliente: React.FC<Passo1Props> = ({
+  onVoltar,
+  onProximo,
+  dadosSalvos,
+  onSalvarProgresso
+}) => {
+  const [propostaId, setPropostaId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Verificar se já existe proposta em andamento
+    const propostaExistente = verificarPropostaEmAndamento();
+    
+    if (propostaExistente) {
+      setPropostaId(propostaExistente);
+      console.log(`🔄 Continuando proposta existente: ${propostaExistente}`);
+    } else {
+      // Criar nova proposta apenas se necessário
+      criarNovaProposta().then(id => {
+        setPropostaId(id);
+        console.log(`✅ Nova proposta criada: ${id}`);
+      });
+    }
+  }, []);
+  
+  const salvarProgresso = useCallback(async () => {
+    if (!propostaId || !selectedClienteId) return;
+    
+    const dadosParaSalvar = {
+      proposta_id: propostaId,
+      passo: 1,
+      clienteId: selectedClienteId,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Salvar progresso
+    salvarProgressoPasso(1, dadosParaSalvar);
+    
+    if (onSalvarProgresso) {
+      await onSalvarProgresso(dadosParaSalvar);
+    }
+  }, [propostaId, selectedClienteId]);
+  
+  // ... resto do componente
+};
+```
+
+### Passo 2 - Configurações Tributárias
+```typescript
+// Passo2ConfiguracoesTributarias.tsx
+const Passo2ConfiguracoesTributarias: React.FC<Passo2Props> = ({
+  clienteId,
+  onVoltar,
+  onProximo,
+  dadosSalvos,
+  onSalvarProgresso
+}) => {
+  const [propostaId, setPropostaId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Verificar proposta em andamento
+    const propostaExistente = verificarPropostaEmAndamento();
+    
+    if (propostaExistente) {
+      setPropostaId(propostaExistente);
+      
+      // Recuperar dados salvos do passo anterior
+      const dadosPasso1 = localStorage.getItem('proposta_passo1_backup');
+      if (dadosPasso1) {
+        const dados = JSON.parse(dadosPasso1);
+        if (dados.proposta_id === propostaExistente) {
+          console.log(`🔄 Recuperando dados do passo 1 para proposta ${propostaExistente}`);
+          // Aplicar dados recuperados
+        }
+      }
+    } else {
+      console.error('❌ Nenhuma proposta em andamento encontrada');
+    }
+  }, []);
+  
+  const salvarProgresso = useCallback(async () => {
+    if (!propostaId) return;
+    
+    const dadosParaSalvar = {
+      proposta_id: propostaId,
+      passo: 2,
+      tipo_atividade_id: selectedTipoAtividade,
+      regime_tributario_id: selectedRegimeTributario,
+      faixa_faturamento_id: selectedFaixaFaturamento,
+      valor_mensalidade: valorMensalidade,
+      timestamp: new Date().toISOString()
+    };
+    
+    salvarProgressoPasso(2, dadosParaSalvar);
+  }, [propostaId, selectedTipoAtividade, selectedRegimeTributario, selectedFaixaFaturamento, valorMensalidade]);
+  
+  // ... resto do componente
+};
+```
+
+## Gerenciamento de Estado
+
+### Store de Proposta
+```typescript
+// PropostaStore.tsx - Adicionar ações de persistência
+type PropostaAction =
+  | { type: 'SET_PROPOSTA_ID'; payload: string }
+  | { type: 'SET_PROPOSTA_EM_ANDAMENTO'; payload: { id: string; timestamp: string } }
+  | { type: 'CLEAR_PROPOSTA_EM_ANDAMENTO' }
+  | { type: 'SALVAR_PROGRESSO_PASSO'; payload: { passo: number; dados: any } }
+  | // ... outras ações existentes
+
+// Adicionar ao reducer
+case 'SET_PROPOSTA_ID':
+  return {
+    ...state,
+    propostaId: action.payload
+  };
+
+case 'SET_PROPOSTA_EM_ANDAMENTO':
+  localStorage.setItem('proposta_em_andamento_id', action.payload.id);
+  localStorage.setItem('proposta_em_andamento_timestamp', action.payload.timestamp);
+  return {
+    ...state,
+    propostaId: action.payload.id
+  };
+
+case 'CLEAR_PROPOSTA_EM_ANDAMENTO':
+  localStorage.removeItem('proposta_em_andamento_id');
+  localStorage.removeItem('proposta_em_andamento_timestamp');
+  return {
+    ...state,
+    propostaId: null
+  };
+```
+
+### Hook de Persistência
+```typescript
+// usePropostaPersistence.ts
+export const usePropostaPersistence = () => {
+  const { dispatch } = usePropostaStore();
+  
+  const iniciarProposta = useCallback(async () => {
+    const propostaExistente = verificarPropostaEmAndamento();
+    
+    if (propostaExistente) {
+      dispatch({ type: 'SET_PROPOSTA_ID', payload: propostaExistente });
+      return propostaExistente;
+    }
+    
+    const novaProposta = await criarNovaProposta();
+    dispatch({ 
+      type: 'SET_PROPOSTA_EM_ANDAMENTO', 
+      payload: { 
+        id: novaProposta, 
+        timestamp: new Date().toISOString() 
+      } 
+    });
+    
+    return novaProposta;
+  }, [dispatch]);
+  
+  const salvarProgresso = useCallback((passo: number, dados: any) => {
+    dispatch({ type: 'SALVAR_PROGRESSO_PASSO', payload: { passo, dados } });
+  }, [dispatch]);
+  
+  const finalizarProposta = useCallback(() => {
+    dispatch({ type: 'CLEAR_PROPOSTA_EM_ANDAMENTO' });
+  }, [dispatch]);
+  
+  return {
+    iniciarProposta,
+    salvarProgresso,
+    finalizarProposta
+  };
+};
+```
+
+## Validações e Controles
+
+### Validação de Consistência
+```typescript
+// Validar se todos os passos pertencem à mesma proposta
+const validarConsistenciaProposta = (): boolean => {
+  const propostaId = verificarPropostaEmAndamento();
+  
+  if (!propostaId) return false;
+  
+  // Verificar se todos os passos salvos pertencem à mesma proposta
+  const passos = [1, 2, 3, 4, 5];
+  
+  for (const passo of passos) {
+    const dadosPasso = localStorage.getItem(`proposta_passo${passo}_backup`);
+    if (dadosPasso) {
+      const dados = JSON.parse(dadosPasso);
+      if (dados.proposta_id !== propostaId) {
+        console.error(`❌ Inconsistência: Passo ${passo} pertence a proposta diferente`);
+        return false;
+      }
+    }
+  }
+  
+  return true;
+};
+```
+
+### Limpeza de Dados
+```typescript
+// Limpar dados apenas quando proposta for finalizada ou cancelada
+const limparDadosProposta = (propostaId: string) => {
+  // Verificar se é a proposta em andamento
+  const propostaAtual = verificarPropostaEmAndamento();
+  
+  if (propostaAtual !== propostaId) {
+    console.warn('⚠️ Tentativa de limpar dados de proposta diferente da atual');
+    return;
+  }
+  
+  // Limpar dados da proposta específica
+  const chaves = [
+    'proposta_em_andamento_id',
+    'proposta_em_andamento_timestamp',
+    'proposta_passo1_backup',
+    'proposta_passo2_backup',
+    'proposta_passo3_backup',
+    'proposta_passo4_backup',
+    'proposta_passo5_backup'
+  ];
+  
+  chaves.forEach(chave => {
+    localStorage.removeItem(chave);
+  });
+  
+  console.log(`🧹 Dados da proposta ${propostaId} limpos`);
+};
+```
+
+## Regras de Implementação
+
+### ✅ OBRIGATÓRIO
+1. **Verificar proposta existente** antes de criar nova
+2. **Persistir ID da proposta** em todos os passos
+3. **Validar consistência** entre passos
+4. **Salvar progresso** automaticamente
+5. **Recuperar dados** ao voltar para passos anteriores
+
+### ❌ PROIBIDO
+1. **Criar nova proposta** se já existe uma em andamento
+2. **Limpar dados** sem finalizar proposta
+3. **Misturar dados** de propostas diferentes
+4. **Perder referência** da proposta atual
+5. **Duplicar propostas** no sistema
+
+## Fluxo de Navegação
+
+### Navegação Entre Passos
+```typescript
+// Ao navegar entre passos, sempre manter referência da proposta
+const navegarParaPasso = (passo: number, dados: any) => {
+  const propostaId = verificarPropostaEmAndamento();
+  
+  if (!propostaId) {
+    console.error('❌ Nenhuma proposta em andamento para navegar');
+    return;
+  }
+  
+  // Salvar progresso do passo atual
+  salvarProgressoPasso(passoAtual, dados);
+  
+  // Navegar para próximo passo mantendo proposta
+  onProximo(dados);
+};
+```
+
+### Voltar para Passos Anteriores
+```typescript
+// Ao voltar, recuperar dados salvos da mesma proposta
+const voltarParaPasso = (passo: number) => {
+  const propostaId = verificarPropostaEmAndamento();
+  
+  if (!propostaId) {
+    console.error('❌ Nenhuma proposta em andamento para voltar');
+    return;
+  }
+  
+  // Recuperar dados do passo
+  const dadosPasso = localStorage.getItem(`proposta_passo${passo}_backup`);
+  
+  if (dadosPasso) {
+    const dados = JSON.parse(dadosPasso);
+    
+    if (dados.proposta_id === propostaId) {
+      console.log(`🔄 Recuperando dados do passo ${passo} para proposta ${propostaId}`);
+      // Aplicar dados recuperados
+      return dados;
+    }
+  }
+  
+  console.warn(`⚠️ Dados do passo ${passo} não encontrados para proposta ${propostaId}`);
+  return null;
+};
+```
+
+## Testes e Validação
+
+### Cenários de Teste
+1. **Criar nova proposta** - Deve criar apenas se não existir
+2. **Voltar para passo anterior** - Deve recuperar dados da mesma proposta
+3. **Navegar entre passos** - Deve manter referência da proposta
+4. **Finalizar proposta** - Deve limpar dados de persistência
+5. **Cancelar proposta** - Deve limpar dados sem criar duplicata
+
+### Logs de Debug
+```typescript
+const logEstadoProposta = () => {
+  const propostaId = verificarPropostaEmAndamento();
+  const dadosPassos = [1, 2, 3, 4, 5].map(passo => {
+    const dados = localStorage.getItem(`proposta_passo${passo}_backup`);
+    return {
+      passo,
+      existe: !!dados,
+      proposta_id: dados ? JSON.parse(dados).proposta_id : null
+    };
+  });
+  
+  console.log('📊 Estado da Proposta:', {
+    proposta_em_andamento: propostaId,
+    passos_salvos: dadosPassos,
+    consistencia: validarConsistenciaProposta()
+  });
+};
+```
+
+## Benefícios da Implementação
+
+### Para o Usuário
+- **Experiência contínua**: Sempre trabalha na mesma proposta
+- **Dados preservados**: Não perde informações ao navegar
+- **Sem duplicatas**: Evita propostas duplicadas no sistema
+- **Navegação livre**: Pode voltar e avançar sem problemas
+
+### Para o Sistema
+- **Consistência**: Dados sempre coerentes
+- **Performance**: Evita criação desnecessária de propostas
+- **Integridade**: Referências sempre válidas
+- **Manutenibilidade**: Estado bem gerenciado
+
+### Para Desenvolvedores
+- **Código limpo**: Lógica bem estruturada
+- **Debug fácil**: Logs claros do estado
+- **Testes simples**: Cenários bem definidos
+- **Manutenção**: Fácil de entender e modificar

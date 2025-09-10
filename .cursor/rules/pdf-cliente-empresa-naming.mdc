@@ -1,0 +1,260 @@
+---
+globs: backend/templates/modelo_pdf.html,backend/services/pdf_generator.py
+description: Regras para exibição correta do nome do cliente ou empresa no PDF
+---
+
+# Regras de Nomenclatura Cliente/Empresa no PDF
+
+## Objetivo
+Garantir que o PDF sempre exiba:
+- **Nome do cliente** se ele não tiver empresa (Pessoa Física)
+- **Nome da empresa** se ele tiver empresa (Pessoa Jurídica)
+
+## Lógica de Exibição
+
+### Pessoa Física (PF) - Sem Empresa
+```html
+<!-- Template: Mostrar nome do cliente -->
+{%- if cliente.is_pessoa_juridica -%}
+    {{ cliente.razao_social or cliente.nome_fantasia or cliente.nome }}
+    {%- if cliente.cnpj %} - CNPJ: {{ cliente.cnpj }}{% endif -%}
+{%- else -%}
+    {{ cliente.nome }}
+    {%- if cliente.cpf %} - CPF: {{ cliente.cpf }}{% endif -%}
+{%- endif -%}
+```
+
+### Pessoa Jurídica (PJ) - Com Empresa
+```html
+<!-- Template: Mostrar nome da empresa -->
+{%- if cliente.is_pessoa_juridica -%}
+    {{ cliente.razao_social or cliente.nome_fantasia or cliente.nome }}
+    {%- if cliente.cnpj %} - CNPJ: {{ cliente.cnpj }}{% endif -%}
+{%- else -%}
+    {{ cliente.nome }}
+    {%- if cliente.cpf %} - CPF: {{ cliente.cpf }}{% endif -%}
+{%- endif -%}
+```
+
+## Implementação no Gerador PDF
+
+### Função de Preparação de Dados
+```python
+def _preparar_dados_cliente(self, cliente):
+    """Prepara dados do cliente para o PDF - se for empresa, usa nome da empresa"""
+    try:
+        # ✅ CORREÇÃO: Se for Pessoa Jurídica, usar nome da empresa
+        if hasattr(cliente, 'entidades_juridicas') and cliente.entidades_juridicas:
+            # Verificar se tem entidades jurídicas ativas
+            entidades_ativas = [ej for ej in cliente.entidades_juridicas if ej.ativo]
+            if entidades_ativas:
+                # Usar nome da primeira entidade jurídica (empresa)
+                nome_empresa = entidades_ativas[0].nome
+                print(f"🏢 PDF Generator - Cliente PJ detectado: {cliente.nome} -> Empresa: {nome_empresa}")
+                
+                # Retornar dados do cliente com nome da empresa
+                return {
+                    'id': cliente.id,
+                    'nome': nome_empresa,  # ✅ Nome da empresa
+                    'cpf': cliente.cpf,
+                    'email': cliente.email,
+                    'abertura_empresa': cliente.abertura_empresa,
+                    'ativo': cliente.ativo,
+                    'created_at': cliente.created_at,
+                    'updated_at': cliente.updated_at,
+                    'tipo_cliente': 'PJ',
+                    'is_pessoa_juridica': True,
+                    'entidades_juridicas': cliente.entidades_juridicas,
+                    'enderecos': cliente.enderecos
+                }
+        
+        # ✅ Se for Pessoa Física, usar nome do cliente
+        print(f"👤 PDF Generator - Cliente PF: {cliente.nome}")
+        return {
+            'id': cliente.id,
+            'nome': cliente.nome,  # ✅ Nome do cliente
+            'cpf': cliente.cpf,
+            'email': cliente.email,
+            'abertura_empresa': cliente.abertura_empresa,
+            'ativo': cliente.ativo,
+            'created_at': cliente.created_at,
+            'updated_at': cliente.updated_at,
+            'tipo_cliente': 'PF',
+            'is_pessoa_juridica': False,
+            'entidades_juridicas': cliente.entidades_juridicas or [],
+            'enderecos': cliente.enderecos or []
+        }
+        
+    except Exception as e:
+        print(f"❌ Erro ao preparar dados do cliente: {e}")
+        # Fallback: retornar dados originais
+        return cliente
+```
+
+## Regras de Validação
+
+### ✅ Critérios para Pessoa Física (PF)
+1. **Cliente não tem entidades jurídicas** OU
+2. **Cliente tem entidades jurídicas mas todas estão inativas** OU
+3. **Cliente tem `is_pessoa_juridica = False`**
+
+**Resultado**: Mostrar `cliente.nome`
+
+### ✅ Critérios para Pessoa Jurídica (PJ)
+1. **Cliente tem entidades jurídicas ativas** E
+2. **Pelo menos uma entidade jurídica está ativa**
+
+**Resultado**: Mostrar `entidade_juridica.nome` (primeira ativa)
+
+## Hierarquia de Nomes para PJ
+
+### Ordem de Prioridade
+1. **Razão Social** (`entidade_juridica.nome`)
+2. **Nome Fantasia** (`entidade_juridica.nome_fantasia`)
+3. **Nome do Cliente** (`cliente.nome`) - Fallback
+
+### Implementação no Template
+```html
+<!-- Para Pessoa Jurídica -->
+{{ cliente.razao_social or cliente.nome_fantasia or cliente.nome }}
+```
+
+## Validação e Debug
+
+### Logs de Debug
+```python
+def _log_dados_cliente(self, cliente_data):
+    """Registra dados do cliente para debug"""
+    print("📋 Dados do Cliente no PDF:")
+    print(f"   Nome: {cliente_data['nome']}")
+    print(f"   Tipo: {cliente_data['tipo_cliente']}")
+    print(f"   É PJ: {cliente_data['is_pessoa_juridica']}")
+    
+    if cliente_data['is_pessoa_juridica']:
+        print(f"   Entidades Jurídicas: {len(cliente_data.get('entidades_juridicas', []))}")
+        if cliente_data.get('entidades_juridicas'):
+            for ej in cliente_data['entidades_juridicas']:
+                print(f"     - {ej.nome} (Ativo: {ej.ativo})")
+```
+
+### Validação de Dados
+```python
+def _validar_nome_cliente(self, cliente_data):
+    """Valida se o nome do cliente está correto"""
+    nome = cliente_data.get('nome', '')
+    is_pj = cliente_data.get('is_pessoa_juridica', False)
+    
+    if not nome:
+        print("⚠️ Nome do cliente está vazio!")
+        return False
+    
+    if is_pj:
+        # Para PJ, verificar se tem entidades jurídicas
+        entidades = cliente_data.get('entidades_juridicas', [])
+        if not entidades:
+            print("⚠️ Cliente PJ sem entidades jurídicas!")
+            return False
+    
+    print(f"✅ Nome válido: {nome} ({'PJ' if is_pj else 'PF'})")
+    return True
+```
+
+## Casos Especiais
+
+### Cliente com Múltiplas Empresas
+```python
+def _obter_empresa_principal(self, cliente):
+    """Obtém a empresa principal do cliente"""
+    if not hasattr(cliente, 'entidades_juridicas') or not cliente.entidades_juridicas:
+        return None
+    
+    entidades_ativas = [ej for ej in cliente.entidades_juridicas if ej.ativo]
+    
+    if not entidades_ativas:
+        return None
+    
+    # Usar a primeira entidade ativa como principal
+    return entidades_ativas[0]
+```
+
+### Cliente com Empresa Inativa
+```python
+def _tratar_empresa_inativa(self, cliente):
+    """Trata cliente com empresa inativa"""
+    if hasattr(cliente, 'entidades_juridicas') and cliente.entidades_juridicas:
+        entidades_ativas = [ej for ej in cliente.entidades_juridicas if ej.ativo]
+        
+        if not entidades_ativas:
+            # Todas as empresas estão inativas - tratar como PF
+            print(f"⚠️ Cliente {cliente.nome} tem empresas inativas - tratando como PF")
+            return {
+                'nome': cliente.nome,
+                'is_pessoa_juridica': False,
+                'tipo_cliente': 'PF'
+            }
+    
+    return None
+```
+
+## Testes Obrigatórios
+
+### Cenários de Teste
+1. **Cliente PF simples** - Deve mostrar nome do cliente
+2. **Cliente PJ com empresa ativa** - Deve mostrar nome da empresa
+3. **Cliente PJ com empresa inativa** - Deve mostrar nome do cliente
+4. **Cliente PJ com múltiplas empresas** - Deve mostrar primeira empresa ativa
+5. **Cliente sem dados** - Deve usar fallback seguro
+
+### Validação de Output
+```python
+def _testar_nomes_pdf(self):
+    """Testa diferentes cenários de nomes no PDF"""
+    cenarios = [
+        {
+            'nome': 'João Silva',
+            'is_pj': False,
+            'esperado': 'João Silva',
+            'descricao': 'Cliente PF simples'
+        },
+        {
+            'nome': 'Maria Santos',
+            'is_pj': True,
+            'empresa': 'Empresa ABC LTDA',
+            'esperado': 'Empresa ABC LTDA',
+            'descricao': 'Cliente PJ com empresa'
+        }
+    ]
+    
+    for cenario in cenarios:
+        resultado = self._preparar_dados_cliente(cenario)
+        assert resultado['nome'] == cenario['esperado'], f"Falha: {cenario['descricao']}"
+        print(f"✅ {cenario['descricao']}: {resultado['nome']}")
+```
+
+## Documentação de Uso
+
+### Para Desenvolvedores
+- **Sempre usar** `cliente.nome` no template
+- **Verificar** `cliente.is_pessoa_juridica` para tipo
+- **Validar** dados antes de gerar PDF
+- **Testar** diferentes cenários de cliente
+
+### Para Usuários
+- **PF**: PDF mostra nome da pessoa
+- **PJ**: PDF mostra nome da empresa
+- **Múltiplas empresas**: PDF mostra empresa principal
+- **Empresa inativa**: PDF mostra nome da pessoa
+
+## Manutenção
+
+### Atualizações
+- **Modificar apenas** a função `_preparar_dados_cliente`
+- **Manter compatibilidade** com templates existentes
+- **Testar** todos os cenários após mudanças
+- **Documentar** alterações na lógica
+
+### Monitoramento
+- **Logs** de debug para identificar problemas
+- **Validação** automática de dados
+- **Testes** regulares de diferentes cenários
+- **Feedback** de usuários sobre nomes incorretos

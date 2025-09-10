@@ -229,6 +229,127 @@
             font-weight: bold;
             color: #000;
         }
+
+        /* NOVAS SEÇÕES - SEGUIR ESTE PADRÃO */
+
+        /* Seção de informações do cliente */
+        .cliente-info-section {
+            margin-bottom: 15px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .cliente-info-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #000;
+            font-size: 12px;
+        }
+
+        .cliente-info-content {
+            line-height: 1.4;
+            color: #333;
+            font-size: 11px;
+        }
+
+        /* Layout em duas colunas para informações */
+        .info-duas-colunas {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+
+        .info-coluna {
+            flex: 1;
+            font-size: 11px;
+        }
+
+        /* Seção de contatos */
+        .contatos-section {
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+
+        .contatos-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #000;
+            font-size: 12px;
+        }
+
+        .contatos-content {
+            line-height: 1.4;
+            color: #333;
+            font-size: 11px;
+        }
+
+        /* Seção de condições comerciais */
+        .condicoes-section {
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+
+        .condicoes-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #000;
+            font-size: 12px;
+        }
+
+        .condicoes-content {
+            line-height: 1.4;
+            color: #333;
+            font-size: 11px;
+        }
+
+        /* Seção de observações */
+        .observacoes-section {
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+
+        .observacoes-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #000;
+            font-size: 12px;
+        }
+
+        .observacoes-content {
+            line-height: 1.4;
+            color: #333;
+            font-size: 11px;
+            background: #f9f9f9;
+            padding: 8px;
+            border-radius: 4px;
+            border-left: 3px solid #797878;
+        }
+
+        /* Tabela compacta para dados estruturados */
+        .tabela-compacta {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 10px;
+        }
+
+        .tabela-compacta th,
+        .tabela-compacta td {
+            border: 1px solid #ddd;
+            padding: 4px 6px;
+            text-align: left;
+        }
+
+        .tabela-compacta th {
+            background: #f5f5f5;
+            font-weight: bold;
+            color: #000;
+            font-size: 10px;
+        }
+
+        .tabela-compacta td {
+            font-size: 10px;
+        }
     </style>
 </head>
 
@@ -240,7 +361,15 @@
                 <div class="header-date">{{ data_atual }}</div>
                 <div class="header-title">Proposta de Orçamento</div>
                 <div class="header-box">
-                    Preparado para: <strong>{{ cliente.nome }}</strong>
+                    Preparado para: <strong>
+                        {%- if cliente.is_pessoa_juridica -%}
+                        {{ cliente.razao_social or cliente.nome_fantasia or cliente.nome }}
+                        {%- if cliente.cnpj %} - CNPJ: {{ cliente.cnpj }}{% endif -%}
+                        {%- else -%}
+                        {{ cliente.nome }}
+                        {%- if cliente.cpf %} - CPF: {{ cliente.cpf }}{% endif -%}
+                        {%- endif -%}
+                    </strong>
                 </div>
             </div>
             <div class="header-right">
@@ -270,6 +399,198 @@
             Atuamos com ética, qualidade e inovação, oferecendo serviços contábeis e consultoria empresarial que agregam
             valor, promovem segurança e fortalecem os negócios de nossos clientes.
         </div>
+
+        <!-- NOVA SEÇÃO: Informações Completas do Cliente -->
+        <div class="section-title">Informações do Cliente</div>
+
+        <div class="info-duas-colunas">
+            <div class="info-coluna">
+                <div class="cliente-info-section">
+                    <div class="cliente-info-title">Dados Pessoais</div>
+                    <div class="cliente-info-content">
+                        <strong>Nome:</strong> {{ cliente.nome }}<br>
+                        {% if cliente.cpf %}
+                        <strong>CPF:</strong> {{ cliente.cpf }}<br>
+                        {% endif %}
+                        {% if cliente.email %}
+                        <strong>Email:</strong> {{ cliente.email }}<br>
+                        {% endif %}
+                        {% if cliente.telefone %}
+                        <strong>Telefone:</strong> {{ cliente.telefone }}<br>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-coluna">
+                <div class="cliente-info-section">
+                    <div class="cliente-info-title">Endereço</div>
+                    <div class="cliente-info-content">
+                        {% if cliente.endereco_completo %}
+                        {{ cliente.endereco_completo }}<br>
+                        {% endif %}
+                        {% if cliente.bairro %}
+                        {{ cliente.bairro }}<br>
+                        {% endif %}
+                        {% if cliente.cidade %}
+                        {{ cliente.cidade }} - {{ cliente.estado }}<br>
+                        {% endif %}
+                        {% if cliente.cep %}
+                        CEP: {{ cliente.cep }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dados da empresa se PJ -->
+        {% if cliente.is_pessoa_juridica %}
+        <div class="cliente-info-section">
+            <div class="cliente-info-title">Dados da Empresa</div>
+            <div class="cliente-info-content">
+                {% if cliente.razao_social %}
+                <strong>Razão Social:</strong> {{ cliente.razao_social }}<br>
+                {% endif %}
+                {% if cliente.nome_fantasia %}
+                <strong>Nome Fantasia:</strong> {{ cliente.nome_fantasia }}<br>
+                {% endif %}
+                {% if cliente.cnpj %}
+                <strong>CNPJ:</strong> {{ cliente.cnpj }}<br>
+                {% endif %}
+                {% if cliente.inscricao_estadual %}
+                <strong>Inscrição Estadual:</strong> {{ cliente.inscricao_estadual }}<br>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- NOVA SEÇÃO: Informações da Proposta -->
+        <div class="section-title">Informações da Proposta</div>
+
+        <table class="tabela-compacta">
+            <tr>
+                <th>Campo</th>
+                <th>Informação</th>
+            </tr>
+            <tr>
+                <td><strong>Protocolo</strong></td>
+                <td>{{ proposta.numero }}</td>
+            </tr>
+            <tr>
+                <td><strong>Data de Criação</strong></td>
+                <td>{{ proposta.data_criacao }}</td>
+            </tr>
+            <tr>
+                <td><strong>Validade para aceite</strong></td>
+                <td>{{ proposta.data_validade }}</td>
+            </tr>
+            <tr>
+                <td><strong>Status</strong></td>
+                <td>{{ proposta.status }}</td>
+            </tr>
+            {% if proposta.responsavel %}
+            <tr>
+                <td><strong>Responsável</strong></td>
+                <td>{{ proposta.responsavel }}</td>
+            </tr>
+            {% endif %}
+        </table>
+
+        <!-- NOVA SEÇÃO: Contatos e Suporte -->
+        <div class="section-title">Contatos e Suporte</div>
+
+        <div class="info-duas-colunas">
+            <div class="info-coluna">
+                <div class="contatos-section">
+                    <div class="contatos-title">Telefones</div>
+                    <div class="contatos-content">
+                        <strong>Principal:</strong> {{ contatos.telefone_principal }}<br>
+                        {% if contatos.telefone_secundario %}
+                        <strong>Celular:</strong> {{ contatos.telefone_secundario }}<br>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-coluna">
+                <div class="contatos-section">
+                    <div class="contatos-title">Contato Digital</div>
+                    <div class="contatos-content">
+                        <strong>Email:</strong> {{ contatos.email_principal }}<br>
+                        {% if contatos.email_comercial %}
+                        <strong>Comercial:</strong> {{ contatos.email_comercial }}<br>
+                        {% endif %}
+                        <strong>Site:</strong> {{ contatos.site }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="contatos-section">
+            <div class="contatos-title">Horário de Atendimento</div>
+            <div class="contatos-content">
+                {{ contatos.horario_atendimento }}
+            </div>
+        </div>
+
+        <!-- NOVA SEÇÃO: Condições Comerciais -->
+        <div class="section-title">Condições Comerciais</div>
+
+        <div class="condicoes-section">
+            <div class="condicoes-title">Validade da Proposta</div>
+            <div class="condicoes-content">
+                Esta proposta é válida por <strong>30 dias</strong> a partir da data de emissão ({{ data_atual }}).
+                Após este período, os valores poderão ser reajustados.
+            </div>
+        </div>
+
+        <div class="condicoes-section">
+            <div class="condicoes-title">Formas de Pagamento</div>
+            <div class="condicoes-content">
+                <strong>À vista:</strong> {{ valor_vista|currency }} ({{ condicoes.forma_pagamento_vista }})<br>
+                <strong>Parcelado:</strong> {{ proposta.valor_total|currency }} em até {{
+                condicoes.forma_pagamento_parcelado }}
+            </div>
+        </div>
+
+        <div class="condicoes-section">
+            <div class="condicoes-title">Termos e Condições</div>
+            <div class="condicoes-content">
+                {{ condicoes.termos_gerais }}<br><br>
+                Os serviços serão executados conforme especificação técnica apresentada, respeitando os prazos
+                acordados.
+                Qualquer alteração no escopo deverá ser comunicada e aprovada previamente.
+            </div>
+        </div>
+
+        <!-- NOVA SEÇÃO: Dados Tributários (se aplicável) -->
+        {% if dados_tributarios %}
+        <div class="section-title">Informações Tributárias</div>
+
+        <div class="info-duas-colunas">
+            <div class="info-coluna">
+                {% if dados_tributarios.regime_tributario %}
+                <div class="cliente-info-section">
+                    <div class="cliente-info-title">Regime Tributário</div>
+                    <div class="cliente-info-content">
+                        {{ dados_tributarios.regime_tributario }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="info-coluna">
+                {% if dados_tributarios.faixa_faturamento %}
+                <div class="cliente-info-section">
+                    <div class="cliente-info-title">Faixa de Faturamento</div>
+                    <div class="cliente-info-content">
+                        {{ dados_tributarios.faixa_faturamento }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
 
         <div class="section-title">Serviços</div>
         <ol class="services-list">
@@ -355,13 +676,42 @@
             </tbody>
         </table>
 
+        <!-- NOVA SEÇÃO: Observações Especiais -->
+        {% if observacoes_especiais %}
+        <div class="section-title">Observações Especiais</div>
+
+        <div class="observacoes-section">
+            <div class="observacoes-title">Informações Importantes</div>
+            <div class="observacoes-content">
+                {% for observacao in observacoes_especiais %}
+                • {{ observacao }}<br>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <div class="section-title">Detalhes Adicionais</div>
 
         <div class="details-section">
             <div class="details-title">Previsão de Entrega</div>
             <div class="details-content">
-                O serviço será concluído em até <strong>10 dias úteis</strong>, contados a partir da disponibilização
-                completa da documentação e do certificado digital necessários.
+                <!--<strong>Serviços Únicos:</strong> Conclusão em até <strong>{{ condicoes.prazo_entrega }}</strong>,
+                contados a partir da disponibilização completa da documentação necessária e certificado digital (quando
+                aplicável).<br><br>
+
+                <strong>Serviços Recorrentes:</strong>-->
+                Início imediato após aprovação da proposta, com cronograma
+                personalizado conforme a natureza dos serviços contratados.<br><br>
+
+                <strong>Fatores que podem influenciar o prazo:</strong>
+                • Disponibilidade de documentação completa do cliente
+                • Tempo de resposta para esclarecimentos necessários
+                • Complexidade específica dos serviços solicitados
+                • Períodos de alta demanda (final de ano, fechamentos mensais)<br><br>
+
+                <strong>Observação:</strong> Todos os prazos são contados em dias úteis e podem depender
+                da disponibilização completa da documentação necessária ou da disponibiblidade de orgãos federais ou
+                estaduais.
             </div>
         </div>
 
@@ -369,10 +719,10 @@
             <div class="details-title">Opções de Pagamento</div>
             <div class="payment-options">
                 <ul>
-                    <li><strong>À vista:</strong> {{ valor_vista|currency }} (pagamento via PIX, transferência ou
-                        boleto).</li>
-                    <li><strong>Parcelado:</strong> {{ proposta.valor_total|currency }} em até <strong>3x no cartão de
-                            crédito</strong>.</li>
+                    <li><strong>À vista:</strong> {{ valor_vista|currency }} ({{ condicoes.forma_pagamento_vista }}).
+                    </li>
+                    <li><strong>Parcelado:</strong> {{ proposta.valor_total|currency }} em até <strong>{{
+                            condicoes.forma_pagamento_parcelado }}</strong>.</li>
                 </ul>
             </div>
         </div>

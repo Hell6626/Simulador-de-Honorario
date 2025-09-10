@@ -47,16 +47,6 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
     dadosProposta: dadosProposta
   });
 
-  // ✅ DEBUG: Estrutura completa dos dados da proposta
-  console.log('🔍 DEBUG Passo4 - Estrutura completa dos dados:', {
-    dadosProposta,
-    cliente: dadosProposta?.cliente,
-    clienteKeys: dadosProposta?.cliente ? Object.keys(dadosProposta.cliente) : 'N/A',
-    entidades_juridicas: dadosProposta?.cliente?.entidades_juridicas,
-    faixaFaturamento: dadosProposta?.faixaFaturamento,
-    faixaFaturamentoKeys: dadosProposta?.faixaFaturamento ? Object.keys(dadosProposta.faixaFaturamento) : 'N/A'
-  });
-
   // ✅ CORREÇÃO: Usar hook de cálculos com mensalidade dos dados
   const resumoFinanceiro = usePropostaCalculations(
     dadosProposta,
@@ -172,7 +162,6 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
             cliente={dadosProposta.cliente}
             showDetails={true}
             className="compact"
-            showDebug={true}
           />
 
           {/* Badge de status adicional */}
@@ -222,12 +211,6 @@ export const Passo4RevisaoProposta: React.FC<Passo4Props> = ({
                       </span>
                     )}
                 </p>
-                {/* Debug da faixa */}
-                <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
-                  <strong>Debug Faixa:</strong> ID: {dadosProposta.faixaFaturamento.id} |
-                  Inicial: {dadosProposta.faixaFaturamento.valor_inicial} |
-                  Final: {dadosProposta.faixaFaturamento.valor_final}
-                </div>
               </div>
             )}
           </div>

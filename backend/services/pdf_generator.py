@@ -38,7 +38,7 @@ class PropostaPDFGenerator:
         # Adicionar funções Flask ao Jinja2
         self._setup_flask_functions()
         
-        # Configurações da empresa
+        # Configurações completas da empresa
         self.empresa = {
             'nome': 'Christino Consultoria Contábil LTDA',
             'cnpj': '49.666.494/0001-37',
@@ -46,8 +46,12 @@ class PropostaPDFGenerator:
             'cidade': 'Taquarituba - SP',
             'cep': '18740-019',
             'telefone': '(14) 3762-1991',
+            'celular': '(14) 99999-9999',  # Adicionar se disponível
             'email': 'contato@christinoconsultoria.com.br',
-            'site': 'www.christino.com.br'
+            'email_comercial': 'comercial@christinoconsultoria.com.br',  # Adicionar se disponível
+            'site': 'www.christino.com.br',
+            'horario_funcionamento': 'Segunda a Sexta: 8h às 17h30m',
+            'responsavel_comercial': 'Nome do Responsável'  # Adicionar se disponível
         }
         
         # Cores baseadas no design HTML
@@ -66,6 +70,9 @@ class PropostaPDFGenerator:
         logo_path = self._find_logo_path()
         if not logo_path:
             print("⚠️ Logo não encontrada na inicialização - usando fallback")
+        
+        # Cache de dados da empresa para otimização
+        self._empresa_cache = None
     
     def _setup_flask_functions(self):
         """Configura funções Flask no Jinja2"""
@@ -106,7 +113,7 @@ class PropostaPDFGenerator:
         """Gera PDF da proposta usando Jinja2 template"""
         try:
             if not MODELS_AVAILABLE:
-                return self.gerar_pdf_proposta_temp()
+                raise ValueError("Modelos não disponíveis - banco de dados não acessível")
             
             from flask import current_app
             with current_app.app_context():
@@ -135,75 +142,11 @@ class PropostaPDFGenerator:
             print(f"Erro ao gerar PDF: {e}")
             import traceback
             traceback.print_exc()
-            return self.gerar_pdf_proposta_temp()
+            raise e
 
-    def gerar_pdf_proposta_temp(self) -> str:
-        """Gera PDF temporário com logo acessível"""
-        # Garantir que logo esteja acessível
-        logo_path = self._ensure_logo_accessibility()
-        
-        template_data = {
-            'data_atual': datetime.now().strftime('%d/%m/%Y'),
-            'cliente': {'nome': 'Associação Desportiva Futsal Itai'},
-            'empresa': self.empresa,
-            'itens': [
-                {
-                    'servico': {
-                        'nome': 'Pré-requisito, Certificado Digital',
-                        'descricao': 'Emissão do certificado digital (e-CNPJ A1 da empresa): conferência de documentos, agendamento/validação e emissão.\nUtilização do certificado para assinar e transmitir DCTF e EFD-Contribuições e para outorgar procuração eletrônica no e-CAC.'
-                    },
-                    'quantidade': 1,
-                    'valor_unitario': 230.00,
-                    'valor_total': 230.00
-                },
-                {
-                    'servico': {
-                        'nome': 'Regularização de CNPJ, o serviço compreende:',
-                        'descricao': 'Elaboração e transmissão da DCTF (Declaração de Débitos e Créditos Tributários Federais) dos exercícios de 2020 a 2024.\nElaboração e transmissão da EFD-Contribuições (PIS/COFINS e CPRB) dos exercícios de 2020 a 2025.\nAtendimento às exigências da Receita Federal.\nAdoção das medidas necessárias para voltar o CNPJ à condição de ativo, permitindo o pleno funcionamento da empresa.\nGarantia de que a empresa esteja em situação regular, sem pendências impeditivas.\nPrevenção de multas e restrições futuras.'
-                    },
-                    'quantidade': 1,
-                    'valor_unitario': 1000.00,
-                    'valor_total': 1000.00
-                }
-            ],
-            'subtotal': 1230.00,
-            'proposta': {'valor_total': 1230.00},
-            'valor_vista': 1100.00,
-            'logo_path': logo_path  # Usar logo acessível
-        }
-        
-        # Renderizar template com contexto Flask
-        try:
-            from flask import Flask
-            app = Flask(__name__, static_folder=self.upload_dir)
-            app.config['SERVER_NAME'] = 'localhost:5000'
-            
-            with app.app_context():
-                template = self.jinja_env.get_template('modelo_pdf.html')
-                html_content = template.render(**template_data)
-        except Exception as e:
-            print(f"⚠️ Erro ao renderizar com Flask context: {e}")
-            print("🔄 Tentando renderização sem Flask context...")
-            template = self.jinja_env.get_template('modelo_pdf.html')
-            html_content = template.render(**template_data)
-        
-        # Salvar HTML para debug
-        debug_path = os.path.join(self.upload_dir, 'debug.html')
-        with open(debug_path, 'w', encoding='utf-8') as f:
-            f.write(html_content)
-        
-        # Gerar PDF
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        nome_arquivo = f"proposta_PROP-{timestamp}_{timestamp}.pdf"
-        caminho_arquivo = os.path.join(self.upload_dir, nome_arquivo)
-        
-        # Usar weasyprint para gerar PDF
-        self._gerar_pdf_from_html(html_content, caminho_arquivo)
-        
-        return caminho_arquivo
     
     def _preparar_dados_template(self, proposta):
-        """Prepara dados com debug melhorado"""
+        """Prepara dados COMPLETOS para o template com máximo de informações"""
         
         # ✅ CORREÇÃO: Calcular subtotal incluindo mensalidade
         subtotal_servicos = sum(float(item.valor_total) for item in proposta.itens if item.ativo)
@@ -225,7 +168,6 @@ class PropostaPDFGenerator:
                 continue
             servico = Servico.query.get(item.servico_id) if MODELS_AVAILABLE else None
             
-            
             # ✅ CORREÇÃO: Calcular desconto baseado no percentual da proposta
             valor_unitario = float(item.valor_unitario)
             valor_total_sem_desconto = valor_unitario * float(item.quantidade)
@@ -241,27 +183,58 @@ class PropostaPDFGenerator:
             }
             itens_com_servicos.append(item_data)
         
-        # ✅ CORREÇÃO: Preparar dados do cliente para PDF
-        cliente_data = self._preparar_dados_cliente(proposta.cliente)
+        # ✅ NOVOS DADOS - Informações completas
+        cliente_completo = self._preparar_dados_cliente_completos(proposta.cliente)
+        proposta_completa = self._preparar_dados_proposta_completos(proposta)
+        empresa_completa = self._preparar_dados_empresa_completos()
+        
+        # Dados de contato e suporte
+        contatos = {
+            'telefone_principal': empresa_completa['telefone'],
+            'telefone_secundario': empresa_completa.get('celular'),
+            'email_principal': empresa_completa['email'],
+            'email_comercial': empresa_completa.get('email_comercial'),
+            'site': empresa_completa['site'],
+            'horario_atendimento': empresa_completa['horario_funcionamento'],
+        }
+        
+        # Condições comerciais
+        condicoes = {
+            'validade_proposta': proposta_completa['data_validade'],
+            'prazo_entrega': '15 dias úteis',
+            'forma_pagamento_vista': 'PIX, Transferência ou Boleto',
+            'forma_pagamento_parcelado': 'Cartão de Crédito em até 3x',
+            'desconto_vista': '10%',
+            'termos_gerais': 'Serviços executados conforme especificação e prazos acordados.',
+        }
         
         template_data = {
+            # Dados existentes
             'data_atual': datetime.now().strftime('%d/%m/%Y'),
-            'cliente': cliente_data,
-            'proposta': proposta,
-            'empresa': self.empresa,
+            'cliente': cliente_completo,  # ✅ Dados completos
+            'proposta': proposta_completa,  # ✅ Dados completos
+            'empresa': empresa_completa,  # ✅ Dados completos
             'itens': itens_com_servicos,
             'subtotal': subtotal,
             'subtotal_servicos': subtotal_servicos,
             'valor_mensalidade': valor_mensalidade,
             'valor_vista': float(proposta.valor_total) * 0.9,
-            'logo_path': logo_path
+            'logo_path': logo_path,
+            
+            # NOVOS DADOS
+            'contatos': contatos,
+            'condicoes': condicoes,
+            'dados_tributarios': self._preparar_dados_tributarios(proposta.cliente),
+            'observacoes_especiais': self._preparar_observacoes_especiais(proposta),
         }
         
+        # Log de dados incluídos
+        self._log_dados_incluidos(template_data)
         
         return template_data
     
-    def _preparar_dados_cliente(self, cliente):
-        """Prepara dados do cliente para o PDF - se for empresa, usa nome da empresa"""
+    def _preparar_dados_cliente_completos(self, cliente):
+        """Prepara dados COMPLETOS do cliente para o PDF - se for empresa, usa nome da empresa"""
         try:
             # ✅ CORREÇÃO: Se for Pessoa Jurídica, usar nome da empresa
             if hasattr(cliente, 'entidades_juridicas') and cliente.entidades_juridicas:
@@ -269,15 +242,17 @@ class PropostaPDFGenerator:
                 entidades_ativas = [ej for ej in cliente.entidades_juridicas if ej.ativo]
                 if entidades_ativas:
                     # Usar nome da primeira entidade jurídica (empresa)
-                    nome_empresa = entidades_ativas[0].nome
+                    entidade_principal = entidades_ativas[0]
+                    nome_empresa = entidade_principal.nome
                     print(f"🏢 PDF Generator - Cliente PJ detectado: {cliente.nome} -> Empresa: {nome_empresa}")
                     
-                    # Retornar dados do cliente com nome da empresa
+                    # Retornar dados completos do cliente com nome da empresa
                     return {
                         'id': cliente.id,
                         'nome': nome_empresa,  # ✅ Nome da empresa
                         'cpf': cliente.cpf,
                         'email': cliente.email,
+                        'telefone': getattr(cliente, 'telefone', None),
                         'abertura_empresa': cliente.abertura_empresa,
                         'ativo': cliente.ativo,
                         'created_at': cliente.created_at,
@@ -285,7 +260,12 @@ class PropostaPDFGenerator:
                         'tipo_cliente': 'PJ',
                         'is_pessoa_juridica': True,
                         'entidades_juridicas': cliente.entidades_juridicas,
-                        'enderecos': cliente.enderecos
+                        'enderecos': cliente.enderecos,
+                        # Dados da empresa
+                        'razao_social': entidade_principal.nome,
+                        'nome_fantasia': getattr(entidade_principal, 'nome_fantasia', None),
+                        'cnpj': entidade_principal.cnpj,
+                        'inscricao_estadual': getattr(entidade_principal, 'inscricao_estadual', None),
                     }
             
             # ✅ Se for Pessoa Física, usar nome do cliente
@@ -295,6 +275,7 @@ class PropostaPDFGenerator:
                 'nome': cliente.nome,  # ✅ Nome do cliente
                 'cpf': cliente.cpf,
                 'email': cliente.email,
+                'telefone': getattr(cliente, 'telefone', None),
                 'abertura_empresa': cliente.abertura_empresa,
                 'ativo': cliente.ativo,
                 'created_at': cliente.created_at,
@@ -302,13 +283,103 @@ class PropostaPDFGenerator:
                 'tipo_cliente': 'PF',
                 'is_pessoa_juridica': False,
                 'entidades_juridicas': cliente.entidades_juridicas or [],
-                'enderecos': cliente.enderecos or []
+                'enderecos': cliente.enderecos or [],
+                # Dados de endereço se disponível
+                **self._preparar_dados_endereco(cliente)
             }
             
         except Exception as e:
             print(f"❌ Erro ao preparar dados do cliente: {e}")
             # Fallback: retornar dados originais
             return cliente
+    
+    def _preparar_dados_cliente(self, cliente):
+        """Mantém compatibilidade com código existente"""
+        return self._preparar_dados_cliente_completos(cliente)
+    
+    def _preparar_dados_endereco(self, cliente):
+        """Prepara dados de endereço se disponível"""
+        dados_endereco = {}
+        
+        if hasattr(cliente, 'enderecos') and cliente.enderecos:
+            endereco = cliente.enderecos[0]  # Primeiro endereço
+            dados_endereco.update({
+                'endereco_completo': f"{endereco.logradouro}, {endereco.numero}",
+                'bairro': endereco.bairro,
+                'cidade': endereco.cidade,
+                'estado': endereco.estado,
+                'cep': endereco.cep,
+            })
+        
+        return dados_endereco
+    
+    def _preparar_dados_proposta_completos(self, proposta):
+        """Prepara dados COMPLETOS da proposta"""
+        from datetime import timedelta
+        
+        return {
+            'id': proposta.id,
+            'numero': proposta.numero,
+            'data_criacao': proposta.created_at.strftime('%d/%m/%Y'),
+            'data_validade': (proposta.created_at + timedelta(days=30)).strftime('%d/%m/%Y'),
+            'status': proposta.status,
+            'valor_total': proposta.valor_total,
+            'valor_mensalidade': proposta.valor_mensalidade,
+            'percentual_desconto': proposta.percentual_desconto,
+            'observacoes': getattr(proposta, 'observacoes', None),
+            'responsavel': getattr(proposta, 'responsavel', None),
+        }
+    
+    def _preparar_dados_empresa_completos(self):
+        """Prepara dados COMPLETOS da empresa"""
+        return self.empresa
+    
+    def _preparar_dados_tributarios(self, cliente):
+        """Prepara dados tributários se disponíveis"""
+        dados = {}
+        
+        if hasattr(cliente, 'entidades_juridicas') and cliente.entidades_juridicas:
+            entidade = cliente.entidades_juridicas[0]
+            
+            if hasattr(entidade, 'regime_tributario') and entidade.regime_tributario:
+                dados['regime_tributario'] = entidade.regime_tributario.nome
+            
+            if hasattr(entidade, 'faixa_faturamento') and entidade.faixa_faturamento:
+                dados['faixa_faturamento'] = entidade.faixa_faturamento.descricao
+        
+        return dados
+    
+    def _preparar_observacoes_especiais(self, proposta):
+        """Prepara observações especiais da proposta"""
+        observacoes = []
+        
+        # Observações da proposta
+        if hasattr(proposta, 'observacoes') and proposta.observacoes:
+            observacoes.append(f"Observações: {proposta.observacoes}")
+        
+        # Observações sobre mensalidade
+        if proposta.valor_mensalidade and proposta.valor_mensalidade > 0:
+            observacoes.append("Inclui mensalidade automática para serviços recorrentes.")
+        
+        # Observações sobre desconto
+        if proposta.percentual_desconto and proposta.percentual_desconto > 0:
+            observacoes.append(f"Desconto de {proposta.percentual_desconto}% aplicado.")
+        
+        return observacoes
+    
+    def _log_dados_incluidos(self, template_data):
+        """Registra quais dados foram incluídos no PDF"""
+        print("📋 Dados incluídos no PDF:")
+        print(f"   Cliente: {template_data['cliente']['nome']}")
+        print(f"   Proposta: {template_data['proposta']['numero']}")
+        print(f"   Valor Total: R$ {template_data['proposta']['valor_total']:.2f}")
+        print(f"   Itens: {len(template_data['itens'])}")
+        print(f"   Contatos: {len(template_data['contatos'])} campos")
+        print(f"   Condições: {len(template_data['condicoes'])} campos")
+        if template_data['dados_tributarios']:
+            print(f"   Dados Tributários: {len(template_data['dados_tributarios'])} campos")
+        if template_data['observacoes_especiais']:
+            print(f"   Observações: {len(template_data['observacoes_especiais'])} itens")
     
     def _gerar_pdf_from_html(self, html_content: str, output_path: str):
         """Gera PDF usando APENAS o CSS do HTML"""
@@ -442,25 +513,3 @@ class PropostaPDFGenerator:
 
 # Instância global do gerador
 pdf_generator = PropostaPDFGenerator()
-
-# Função de teste para verificar a geração do PDF
-def test_pdf_generation():
-    """Testa a geração do PDF com o novo template"""
-    try:
-        pdf_path = pdf_generator.gerar_pdf_proposta_temp()
-        
-        if pdf_path and os.path.exists(pdf_path):
-            file_size = os.path.getsize(pdf_path)
-            return True
-        else:
-            return False
-            
-    except Exception as e:
-        print(f"❌ Erro no teste: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-if __name__ == "__main__":
-    # Executar teste se o arquivo for executado diretamente
-    test_pdf_generation()

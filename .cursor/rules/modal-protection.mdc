@@ -1,0 +1,244 @@
+---
+globs: frontend/src/components/modals/*.tsx
+description: Regras para proteção de modais - não modificar a menos que estritamente necessário
+---
+
+# Regras de Proteção de Modais
+
+## ⚠️ REGRA FUNDAMENTAL
+**NÃO MODIFIQUE MODAIS A MENOS QUE SEJA ESTRITAMENTE NECESSÁRIO**
+
+Os modais são componentes críticos e estáveis do sistema. Modificações desnecessárias podem quebrar funcionalidades existentes e causar regressões.
+
+## Modais Protegidos
+
+### Lista de Modais (NÃO MODIFICAR)
+- [Modal.tsx](mdc:frontend/src/components/modals/Modal.tsx) - Modal base
+- [ModalCadastroCliente.tsx](mdc:frontend/src/components/modals/ModalCadastroCliente.tsx) - Cadastro de clientes
+- [ModalCadastroFuncionario.tsx](mdc:frontend/src/components/modals/ModalCadastroFuncionario.tsx) - Cadastro de funcionários
+- [ModalCadastroRegimeTributario.tsx](mdc:frontend/src/components/modals/ModalCadastroRegimeTributario.tsx) - Cadastro de regimes
+- [ModalConfirmacaoDesconto.tsx](mdc:frontend/src/components/modals/ModalConfirmacaoDesconto.tsx) - Confirmação de desconto
+- [ModalEdicaoCompleta.tsx](mdc:frontend/src/components/modals/ModalEdicaoCompleta.tsx) - Edição completa
+- [ModalEdicaoProposta.tsx](mdc:frontend/src/components/modals/ModalEdicaoProposta.tsx) - Edição de proposta
+- [ModalExclusaoProposta.tsx](mdc:frontend/src/components/modals/ModalExclusaoProposta.tsx) - Exclusão de proposta
+- [ModalVisualizacao.tsx](mdc:frontend/src/components/modals/ModalVisualizacao.tsx) - Visualização
+- [ConfirmModal.tsx](mdc:frontend/src/components/modals/ConfirmModal.tsx) - Modal de confirmação
+
+## Critérios para Modificação
+
+### ✅ PERMITIDO - Modificações Estritamente Necessárias
+1. **Correção de Bugs Críticos**
+   - Erros que impedem funcionamento básico
+   - Problemas de validação que causam falhas
+   - Bugs de segurança ou dados incorretos
+
+2. **Correções de Acessibilidade**
+   - Problemas de navegação por teclado
+   - Falta de labels ou ARIA attributes
+   - Problemas de contraste ou legibilidade
+
+3. **Correções de Performance Críticas**
+   - Memory leaks ou vazamentos de memória
+   - Renderizações desnecessárias que causam lentidão
+   - Problemas de estado que causam travamentos
+
+4. **Integração com Novas Funcionalidades**
+   - Quando uma nova funcionalidade REQUER modificação do modal
+   - Integração com APIs ou serviços externos
+   - Mudanças de backend que quebram compatibilidade
+
+### ❌ PROIBIDO - Modificações Desnecessárias
+1. **Melhorias Cosméticas**
+   - Mudanças de cores, fontes ou espaçamento
+   - Alterações de layout por preferência pessoal
+   - "Melhorias" de UX sem necessidade real
+
+2. **Refatorações Preventivas**
+   - Mudanças de código "por precaução"
+   - Refatorações sem problemas identificados
+   - Otimizações prematuras
+
+3. **Mudanças de Estrutura**
+   - Alterações na arquitetura do componente
+   - Mudanças de padrões de código
+   - Refatorações de hooks ou estado
+
+4. **Adições de Funcionalidades**
+   - Novos recursos que não são essenciais
+   - Melhorias de funcionalidade existente
+   - Adições de campos ou validações extras
+
+## Processo de Aprovação
+
+### Antes de Modificar Qualquer Modal
+1. **Identificar o Problema Real**
+   - Descrever exatamente o que está quebrado
+   - Explicar por que a modificação é necessária
+   - Documentar o impacto da não-modificação
+
+2. **Avaliar Alternativas**
+   - Verificar se existe solução sem modificar o modal
+   - Considerar criar novo componente ao invés de modificar
+   - Avaliar se a mudança pode ser feita em outro lugar
+
+3. **Análise de Impacto**
+   - Listar todos os lugares que usam o modal
+   - Verificar se a mudança quebra outras funcionalidades
+   - Testar cenários de uso existentes
+
+4. **Documentação Obrigatória**
+   - Explicar por que a modificação é estritamente necessária
+   - Documentar o que foi alterado e por quê
+   - Listar testes realizados
+
+## Padrões de Modificação Segura
+
+### Se Modificação For Necessária
+```typescript
+// ✅ CORRETO - Modificação mínima e focada
+// Antes de modificar, documentar:
+/**
+ * MODIFICAÇÃO CRÍTICA - ModalCadastroCliente.tsx
+ * 
+ * PROBLEMA: Validação de CPF não funciona para CPFs com dígitos verificadores específicos
+ * IMPACTO: Clientes não conseguem ser cadastrados com CPFs válidos
+ * SOLUÇÃO: Corrigir regex de validação de CPF
+ * 
+ * ARQUIVOS AFETADOS: Apenas este modal
+ * TESTES REALIZADOS: Validação com CPFs de teste
+ */
+
+// Modificação mínima necessária
+const validarCPF = (cpf: string): boolean => {
+  // Correção específica do bug identificado
+  // ... código corrigido
+};
+```
+
+### ❌ EVITAR - Modificações Amplas
+```typescript
+// ❌ INCORRETO - Modificação desnecessária
+/**
+ * "Melhorando" o modal com mudanças cosméticas
+ * - Mudando cores
+ * - Alterando layout
+ * - Adicionando animações
+ * - Refatorando estrutura
+ */
+```
+
+## Testes Obrigatórios
+
+### Antes de Qualquer Modificação
+1. **Teste de Regressão**
+   - Verificar se funcionalidades existentes ainda funcionam
+   - Testar todos os cenários de uso do modal
+   - Validar integração com outros componentes
+
+2. **Teste de Integração**
+   - Verificar se a mudança não quebra outros modais
+   - Testar fluxos completos que usam o modal
+   - Validar comunicação com backend
+
+3. **Teste de Acessibilidade**
+   - Verificar navegação por teclado
+   - Testar leitores de tela
+   - Validar contraste e legibilidade
+
+## Monitoramento de Mudanças
+
+### Log de Modificações
+Toda modificação deve ser documentada com:
+- **Data da modificação**
+- **Motivo específico**
+- **Arquivos alterados**
+- **Testes realizados**
+- **Impacto esperado**
+
+### Revisão de Código
+- Todas as modificações em modais devem passar por revisão
+- Verificar se a mudança é realmente necessária
+- Validar se não há alternativas melhores
+
+## Exceções Especiais
+
+### Casos de Emergência
+Em situações de emergência (bugs críticos em produção):
+1. **Correção mínima** para resolver o problema
+2. **Documentação imediata** do que foi alterado
+3. **Revisão posterior** para garantir qualidade
+4. **Plano de refatoração** se necessário
+
+### Novos Modais
+- Criar novos modais é permitido
+- Seguir padrões estabelecidos pelos modais existentes
+- Não modificar modais existentes para criar novos
+
+## Checklist de Modificação
+
+### Antes de Modificar
+- [ ] O problema é realmente crítico?
+- [ ] Não existe alternativa sem modificar o modal?
+- [ ] A modificação é mínima e focada?
+- [ ] Todos os cenários de uso foram considerados?
+- [ ] Testes de regressão foram planejados?
+
+### Durante a Modificação
+- [ ] Modificação é mínima e específica?
+- [ ] Código antigo foi preservado quando possível?
+- [ ] Comentários explicam o motivo da mudança?
+- [ ] Não foram introduzidas mudanças cosméticas?
+
+### Após a Modificação
+- [ ] Todos os testes passaram?
+- [ ] Funcionalidades existentes ainda funcionam?
+- [ ] Modificação foi documentada?
+- [ ] Revisão de código foi solicitada?
+
+## Consequências de Modificações Desnecessárias
+
+### Problemas Comuns
+1. **Quebra de Funcionalidades**: Modais podem parar de funcionar
+2. **Regressões**: Funcionalidades que funcionavam podem quebrar
+3. **Inconsistências**: Diferentes modais podem ter comportamentos diferentes
+4. **Manutenção**: Código modificado pode ser mais difícil de manter
+
+### Responsabilidade
+- Desenvolvedor que modifica modal desnecessariamente é responsável por problemas
+- Deve corrigir problemas causados por modificações desnecessárias
+- Deve documentar e justificar todas as mudanças
+
+## Alternativas Recomendadas
+
+### Ao Invés de Modificar Modal Existente
+1. **Criar Novo Modal**: Para novas funcionalidades
+2. **Usar Props**: Para customizações específicas
+3. **Hooks Customizados**: Para lógica reutilizável
+4. **Componentes Wrapper**: Para adicionar funcionalidades
+
+### Exemplo de Alternativa
+```typescript
+// ✅ CORRETO - Criar novo modal ao invés de modificar existente
+export const ModalCadastroClienteV2: React.FC<Props> = ({ ... }) => {
+  // Novo modal com funcionalidades adicionais
+  // Não modifica o modal original
+};
+
+// ✅ CORRETO - Usar props para customização
+export const ModalCadastroCliente: React.FC<Props & { 
+  customValidation?: (data: any) => boolean;
+  customFields?: React.ReactNode;
+}> = ({ customValidation, customFields, ...props }) => {
+  // Modal original com extensões via props
+};
+```
+
+## Conclusão
+
+**MODAIS SÃO COMPONENTES CRÍTICOS E ESTÁVEIS**
+
+- Modificações devem ser exceção, não regra
+- Sempre considerar alternativas antes de modificar
+- Documentar e justificar todas as mudanças
+- Priorizar estabilidade sobre "melhorias" desnecessárias
+- Manter consistência e confiabilidade do sistema

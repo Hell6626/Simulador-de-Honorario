@@ -1,0 +1,328 @@
+---
+globs: backend/services/pdf_generator.py
+description: Regras para maximizar dados no gerador de PDF
+---
+
+# Regras do Gerador de PDF - Maximização de Dados
+
+## Objetivo
+O gerador de PDF deve incluir o máximo possível de informações relevantes sem comprometer o layout estabelecido.
+
+## Dados Obrigatórios a Incluir
+
+### Informações do Cliente (Alta Prioridade)
+```python
+def _preparar_dados_cliente_completos(self, cliente):
+    """Prepara dados COMPLETOS do cliente para o PDF"""
+    dados_base = {
+        'id': cliente.id,
+        'nome': cliente.nome,
+        'cpf': cliente.cpf,
+        'email': cliente.email,
+        'telefone': getattr(cliente, 'telefone', None),
+        'ativo': cliente.ativo,
+        'created_at': cliente.created_at,
+        'updated_at': cliente.updated_at,
+    }
+    
+    # Dados de endereço se disponível
+    if hasattr(cliente, 'enderecos') and cliente.enderecos:
+        endereco = cliente.enderecos[0]  # Primeiro endereço
+        dados_base.update({
+            'endereco_completo': f"{endereco.logradouro}, {endereco.numero}",
+            'bairro': endereco.bairro,
+            'cidade': endereco.cidade,
+            'estado': endereco.estado,
+            'cep': endereco.cep,
+        })
+    
+    # Dados de entidade jurídica se PJ
+    if hasattr(cliente, 'entidades_juridicas') and cliente.entidades_juridicas:
+        entidade = cliente.entidades_juridicas[0]
+        dados_base.update({
+            'razao_social': entidade.nome,
+            'nome_fantasia': getattr(entidade, 'nome_fantasia', None),
+            'cnpj': entidade.cnpj,
+            'inscricao_estadual': getattr(entidade, 'inscricao_estadual', None),
+            'regime_tributario': getattr(entidade, 'regime_tributario', None),
+            'faixa_faturamento': getattr(entidade, 'faixa_faturamento', None),
+        })
+    
+    return dados_base
+```
+
+### Informações da Proposta (Alta Prioridade)
+```python
+def _preparar_dados_proposta_completos(self, proposta):
+    """Prepara dados COMPLETOS da proposta"""
+    return {
+        'id': proposta.id,
+        'numero': proposta.numero,
+        'data_criacao': proposta.created_at.strftime('%d/%m/%Y'),
+        'data_validade': (proposta.created_at + timedelta(days=30)).strftime('%d/%m/%Y'),
+        'status': proposta.status,
+        'valor_total': proposta.valor_total,
+        'valor_mensalidade': proposta.valor_mensalidade,
+        'percentual_desconto': proposta.percentual_desconto,
+        'observacoes': getattr(proposta, 'observacoes', None),
+        'responsavel': getattr(proposta, 'responsavel', None),
+    }
+```
+
+### Informações da Empresa (Média Prioridade)
+```python
+def _preparar_dados_empresa_completos(self):
+    """Prepara dados COMPLETOS da empresa"""
+    return {
+        'nome': 'Christino Consultoria Contábil LTDA',
+        'cnpj': '49.666.494/0001-37',
+        'endereco': 'Rua Dr. Ataliba Leonel, 847 - Centro',
+        'cidade': 'Taquarituba - SP',
+        'cep': '18740-019',
+        'telefone': '(14) 3762-1991',
+        'celular': '(14) 99999-9999',  # Adicionar se disponível
+        'email': 'contato@christinoconsultoria.com.br',
+        'site': 'www.christino.com.br',
+        'horario_funcionamento': 'Segunda a Sexta: 8h às 18h',
+        'responsavel_comercial': 'Nome do Responsável',  # Adicionar se disponível
+    }
+```
+
+## Template Data Completo
+
+### Estrutura de Dados para Template
+```python
+def _preparar_dados_template(self, proposta):
+    """Prepara dados COMPLETOS para o template"""
+    
+    # Dados básicos (já existentes)
+    subtotal_servicos = sum(float(item.valor_total) for item in proposta.itens if item.ativo)
+    valor_mensalidade = float(proposta.valor_mensalidade) if proposta.valor_mensalidade else 0.0
+    subtotal = subtotal_servicos + valor_mensalidade
+    
+    # NOVOS DADOS - Informações completas
+    cliente_completo = self._preparar_dados_cliente_completos(proposta.cliente)
+    proposta_completa = self._preparar_dados_proposta_completos(proposta)
+    empresa_completa = self._preparar_dados_empresa_completos()
+    
+    # Dados de contato e suporte
+    contatos = {
+        'telefone_principal': empresa_completa['telefone'],
+        'telefone_secundario': empresa_completa.get('celular'),
+        'email_principal': empresa_completa['email'],
+        'email_comercial': 'comercial@christinoconsultoria.com.br',  # Adicionar se disponível
+        'site': empresa_completa['site'],
+        'horario_atendimento': empresa_completa['horario_funcionamento'],
+    }
+    
+    # Condições comerciais
+    condicoes = {
+        'validade_proposta': proposta_completa['data_validade'],
+        'prazo_entrega': '10 dias úteis',
+        'forma_pagamento_vista': 'PIX, Transferência ou Boleto',
+        'forma_pagamento_parcelado': 'Cartão de Crédito em até 3x',
+        'desconto_vista': '10%',
+        'termos_gerais': 'Serviços executados conforme especificação e prazos acordados.',
+    }
+    
+    template_data = {
+        # Dados existentes
+        'data_atual': datetime.now().strftime('%d/%m/%Y'),
+        'cliente': cliente_completo,  # ✅ Dados completos
+        'proposta': proposta_completa,  # ✅ Dados completos
+        'empresa': empresa_completa,  # ✅ Dados completos
+        'itens': itens_com_servicos,
+        'subtotal': subtotal,
+        'subtotal_servicos': subtotal_servicos,
+        'valor_mensalidade': valor_mensalidade,
+        'valor_vista': float(proposta.valor_total) * 0.9,
+        'logo_path': logo_path,
+        
+        # NOVOS DADOS
+        'contatos': contatos,
+        'condicoes': condicoes,
+        'dados_tributarios': self._preparar_dados_tributarios(proposta.cliente),
+        'observacoes_especiais': self._preparar_observacoes_especiais(proposta),
+    }
+    
+    return template_data
+```
+
+## Novas Funções de Suporte
+
+### Dados Tributários
+```python
+def _preparar_dados_tributarios(self, cliente):
+    """Prepara dados tributários se disponíveis"""
+    dados = {}
+    
+    if hasattr(cliente, 'entidades_juridicas') and cliente.entidades_juridicas:
+        entidade = cliente.entidades_juridicas[0]
+        
+        if hasattr(entidade, 'regime_tributario') and entidade.regime_tributario:
+            dados['regime_tributario'] = entidade.regime_tributario.nome
+        
+        if hasattr(entidade, 'faixa_faturamento') and entidade.faixa_faturamento:
+            dados['faixa_faturamento'] = entidade.faixa_faturamento.descricao
+    
+    return dados
+```
+
+### Observações Especiais
+```python
+def _preparar_observacoes_especiais(self, proposta):
+    """Prepara observações especiais da proposta"""
+    observacoes = []
+    
+    # Observações da proposta
+    if hasattr(proposta, 'observacoes') and proposta.observacoes:
+        observacoes.append(f"Observações: {proposta.observacoes}")
+    
+    # Observações sobre mensalidade
+    if proposta.valor_mensalidade and proposta.valor_mensalidade > 0:
+        observacoes.append("Inclui mensalidade automática para serviços recorrentes.")
+    
+    # Observações sobre desconto
+    if proposta.percentual_desconto and proposta.percentual_desconto > 0:
+        observacoes.append(f"Desconto de {proposta.percentual_desconto}% aplicado.")
+    
+    return observacoes
+```
+
+## Validação de Dados
+
+### Verificação de Completude
+```python
+def _validar_dados_completos(self, template_data):
+    """Valida se todos os dados essenciais estão presentes"""
+    campos_obrigatorios = [
+        'cliente.nome', 'cliente.email',
+        'proposta.numero', 'proposta.valor_total',
+        'empresa.nome', 'empresa.telefone',
+        'contatos.telefone_principal',
+        'condicoes.validade_proposta'
+    ]
+    
+    for campo in campos_obrigatorios:
+        valor = self._obter_valor_aninhado(template_data, campo)
+        if not valor:
+            print(f"⚠️ Campo obrigatório ausente: {campo}")
+    
+    return True
+```
+
+### Log de Dados Incluídos
+```python
+def _log_dados_incluidos(self, template_data):
+    """Registra quais dados foram incluídos no PDF"""
+    print("📋 Dados incluídos no PDF:")
+    print(f"   Cliente: {template_data['cliente']['nome']}")
+    print(f"   Proposta: {template_data['proposta']['numero']}")
+    print(f"   Valor Total: R$ {template_data['proposta']['valor_total']:.2f}")
+    print(f"   Itens: {len(template_data['itens'])}")
+    print(f"   Contatos: {len(template_data['contatos'])} campos")
+    print(f"   Condições: {len(template_data['condicoes'])} campos")
+```
+
+## Otimização de Performance
+
+### Cache de Dados
+```python
+def _cache_dados_empresa(self):
+    """Cache dos dados da empresa para evitar recálculos"""
+    if not hasattr(self, '_empresa_cache'):
+        self._empresa_cache = self._preparar_dados_empresa_completos()
+    return self._empresa_cache
+```
+
+### Lazy Loading
+```python
+def _carregar_dados_lazy(self, proposta):
+    """Carrega dados apenas quando necessário"""
+    dados = {}
+    
+    # Dados sempre necessários
+    dados['basicos'] = self._preparar_dados_basicos(proposta)
+    
+    # Dados condicionais
+    if self._precisa_dados_tributarios(proposta):
+        dados['tributarios'] = self._preparar_dados_tributarios(proposta.cliente)
+    
+    if self._precisa_observacoes(proposta):
+        dados['observacoes'] = self._preparar_observacoes_especiais(proposta)
+    
+    return dados
+```
+
+## Tratamento de Erros
+
+### Fallback para Dados Ausentes
+```python
+def _obter_dado_com_fallback(self, objeto, campo, fallback=""):
+    """Obtém dado com fallback seguro"""
+    try:
+        valor = getattr(objeto, campo, None)
+        return valor if valor is not None else fallback
+    except Exception:
+        return fallback
+```
+
+### Validação de Tipos
+```python
+def _validar_tipo_dado(self, valor, tipo_esperado):
+    """Valida se o dado está no tipo esperado"""
+    try:
+        if tipo_esperado == 'float':
+            return float(valor) if valor is not None else 0.0
+        elif tipo_esperado == 'int':
+            return int(valor) if valor is not None else 0
+        elif tipo_esperado == 'str':
+            return str(valor) if valor is not None else ""
+        return valor
+    except (ValueError, TypeError):
+        return None
+```
+
+## Documentação de Dados
+
+### Mapeamento de Campos
+```python
+CAMPOS_PDF_MAPEAMENTO = {
+    'cliente': {
+        'nome': 'Nome completo do cliente',
+        'cpf': 'CPF do cliente',
+        'email': 'Email de contato',
+        'telefone': 'Telefone principal',
+        'endereco_completo': 'Endereço completo',
+    },
+    'proposta': {
+        'numero': 'Número da proposta',
+        'data_criacao': 'Data de criação',
+        'valor_total': 'Valor total da proposta',
+        'status': 'Status atual da proposta',
+    },
+    'empresa': {
+        'nome': 'Nome da empresa',
+        'telefone': 'Telefone principal',
+        'email': 'Email de contato',
+        'endereco': 'Endereço da empresa',
+    }
+}
+```
+
+### Log de Debug
+```python
+def _debug_dados_template(self, template_data):
+    """Debug detalhado dos dados do template"""
+    print("🔍 DEBUG - Dados do Template:")
+    for secao, dados in template_data.items():
+        if isinstance(dados, dict):
+            print(f"   {secao}: {len(dados)} campos")
+            for campo, valor in dados.items():
+                if isinstance(valor, str) and len(valor) > 50:
+                    print(f"     {campo}: {valor[:50]}...")
+                else:
+                    print(f"     {campo}: {valor}")
+        else:
+            print(f"   {secao}: {dados}")
+```
