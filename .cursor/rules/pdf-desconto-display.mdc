@@ -1,0 +1,351 @@
+---
+globs: backend/templates/modelo_pdf.html,backend/services/pdf_generator.py,backend/models/propostas.py
+description: Regras para exibição correta do desconto no PDF baseado no percentual salvo no banco
+---
+
+# Regras de Exibição de Desconto no PDF
+
+## Objetivo
+Garantir que o percentual de desconto seja exibido corretamente no PDF baseado no valor salvo no banco de dados da proposta, mostrando a coluna desconto apenas quando houver desconto aplicado.
+
+## Estrutura do Banco de Dados
+
+### Campo de Desconto na Proposta
+```python
+# backend/models/propostas.py - linha 25
+percentual_desconto = db.Column(db.Integer, nullable=False, default=0)  # Percentual de desconto (0-100)
+```
+
+### Valores Possíveis
+- **0**: Sem desconto (coluna não deve aparecer)
+- **1-100**: Percentual de desconto (coluna deve aparecer)
+
+## Lógica de Exibição
+
+### ✅ REGRA PRINCIPAL
+**Mostrar coluna desconto APENAS se `proposta.percentual_desconto > 0`**
+
+### Implementação no Template
+```html
+<!-- Tabela de Orçamento - Header Condicional -->
+<table>
+    <thead>
+        <tr>
+            <th>Serviço ou Produto</th>
+            <th>Quantidade</th>
+            <th>Preço Unitário</th>
+            {% if proposta.percentual_desconto and proposta.percentual_desconto > 0 %}
+            <th>Desconto</th>
+            {% endif %}
+            <th>Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in itens %}
+        <tr>
+            <td>{{ item.servico.nome }}</td>
+            <td>{{ item.quantidade|int }}</td>
+            <td>{{ item.valor_unitario|currency }}</td>
+            {% if proposta.percentual_desconto and proposta.percentual_desconto > 0 %}
+            <td>{{ item.valor_desconto|currency }}</td>
+            {% endif %}
+            <td>{{ item.valor_total|currency }}</td>
+        </tr>
+        {% endfor %}
+        
+        {% if proposta.valor_mensalidade and proposta.valor_mensalidade > 0 %}
+        <tr>
+            <td><strong>Mensalidade Automática</strong></td>
+            <td>1</td>
+            <td>{{ proposta.valor_mensalidade|currency }}</td>
+            {% if proposta.percentual_desconto and proposta.percentual_desconto > 0 %}
+            <td>{{ 0|currency }}</td>
+            {% endif %}
+            <td>{{ proposta.valor_mensalidade|currency }}</td>
+        </tr>
+        {% endif %}
+        
+        <tr class="table-subtotal">
+            <td colspan="{% if proposta.percentual_desconto and proposta.percentual_desconto > 0 %}4{% else %}3{% endif %}">
+                <strong>Subtotal</strong>
+            </td>
+            <td>{{ subtotal|currency }}</td>
+        </tr>
+        
+        <tr class="table-total">
+            <td colspan="{% if proposta.percentual_desconto and proposta.percentual_desconto > 0 %}4{% else %}3{% endif %}">
+                <strong>Total</strong>
+            </td>
+            <td>{{ proposta.valor_total|currency }}</td>
+        </tr>
+    </tbody>
+</table>
+```
+
+## Implementação no Gerador PDF
+
+### Preparação de Dados
+```python
+# backend/services/pdf_generator.py
+def _preparar_dados_template(self, proposta):
+    """Prepara dados COMPLETOS para o template com máximo de informações"""
+    
+    # ✅ CORREÇÃO: Calcular desconto baseado no percentual da proposta
+    percentual_desconto = proposta.percentual_desconto or 0
+    
+    # Carregar serviços para cada item
+    itens_com_servicos = []
+    for item in proposta.itens:
+        if not item.ativo:
+            continue
+        servico = Servico.query.get(item.servico_id) if MODELS_AVAILABLE else None
+        
+        # ✅ CORREÇÃO: Calcular desconto baseado no percentual da proposta
+        valor_unitario = float(item.valor_unitario)
+        valor_total_sem_desconto = valor_unitario * float(item.quantidade)
+        valor_desconto = valor_total_sem_desconto * (percentual_desconto / 100.0)
+        
+        item_data = {
+            'servico': servico or {'nome': f'Serviço {item.id}', 'descricao': None},
+            'quantidade': item.quantidade,
+            'valor_unitario': valor_unitario,
+            'valor_desconto': valor_desconto,  # ✅ Desconto calculado
+            'valor_total': float(item.valor_total)
+        }
+        itens_com_servicos.append(item_data)
+    
+    template_data = {
+        # ... outros dados
+        'proposta': {
+            'id': proposta.id,
+            'numero': proposta.numero,
+            'valor_total': proposta.valor_total,
+            'valor_mensalidade': proposta.valor_mensalidade,
+            'percentual_desconto': percentual_desconto,  # ✅ Percentual do banco
+            'status': proposta.status,
+            'observacoes': proposta.observacoes,
+        },
+        'itens': itens_com_servicos,
+        'tem_desconto': percentual_desconto > 0,  # ✅ Flag para template
+    }
+    
+    return template_data
+```
+
+### Validação de Desconto
+```python
+def _validar_desconto(self, proposta):
+    """Valida se o desconto está correto"""
+    percentual = proposta.percentual_desconto or 0
+    
+    if percentual < 0:
+        print("⚠️ Percentual de desconto negativo detectado!")
+        return 0
+    
+    if percentual > 100:
+        print("⚠️ Percentual de desconto maior que 100% detectado!")
+        return 100
+    
+    if percentual > 0:
+        print(f"✅ Desconto aplicado: {percentual}%")
+    else:
+        print("ℹ️ Nenhum desconto aplicado")
+    
+    return percentual
+```
+
+## Cenários de Exibição
+
+### Cenário 1: Sem Desconto (percentual_desconto = 0)
+```html
+<!-- Tabela sem coluna desconto -->
+<table>
+    <thead>
+        <tr>
+            <th>Serviço ou Produto</th>
+            <th>Quantidade</th>
+            <th>Preço Unitário</th>
+            <th>Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Serviço A</td>
+            <td>1</td>
+            <td>R$ 100,00</td>
+            <td>R$ 100,00</td>
+        </tr>
+        <tr class="table-total">
+            <td colspan="3"><strong>Total</strong></td>
+            <td>R$ 100,00</td>
+        </tr>
+    </tbody>
+</table>
+```
+
+### Cenário 2: Com Desconto (percentual_desconto > 0)
+```html
+<!-- Tabela com coluna desconto -->
+<table>
+    <thead>
+        <tr>
+            <th>Serviço ou Produto</th>
+            <th>Quantidade</th>
+            <th>Preço Unitário</th>
+            <th>Desconto</th>
+            <th>Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Serviço A</td>
+            <td>1</td>
+            <td>R$ 100,00</td>
+            <td>R$ 10,00</td>
+            <td>R$ 90,00</td>
+        </tr>
+        <tr class="table-total">
+            <td colspan="4"><strong>Total</strong></td>
+            <td>R$ 90,00</td>
+        </tr>
+    </tbody>
+</table>
+```
+
+## Seção de Observações Especiais
+
+### Incluir Informação de Desconto
+```html
+<!-- Seção de Observações Especiais -->
+{% if observacoes_especiais %}
+<div class="section-title">Observações Especiais</div>
+
+<div class="observacoes-section">
+    <div class="observacoes-title">Informações Importantes</div>
+    <div class="observacoes-content">
+        {% for observacao in observacoes_especiais %}
+        • {{ observacao }}<br>
+        {% endfor %}
+        
+        <!-- ✅ NOVO: Informação sobre desconto se aplicável -->
+        {% if proposta.percentual_desconto and proposta.percentual_desconto > 0 %}
+        • Desconto de {{ proposta.percentual_desconto }}% aplicado sobre o valor total dos serviços.<br>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+```
+
+### Implementação no Gerador
+```python
+def _preparar_observacoes_especiais(self, proposta):
+    """Prepara observações especiais da proposta"""
+    observacoes = []
+    
+    # Observações da proposta
+    if hasattr(proposta, 'observacoes') and proposta.observacoes:
+        observacoes.append(f"Observações: {proposta.observacoes}")
+    
+    # Observações sobre mensalidade
+    if proposta.valor_mensalidade and proposta.valor_mensalidade > 0:
+        observacoes.append("Inclui mensalidade automática para serviços recorrentes.")
+    
+    # ✅ NOVO: Observações sobre desconto
+    if proposta.percentual_desconto and proposta.percentual_desconto > 0:
+        observacoes.append(f"Desconto de {proposta.percentual_desconto}% aplicado sobre o valor total dos serviços.")
+    
+    return observacoes
+```
+
+## Validações e Testes
+
+### Cenários de Teste
+1. **Proposta sem desconto** (percentual_desconto = 0)
+   - Deve mostrar tabela sem coluna desconto
+   - Deve mostrar total sem desconto aplicado
+   - Não deve mencionar desconto nas observações
+
+2. **Proposta com desconto** (percentual_desconto > 0)
+   - Deve mostrar tabela com coluna desconto
+   - Deve calcular desconto corretamente
+   - Deve mencionar desconto nas observações
+
+3. **Proposta com desconto alto** (percentual_desconto > 20)
+   - Deve mostrar desconto normalmente
+   - Deve indicar se requer aprovação gerencial
+
+### Validação de Cálculos
+```python
+def _testar_calculo_desconto(self, proposta):
+    """Testa cálculo de desconto"""
+    percentual = proposta.percentual_desconto or 0
+    
+    if percentual == 0:
+        print("✅ Teste: Sem desconto - coluna não deve aparecer")
+        return True
+    
+    # Calcular desconto esperado
+    subtotal_servicos = sum(float(item.valor_total) for item in proposta.itens if item.ativo)
+    desconto_esperado = subtotal_servicos * (percentual / 100.0)
+    
+    print(f"✅ Teste: Desconto de {percentual}%")
+    print(f"   Subtotal: R$ {subtotal_servicos:.2f}")
+    print(f"   Desconto: R$ {desconto_esperado:.2f}")
+    print(f"   Total: R$ {subtotal_servicos - desconto_esperado:.2f}")
+    
+    return True
+```
+
+## Regras de Implementação
+
+### ✅ OBRIGATÓRIO
+1. **Verificar percentual_desconto** antes de exibir coluna
+2. **Calcular desconto** baseado no percentual da proposta
+3. **Ajustar colspan** da tabela conforme presença de desconto
+4. **Incluir observação** sobre desconto se aplicável
+5. **Validar valores** de desconto (0-100%)
+
+### ❌ PROIBIDO
+1. **Mostrar coluna desconto** se percentual_desconto = 0
+2. **Calcular desconto** de forma diferente do percentual salvo
+3. **Ignorar desconto** se percentual_desconto > 0
+4. **Misturar lógicas** de desconto entre frontend e backend
+5. **Exibir valores incorretos** de desconto
+
+## Logs de Debug
+
+### Debug de Desconto
+```python
+def _log_desconto_pdf(self, proposta, template_data):
+    """Registra informações sobre desconto no PDF"""
+    percentual = proposta.percentual_desconto or 0
+    
+    print("💰 Debug - Desconto no PDF:")
+    print(f"   Percentual no banco: {percentual}%")
+    print(f"   Tem desconto: {percentual > 0}")
+    print(f"   Coluna desconto: {'Sim' if percentual > 0 else 'Não'}")
+    
+    if percentual > 0:
+        subtotal = sum(item['valor_total'] for item in template_data['itens'])
+        desconto_total = subtotal * (percentual / 100.0)
+        print(f"   Subtotal: R$ {subtotal:.2f}")
+        print(f"   Desconto total: R$ {desconto_total:.2f}")
+        print(f"   Total final: R$ {subtotal - desconto_total:.2f}")
+```
+
+## Benefícios da Implementação
+
+### Para o Usuário
+- **Clareza**: Desconto visível apenas quando aplicado
+- **Precisão**: Valores corretos baseados no banco
+- **Transparência**: Informações claras sobre desconto
+
+### Para o Sistema
+- **Consistência**: Dados sempre sincronizados com banco
+- **Flexibilidade**: Suporte a diferentes cenários de desconto
+- **Manutenibilidade**: Lógica centralizada e clara
+
+### Para Desenvolvedores
+- **Simplicidade**: Regras claras de exibição
+- **Debug**: Logs detalhados para identificação de problemas
+- **Testes**: Cenários bem definidos para validação

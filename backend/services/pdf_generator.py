@@ -148,21 +148,13 @@ class PropostaPDFGenerator:
     def _preparar_dados_template(self, proposta):
         """Prepara dados COMPLETOS para o template com máximo de informações"""
         
-        # ✅ CORREÇÃO: Calcular subtotal incluindo mensalidade
-        subtotal_servicos = sum(float(item.valor_total) for item in proposta.itens if item.ativo)
-        valor_mensalidade = float(proposta.valor_mensalidade) if proposta.valor_mensalidade else 0.0
-        subtotal = subtotal_servicos + valor_mensalidade
-        
-        print(f"💰 PDF Generator - Cálculo do subtotal:")
-        print(f"   Serviços: R$ {subtotal_servicos:.2f}")
-        print(f"   Mensalidade: R$ {valor_mensalidade:.2f}")
-        print(f"   Subtotal: R$ {subtotal:.2f}")
-        
         # Encontrar logo
         logo_path = self._find_logo_path()
         
-        # Carregar serviços para cada item
+        # Carregar serviços para cada item e calcular desconto
         itens_com_servicos = []
+        subtotal_servicos = 0.0
+        
         for item in proposta.itens:
             if not item.ativo:
                 continue
@@ -173,15 +165,28 @@ class PropostaPDFGenerator:
             valor_total_sem_desconto = valor_unitario * float(item.quantidade)
             percentual_desconto = float(proposta.percentual_desconto) if proposta.percentual_desconto else 0.0
             valor_desconto = valor_total_sem_desconto * (percentual_desconto / 100.0)
+            valor_total_com_desconto = valor_total_sem_desconto - valor_desconto
+            
+            # ✅ CORREÇÃO: Somar ao subtotal dos serviços (com desconto aplicado)
+            subtotal_servicos += valor_total_com_desconto
             
             item_data = {
                 'servico': servico or {'nome': f'Serviço {item.id}', 'descricao': None},
                 'quantidade': item.quantidade,
                 'valor_unitario': valor_unitario,
                 'valor_desconto': valor_desconto,  # ✅ CORREÇÃO: Desconto calculado
-                'valor_total': float(item.valor_total)
+                'valor_total': valor_total_com_desconto  # ✅ CORREÇÃO: Valor com desconto aplicado
             }
             itens_com_servicos.append(item_data)
+        
+        # ✅ CORREÇÃO: Calcular subtotal incluindo mensalidade (após aplicar desconto)
+        valor_mensalidade = float(proposta.valor_mensalidade) if proposta.valor_mensalidade else 0.0
+        subtotal = subtotal_servicos + valor_mensalidade
+        
+        print(f"💰 PDF Generator - Cálculo do subtotal:")
+        print(f"   Serviços (com desconto): R$ {subtotal_servicos:.2f}")
+        print(f"   Mensalidade: R$ {valor_mensalidade:.2f}")
+        print(f"   Subtotal: R$ {subtotal:.2f}")
         
         # ✅ NOVOS DADOS - Informações completas
         cliente_completo = self._preparar_dados_cliente_completos(proposta.cliente)
@@ -317,6 +322,9 @@ class PropostaPDFGenerator:
         """Prepara dados COMPLETOS da proposta"""
         from datetime import timedelta
         
+        # ✅ CORREÇÃO: Garantir que percentual_desconto seja sempre um número
+        percentual_desconto = proposta.percentual_desconto or 0
+        
         return {
             'id': proposta.id,
             'numero': proposta.numero,
@@ -325,7 +333,7 @@ class PropostaPDFGenerator:
             'status': proposta.status,
             'valor_total': proposta.valor_total,
             'valor_mensalidade': proposta.valor_mensalidade,
-            'percentual_desconto': proposta.percentual_desconto,
+            'percentual_desconto': percentual_desconto,  # ✅ Sempre um número
             'observacoes': getattr(proposta, 'observacoes', None),
             'responsavel': getattr(proposta, 'responsavel', None),
         }
@@ -361,9 +369,10 @@ class PropostaPDFGenerator:
         if proposta.valor_mensalidade and proposta.valor_mensalidade > 0:
             observacoes.append("Inclui mensalidade automática para serviços recorrentes.")
         
-        # Observações sobre desconto
-        if proposta.percentual_desconto and proposta.percentual_desconto > 0:
-            observacoes.append(f"Desconto de {proposta.percentual_desconto}% aplicado.")
+        # ✅ CORREÇÃO: Observações sobre desconto baseado no banco de dados
+        percentual_desconto = proposta.percentual_desconto or 0
+        if percentual_desconto > 0:
+            observacoes.append(f"Desconto de {percentual_desconto}% aplicado sobre o valor total dos serviços.")
         
         return observacoes
     
@@ -380,6 +389,25 @@ class PropostaPDFGenerator:
             print(f"   Dados Tributários: {len(template_data['dados_tributarios'])} campos")
         if template_data['observacoes_especiais']:
             print(f"   Observações: {len(template_data['observacoes_especiais'])} itens")
+        
+        # ✅ NOVO: Debug específico do desconto
+        self._log_desconto_pdf(template_data['proposta'], template_data['itens'])
+    
+    def _log_desconto_pdf(self, proposta_data, itens_data):
+        """Registra informações sobre desconto no PDF"""
+        percentual = proposta_data.get('percentual_desconto', 0)
+        
+        print("💰 Debug - Desconto no PDF:")
+        print(f"   Percentual no banco: {percentual}%")
+        print(f"   Tem desconto: {percentual > 0}")
+        print(f"   Coluna desconto: {'Sim' if percentual > 0 else 'Não'}")
+        
+        if percentual > 0:
+            subtotal = sum(item['valor_total'] for item in itens_data)
+            desconto_total = subtotal * (percentual / 100.0)
+            print(f"   Subtotal: R$ {subtotal:.2f}")
+            print(f"   Desconto total: R$ {desconto_total:.2f}")
+            print(f"   Total final: R$ {subtotal - desconto_total:.2f}")
     
     def _gerar_pdf_from_html(self, html_content: str, output_path: str):
         """Gera PDF usando APENAS o CSS do HTML"""

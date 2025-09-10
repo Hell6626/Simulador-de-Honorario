@@ -447,10 +447,11 @@ def update_proposta(proposta_id: int):
             # Excluir PDF antigo se existir
             if proposta.pdf_caminho:
                 import os
-                pdf_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'pdfs', proposta.pdf_caminho)
+                # pdf_caminho contém o caminho completo do arquivo
+                pdf_path = proposta.pdf_caminho
                 if os.path.exists(pdf_path):
                     os.remove(pdf_path)
-                    current_app.logger.info(f"PDF antigo excluído: {pdf_path}")
+                    current_app.logger.info(f"PDF antigo excluído: {os.path.basename(pdf_path)}")
             
             # Limpar campos de PDF no banco
             proposta.pdf_caminho = None
@@ -462,7 +463,7 @@ def update_proposta(proposta_id: int):
             pdf_path = pdf_generator.gerar_pdf_proposta(proposta.id)
             
             if pdf_path:
-                proposta.pdf_caminho = os.path.basename(pdf_path)
+                proposta.pdf_caminho = pdf_path  # Salvar caminho completo
                 proposta.pdf_gerado = True
                 proposta.pdf_data_geracao = datetime.utcnow()
                 pdf_regenerado = True
@@ -941,7 +942,7 @@ def delete_proposta(proposta_id: int):
         if not is_propria_proposta and not observacao:
             raise ValueError('Observação é obrigatória para exclusão de proposta de outro funcionário')
 
-        # 6. Excluir PDF vinculado com verificação segura de campos
+        # 6. Excluir PDF vinculado
         pdf_excluido = False
         try:
             # Verificar campos de PDF disponíveis
@@ -953,13 +954,14 @@ def delete_proposta(proposta_id: int):
             
             if pdf_caminho:
                 import os
-                pdf_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'pdfs', pdf_caminho)
+                # pdf_caminho contém o caminho completo do arquivo
+                pdf_path = pdf_caminho
                 if os.path.exists(pdf_path):
                     os.remove(pdf_path)
                     pdf_excluido = True
-                    current_app.logger.info(f"PDF excluído: {pdf_path}")
+                    current_app.logger.info(f"PDF excluído com sucesso: {os.path.basename(pdf_caminho)}")
                 else:
-                    current_app.logger.warning(f"PDF não encontrado no caminho: {pdf_path}")
+                    current_app.logger.warning(f"PDF não encontrado: {pdf_caminho}")
         except Exception as e:
             current_app.logger.warning(f"Erro ao excluir PDF: {str(e)}")
         
