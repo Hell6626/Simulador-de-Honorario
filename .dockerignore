@@ -1,0 +1,46 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Node modules (frontend)
+frontend/node_modules
+frontend/dist
+
+# Python cache (backend)
+backend/__pycache__
+backend/**/__pycache__
+backend/*.pyc
+backend/**/*.pyc
+
+# Virtual environment
+backend/venv
+
+# Database files
+backend/instance/*.db
+backend/instance/*.db-journal
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Backup files
+backup/
