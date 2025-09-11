@@ -1,4 +1,3 @@
-import React from 'react';
 import { Calculator, Percent, AlertTriangle, CheckCircle, Info, Building, User } from 'lucide-react';
 import { ResumoFinanceiro as ResumoFinanceiroType } from '../../types/propostas';
 import { formatarMoeda } from '../../utils/formatters';
@@ -119,9 +118,8 @@ export const ResumoFinanceiro: React.FC<ResumoFinanceiroProps> = ({
                 <div className="absolute left-[20%] top-0 h-3 bg-orange-200 rounded-r-full" style={{ width: '80%' }}></div>
                 {/* Indicador atual */}
                 <div
-                  className={`absolute top-0 h-3 rounded-full transition-all duration-300 ${
-                    percentualDesconto <= 20 ? 'bg-green-600' : 'bg-orange-600'
-                  }`}
+                  className={`absolute top-0 h-3 rounded-full transition-all duration-300 ${percentualDesconto <= 20 ? 'bg-green-600' : 'bg-orange-600'
+                    }`}
                   style={{ width: `${Math.min(percentualDesconto, 100)}%` }}
                 ></div>
               </div>

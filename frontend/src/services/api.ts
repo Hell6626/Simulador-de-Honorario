@@ -1,23 +1,17 @@
 import Cookies from 'js-cookie';
 
-// 🌐 Configuração dinâmica para rede local
+// 🌐 Configuração dinâmica para rede local E produção
 const getBaseUrl = () => {
-  // Se estiver rodando em desenvolvimento, detectar automaticamente o IP
   if (import.meta.env.DEV) {
-    // Tentar usar o IP da rede local se disponível
     const hostname = window.location.hostname;
-
-    // Se não for localhost, usar o IP atual
     if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      return `http://${hostname}:5000/api`;
+      return `http://${hostname}:5002/api`; // ✅ Porta 5002
     }
-
-    // Para localhost, manter como está
-    return 'http://localhost:5000/api';
+    return 'http://localhost:5002/api'; // ✅ Porta 5002
   }
 
-  // Para produção, usar configuração padrão
-  return 'http://localhost:5000/api';
+  // ✅ CORREÇÃO: Produção -> sempre usar HTTPS
+  return 'https://propostas.christinocontabilidade.com.br/api';
 };
 
 const BASE_URL = getBaseUrl();

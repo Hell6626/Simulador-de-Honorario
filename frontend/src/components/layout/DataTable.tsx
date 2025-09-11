@@ -1,4 +1,3 @@
-import React from 'react';
 import { cn } from '../../utils/cn';
 import { Button } from '../forms/Button';
 import { Input } from '../forms/Input';
@@ -59,7 +58,7 @@ export function DataTable<T extends Record<string, any>>({
 
   const handleSort = (key: string) => {
     if (!sortable) return;
-    
+
     const newDirection = sortKey === key && sortDirection === 'asc' ? 'desc' : 'asc';
     setSortKey(key);
     setSortDirection(newDirection);
@@ -90,7 +89,7 @@ export function DataTable<T extends Record<string, any>>({
               />
             </div>
           )}
-          
+
           {filterable && (
             <Button
               variant="outline"
@@ -113,7 +112,7 @@ export function DataTable<T extends Record<string, any>>({
               Exportar
             </Button>
           )}
-          
+
           {onAdd && (
             <Button
               size="sm"

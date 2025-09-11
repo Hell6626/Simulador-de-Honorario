@@ -34,7 +34,7 @@ export interface Funcionario {
 export interface Cliente {
   id: number;
   nome: string;
-  cpf: string;
+  cpf?: string;
   email: string;
   telefone?: string;
   abertura_empresa: boolean;
@@ -312,13 +312,8 @@ export class DataValidator {
       errors.push('Nome do cliente é obrigatório');
     }
 
-    if (!cliente.cpf || cliente.cpf.trim().length === 0) {
-      errors.push('CPF do cliente é obrigatório');
-    }
-
-    if (!cliente.email || cliente.email.trim().length === 0) {
-      errors.push('Email do cliente é obrigatório');
-    }
+    // CPF é opcional agora
+    // Email é opcional agora
 
     // Validar entidades jurídicas se existirem
     if (cliente.entidades_juridicas && cliente.entidades_juridicas.length > 0) {

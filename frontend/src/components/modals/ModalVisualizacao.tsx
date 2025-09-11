@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   X, User, Mail, Hash, Calendar, MapPin, Building, Shield,
   Phone, Globe, Fingerprint, Home, FileText, CreditCard,
@@ -43,7 +42,7 @@ export const ModalVisualizacao: React.FC<ModalVisualizacaoProps> = ({
   };
 
   // Função genérica que detecta CPF ou CNPJ
-  const formatCpfCnpj = (value: string) => {
+  const formatCpfCnpj = (value?: string) => {
     if (!value) return '-';
     const numbers = value.replace(/\D/g, '');
 

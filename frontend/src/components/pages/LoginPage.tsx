@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -59,7 +59,7 @@ export const LoginPage: React.FC = () => {
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="email"
-                  {...register('email', { 
+                  {...register('email', {
                     required: 'E-mail é obrigatório',
                     pattern: {
                       value: /^\S+@\S+$/i,

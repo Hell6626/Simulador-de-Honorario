@@ -1,4 +1,3 @@
-import React from 'react';
 import { Calendar, Clock, User, MapPin } from 'lucide-react';
 
 export const AgendaPage: React.FC = () => {

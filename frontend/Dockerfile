@@ -6,8 +6,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (including dev dependencies for build)
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -34,5 +34,5 @@ EXPOSE 8083
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8083/health || exit 1
 
-# Start nginx on port 8083
-CMD ["sh", "-c", "sed -i 's/listen 80/listen 8083/' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+# Start nginx (removido o sed pois nginx.conf já tem a porta correta)
+CMD ["nginx", "-g", "daemon off;"]

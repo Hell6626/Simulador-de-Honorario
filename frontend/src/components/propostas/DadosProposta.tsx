@@ -1,4 +1,3 @@
-import React from 'react';
 import { User, Settings, CheckCircle, Building } from 'lucide-react';
 import { DadosPropostaCompleta } from '../../types/propostas';
 import { formatarMoeda } from '../../utils/formatters';
@@ -33,8 +32,8 @@ export const DadosProposta: React.FC<DadosPropostaProps> = ({ dadosProposta }) =
             </div>
             <div className="mt-3">
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${dadosProposta.cliente.abertura_empresa
-                  ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                  : 'bg-green-100 text-green-800 border border-green-200'
+                ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                : 'bg-green-100 text-green-800 border border-green-200'
                 }`}>
                 {dadosProposta.cliente.abertura_empresa ? (
                   <>

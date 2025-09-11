@@ -67,21 +67,22 @@ def create_cliente():
     current_app.logger.info(f"Dados recebidos: {data}")
     
     # Validação de campos obrigatórios
-    validation_error = validate_required_fields(data, ['nome', 'cpf'])
+    validation_error = validate_required_fields(data, ['nome'])
     if validation_error:
         return validation_error
 
-    # Verificar se CPF já existe
-    cpf_existente = Cliente.query.filter_by(cpf=data['cpf'].strip()).first()
-    if cpf_existente:
-        raise ValueError('CPF já cadastrado')
+    # Verificar se CPF já existe (apenas se foi fornecido)
+    if 'cpf' in data and data['cpf'] and data['cpf'].strip():
+        cpf_existente = Cliente.query.filter_by(cpf=data['cpf'].strip()).first()
+        if cpf_existente:
+            raise ValueError('CPF já cadastrado')
 
     try:
         # === ETAPA 1: CRIAR CLIENTE ===
         current_app.logger.info("ETAPA 1: Criando cliente")
         cliente = Cliente(
             nome=(data['nome'] or '').strip(),
-            cpf=(data['cpf'] or '').strip(),
+            cpf=(data.get('cpf') or '').strip() or None,
             email=(data.get('email') or '').strip().lower() or None,
             # telefone=(data.get('telefone') or '').strip() or None,  # Temporariamente comentado
             abertura_empresa=bool(data.get('abertura_empresa', False)),

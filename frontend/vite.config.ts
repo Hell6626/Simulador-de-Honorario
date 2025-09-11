@@ -1,22 +1,28 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react({
+      jsxRuntime: 'automatic', // ✅ garante transformação JSX nova (React 17+)
+      jsxImportSource: 'react',
+    }),
+  ],
+  resolve: {
+    dedupe: ['react', 'react-dom'],
+  },
   optimizeDeps: {
-    exclude: ['lucide-react'],
+    include: ['react', 'react-dom'],
   },
   build: {
     commonjsOptions: {
-      include: [/jspdf/, /jspdf-autotable/],
+      include: [/node_modules/],
     },
   },
-  // 🌐 Configuração para rede local
   server: {
-    host: '0.0.0.0', // Permite acesso de qualquer IP na rede
-    port: 5173,      // Porta padrão do Vite
-    strictPort: true, // Falha se a porta estiver ocupada
-    cors: true,      // Habilita CORS para desenvolvimento
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true,
+    cors: true,
   },
 });

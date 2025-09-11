@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, User, Mail, Building, Shield, Check, AlertCircle } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { Funcionario } from '../../../types';

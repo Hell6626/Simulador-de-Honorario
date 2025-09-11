@@ -14,7 +14,7 @@ class Cliente(db.Model, TimestampMixin, ActiveMixin):
     
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False, index=True)
-    cpf = db.Column(db.String(14), nullable=False, unique=True, index=True)
+    cpf = db.Column(db.String(14), nullable=True, unique=True, index=True)
     email = db.Column(db.String(150), nullable=True)
     # telefone = db.Column(db.String(20), nullable=True)  # Temporariamente comentado para evitar erro de migração
     abertura_empresa = db.Column(db.Boolean, default=False, nullable=False)

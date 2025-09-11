@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { RegimeTributarioPage } from '../../types';
 import { apiService } from '../../services/api';
