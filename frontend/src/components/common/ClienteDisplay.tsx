@@ -1,4 +1,3 @@
-import React from 'react';
 import { Cliente } from '../../types';
 import {
     formatarCliente,
@@ -121,10 +120,12 @@ const ClienteDisplay: React.FC<ClienteDisplayProps> = ({
                     </div>
 
                     <div className="space-y-2">
-                        <div className="flex justify-between">
-                            <span className="text-sm font-medium text-gray-700">CPF:</span>
-                            <span className="text-sm text-gray-900">{dadosFormatados.documentoFormatado}</span>
-                        </div>
+                        {dadosFormatados.documentoFormatado && dadosFormatados.documentoFormatado !== '-' && (
+                            <div className="flex justify-between">
+                                <span className="text-sm font-medium text-gray-700">CPF:</span>
+                                <span className="text-sm text-gray-900">{dadosFormatados.documentoFormatado}</span>
+                            </div>
+                        )}
 
                         {dadosFormatados.email && (
                             <div className="flex justify-between">

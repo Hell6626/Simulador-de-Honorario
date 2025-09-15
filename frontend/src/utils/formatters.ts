@@ -33,7 +33,8 @@ export const formatarDataHora = (data: string | Date): string => {
 };
 
 // ✅ NOVO: Funções de formatação para documentos
-export const formatarCPF = (cpf: string): string => {
+export const formatarCPF = (cpf?: string): string => {
+  if (!cpf) return '-';
   const cpfLimpo = removerFormatacao(cpf);
   if (cpfLimpo.length !== 11) return cpf;
 
@@ -112,7 +113,8 @@ export const validarCNPJ = (cnpj: string): boolean => {
   return true;
 };
 
-export const formatarDocumento = (documento: string): string => {
+export const formatarDocumento = (documento?: string | null): string => {
+  if (!documento) return '-';
   const documentoLimpo = removerFormatacao(documento);
 
   if (documentoLimpo.length === 11) {

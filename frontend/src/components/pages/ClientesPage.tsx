@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, Mail, User, Building, Eye, Edit2 } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { LoadingSpinner } from '../common/LoadingSpinner';
@@ -118,7 +118,8 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({ openModalOnLoad = fa
 
 
   // Função para formatar CPF/CNPJ
-  const formatarDocumento = (documento: string) => {
+  const formatarDocumento = (documento?: string | null) => {
+    if (!documento) return '-';
     const limpo = documento.replace(/\D/g, '');
     if (limpo.length === 11) {
       return limpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');

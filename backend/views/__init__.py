@@ -46,7 +46,7 @@ def register_blueprints(app):
     api_bp.register_blueprint(servicos_bp, url_prefix='/servicos')
     api_bp.register_blueprint(propostas_bp, url_prefix='/propostas')
     api_bp.register_blueprint(auth_bp, url_prefix='/auth')
-    api_bp.register_blueprint(health_bp, url_prefix='/health')
+    api_bp.register_blueprint(health_bp)
     api_bp.register_blueprint(chat_bp, url_prefix='/chat')
     api_bp.register_blueprint(notificacoes_bp, url_prefix='/notificacoes')
     api_bp.register_blueprint(cargos_bp, url_prefix='/cargos')

@@ -202,12 +202,14 @@ const CustomerCard: React.FC<CustomerCardProps> = ({ cliente, isSelected, onSele
               })()}
 
               {/* CPF do responsável */}
-              <div className="flex items-center space-x-1">
-                <CreditCard className="w-2.5 h-2.5 text-gray-600" aria-hidden="true" />
-                <span className="text-xs text-gray-700">
-                  CPF Responsável: {formatarCPF(cliente.cpf)}
-                </span>
-              </div>
+              {cliente.cpf && (
+                <div className="flex items-center space-x-1">
+                  <CreditCard className="w-2.5 h-2.5 text-gray-600" aria-hidden="true" />
+                  <span className="text-xs text-gray-700">
+                    CPF Responsável: {formatarCPF(cliente.cpf)}
+                  </span>
+                </div>
+              )}
 
               {/* Email */}
               <div className="flex items-center space-x-1">
@@ -223,12 +225,14 @@ const CustomerCard: React.FC<CustomerCardProps> = ({ cliente, isSelected, onSele
           {displayInfo.tipo === 'Pessoa Física' && (
             <>
               {/* CPF */}
-              <div className="flex items-center space-x-1">
-                <CreditCard className="w-2.5 h-2.5 text-gray-600" aria-hidden="true" />
-                <span className="text-xs text-gray-700">
-                  CPF: {formatarCPF(cliente.cpf)}
-                </span>
-              </div>
+              {cliente.cpf && (
+                <div className="flex items-center space-x-1">
+                  <CreditCard className="w-2.5 h-2.5 text-gray-600" aria-hidden="true" />
+                  <span className="text-xs text-gray-700">
+                    CPF: {formatarCPF(cliente.cpf)}
+                  </span>
+                </div>
+              )}
 
               {/* Email */}
               <div className="flex items-center space-x-1">

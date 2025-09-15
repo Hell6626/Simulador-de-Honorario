@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Proposta } from '../../types';
 import { StatusSelector } from '../common/StatusSelector';
 

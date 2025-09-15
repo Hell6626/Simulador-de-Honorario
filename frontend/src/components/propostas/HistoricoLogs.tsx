@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     Edit, Tag, List, DollarSign, Settings, CheckCircle,
     MessageSquare, Clock, X, Search, Filter, Calendar,

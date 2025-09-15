@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, User, MapPin, Building, Check, AlertCircle } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { Cliente } from '../../types';
@@ -6,7 +6,7 @@ import { useToast } from '../../contexts/ToastContext';
 
 interface ClienteForm {
   nome: string;
-  cpf: string;
+  cpf?: string;
   email?: string;
   telefone?: string;
   abertura_empresa: boolean;
@@ -56,7 +56,8 @@ const ESTADOS_BRASIL = [
 const TIPOS_EMPRESA = ['LTDA', 'ME', 'EIRELI', 'S/A', 'EPP', 'OSCIP', 'ONG'];
 
 // Funções de validação
-const validarCPF = (cpf: string): boolean => {
+const validarCPF = (cpf?: string): boolean => {
+  if (!cpf) return false;
   const cpfLimpo = cpf.replace(/\D/g, '');
   if (cpfLimpo.length !== 11) return false;
 
@@ -84,7 +85,8 @@ const validarCPF = (cpf: string): boolean => {
   return true;
 };
 
-const validarCNPJ = (cnpj: string): boolean => {
+const validarCNPJ = (cnpj?: string): boolean => {
+  if (!cnpj) return false;
   const cnpjLimpo = cnpj.replace(/\D/g, '');
   if (cnpjLimpo.length !== 14) return false;
 
@@ -122,12 +124,14 @@ const validarEmail = (email: string): boolean => {
 };
 
 // Funções de máscara
-const aplicarMascaraCPF = (valor: string): string => {
+const aplicarMascaraCPF = (valor?: string): string => {
+  if (!valor) return '';
   const cpfLimpo = valor.replace(/\D/g, '');
   return cpfLimpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
 };
 
-const aplicarMascaraCNPJ = (valor: string): string => {
+const aplicarMascaraCNPJ = (valor?: string): string => {
+  if (!valor) return '';
   const cnpjLimpo = valor.replace(/\D/g, '');
   return cnpjLimpo.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
 };
@@ -205,7 +209,7 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
           const fallbackData = {
             cliente: {
               nome: clienteParaEditar.nome,
-              cpf: aplicarMascaraCPF(clienteParaEditar.cpf),
+              cpf: clienteParaEditar.cpf ? aplicarMascaraCPF(clienteParaEditar.cpf) : '',
               email: clienteParaEditar.email || '',
               abertura_empresa: clienteParaEditar.abertura_empresa
             },
@@ -233,7 +237,7 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
   const validacoes = {
     cliente: {
       nome: (valor: string) => valor.trim().length >= 3,
-      cpf: (valor: string) => validarCPF(valor.replace(/\D/g, '')),
+      cpf: (valor: string) => !valor || validarCPF(valor.replace(/\D/g, '')),
       email: (valor: string) => !valor || validarEmail(valor)
     },
     endereco: {
@@ -253,11 +257,11 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
   const validarFormulario = (): boolean => {
     const novosErrors: FormErrors = {};
 
-    // Validar dados do cliente (sempre obrigatórios)
+    // Validar dados do cliente
     if (!validacoes.cliente.nome(formData.cliente.nome)) {
       novosErrors.cliente = { ...novosErrors.cliente, nome: 'Nome deve ter pelo menos 3 caracteres' };
     }
-    if (!validacoes.cliente.cpf(formData.cliente.cpf)) {
+    if (formData.cliente.cpf && !validacoes.cliente.cpf(formData.cliente.cpf)) {
       novosErrors.cliente = { ...novosErrors.cliente, cpf: 'CPF inválido' };
     }
     if (formData.cliente.email && !validacoes.cliente.email(formData.cliente.email)) {
@@ -355,7 +359,7 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
     try {
       const dadosParaEnviar = {
         nome: formData.cliente.nome,
-        cpf: formData.cliente.cpf.replace(/\D/g, ''),
+        cpf: formData.cliente.cpf ? formData.cliente.cpf.replace(/\D/g, '') : null,
         email: formData.cliente.email || null,
         telefone: formData.cliente.telefone || null,
         abertura_empresa: formData.cliente.abertura_empresa,
@@ -410,8 +414,8 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
   const podeIrParaEmpresa = !formData.cliente.abertura_empresa; // Aba empresa só disponível se não for abertura de empresa
 
   const podeSalvar = (): boolean => {
-    // Dados do cliente sempre obrigatórios
-    if (!formData.cliente.nome.trim() || !formData.cliente.cpf.trim()) {
+    // Dados do cliente obrigatórios (CPF é opcional agora)
+    if (!formData.cliente.nome.trim()) {
       return false;
     }
 
@@ -529,7 +533,7 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  CPF <span className="text-red-500">*</span>
+                  CPF
                 </label>
                 <input
                   type="text"
@@ -543,7 +547,7 @@ export const ModalCadastroCliente: React.FC<ModalCadastroClienteProps> = ({
                   }}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.cliente?.cpf ? 'border-red-500' : 'border-gray-300'
                     }`}
-                  placeholder="000.000.000-00"
+                  placeholder="000.000.000-00 (opcional)"
                   maxLength={14}
                 />
                 {errors.cliente?.cpf && (

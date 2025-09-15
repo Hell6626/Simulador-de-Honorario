@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
@@ -32,7 +32,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
       'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-custom-blue': variant === 'outline',
       'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-500': variant === 'ghost',
       'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500': variant === 'danger',
-      
+
       // Sizes
       'px-3 py-1.5 text-sm': size === 'sm',
       'px-4 py-2 text-base': size === 'md',

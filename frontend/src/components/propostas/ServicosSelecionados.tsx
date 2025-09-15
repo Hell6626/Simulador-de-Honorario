@@ -1,4 +1,3 @@
-import React from 'react';
 import { List, User, Building } from 'lucide-react';
 import { DadosPropostaCompleta, ResumoFinanceiro } from '../../types/propostas';
 import { formatarMoeda } from '../../utils/formatters';
@@ -86,9 +85,8 @@ export const ServicosSelecionados: React.FC<ServicosSelecionadosProps> = ({
             </div>
 
             <div className="ml-5">
-              <div className={`flex justify-between items-center text-sm rounded-lg p-3 ${
-                resumoFinanceiro.ehMEI ? 'bg-orange-50' : 'bg-green-50'
-              }`}>
+              <div className={`flex justify-between items-center text-sm rounded-lg p-3 ${resumoFinanceiro.ehMEI ? 'bg-orange-50' : 'bg-green-50'
+                }`}>
                 <div className="flex-1">
                   <span className="text-gray-700 font-medium flex items-center">
                     {resumoFinanceiro.ehMEI ? (

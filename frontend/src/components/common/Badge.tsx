@@ -8,7 +8,6 @@
  * @author Sistema de Propostas
  */
 
-import React from 'react';
 
 // ============================================================================
 // 🎯 TIPOS E INTERFACES

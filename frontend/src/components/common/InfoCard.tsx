@@ -1,4 +1,3 @@
-import React from 'react';
 
 interface InfoCardProps {
   title: string;
@@ -8,10 +7,10 @@ interface InfoCardProps {
   className?: string;
 }
 
-export const InfoCard: React.FC<InfoCardProps> = ({ 
-  title, 
-  children, 
-  icon, 
+export const InfoCard: React.FC<InfoCardProps> = ({
+  title,
+  children,
+  icon,
   variant = 'default',
   className = ''
 }) => {
