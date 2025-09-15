@@ -9,7 +9,7 @@ import json
 import shutil
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
-import weasyprint
+# import weasyprint  # Temporariamente comentado para evitar erros no Windows
 from reportlab.lib import colors
 
 # Importações condicionais para evitar erros
@@ -412,19 +412,28 @@ class PropostaPDFGenerator:
             print(f"   Total final: R$ {subtotal - desconto_total:.2f}")
     
     def _gerar_pdf_from_html(self, html_content: str, output_path: str):
-        """Gera PDF usando APENAS o CSS do HTML"""
+        """Gera PDF usando APENAS o CSS do HTML - TEMPORARIAMENTE DESABILITADO"""
         try:
+            # TEMPORARIAMENTE COMENTADO PARA EVITAR ERROS NO WINDOWS
+            # TODO: Implementar geração de PDF com ReportLab ou instalar dependências do WeasyPrint
             
             # Criar documento HTML
-            html_doc = weasyprint.HTML(
-                string=html_content,
-                base_url=os.path.abspath(self.upload_dir),  # Para encontrar assets como logo
-                encoding='utf-8'
-            )
+            # html_doc = weasyprint.HTML(
+            #     string=html_content,
+            #     base_url=os.path.abspath(self.upload_dir),  # Para encontrar assets como logo
+            #     encoding='utf-8'
+            # )
             
             # Gerar PDF sem qualquer CSS adicional
-            html_doc.write_pdf(output_path)
+            # html_doc.write_pdf(output_path)
             
+            # Por enquanto, criar um arquivo de texto como placeholder
+            with open(output_path.replace('.pdf', '.txt'), 'w', encoding='utf-8') as f:
+                f.write("PDF temporariamente desabilitado - WeasyPrint não disponível no Windows\n")
+                f.write("Conteúdo HTML:\n")
+                f.write(html_content[:1000] + "...")
+            
+            print("⚠️ PDF temporariamente desabilitado - usando arquivo de texto")
             
         except Exception as e:
             print(f"❌ Erro ao gerar PDF: {e}")

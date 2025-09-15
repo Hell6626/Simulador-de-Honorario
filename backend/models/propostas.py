@@ -42,6 +42,7 @@ class Proposta(db.Model, TimestampMixin, ActiveMixin):
     cliente = db.relationship('Cliente', lazy='joined')
     funcionario_responsavel = db.relationship('Funcionario', foreign_keys=[funcionario_responsavel_id], lazy='joined')
     aprovador = db.relationship('Funcionario', foreign_keys=[aprovada_por], lazy='joined')
+    entidade_juridica = db.relationship('EntidadeJuridica', back_populates='propostas')
     
     def __repr__(self):
         return f'<Proposta {self.numero}>'

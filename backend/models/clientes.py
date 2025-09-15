@@ -120,6 +120,9 @@ class EntidadeJuridica(db.Model, TimestampMixin, ActiveMixin):
     cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id'), nullable=False, index=True)
     endereco_id = db.Column(db.Integer, db.ForeignKey('endereco.id'), nullable=True, index=True)
     
+    # Relacionamentos
+    propostas = db.relationship('Proposta', back_populates='entidade_juridica', lazy='dynamic')
+
     def __repr__(self):
         return f'<EntidadeJuridica {self.nome}>'
     
